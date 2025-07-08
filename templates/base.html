@@ -81,29 +81,56 @@
     <!-- Bootstrap JS - Load immediately for dropdown functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Fallback dropdown functionality -->
+    <!-- Enhanced dropdown functionality -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Add click handler for admin dropdown
-            const adminDropdown = document.getElementById('userDropdown');
-            if (adminDropdown) {
-                adminDropdown.addEventListener('click', function(e) {
+            // Initialize Bootstrap dropdowns
+            var dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
+            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+                return new bootstrap.Dropdown(dropdownToggleEl);
+            });
+            
+            // Fix dropdown on mobile and desktop
+            const userDropdown = document.getElementById('userDropdown');
+            if (userDropdown) {
+                // Remove any existing event listeners
+                const newDropdown = userDropdown.cloneNode(true);
+                userDropdown.parentNode.replaceChild(newDropdown, userDropdown);
+                
+                // Add fresh click handler
+                newDropdown.addEventListener('click', function(e) {
                     e.preventDefault();
+                    e.stopPropagation();
+                    
                     const dropdownMenu = this.nextElementSibling;
-                    if (dropdownMenu) {
-                        dropdownMenu.classList.toggle('show');
+                    if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+                        // Toggle the dropdown menu
+                        if (dropdownMenu.classList.contains('show')) {
+                            dropdownMenu.classList.remove('show');
+                            this.setAttribute('aria-expanded', 'false');
+                        } else {
+                            // Close other dropdowns first
+                            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                                menu.classList.remove('show');
+                            });
+                            dropdownMenu.classList.add('show');
+                            this.setAttribute('aria-expanded', 'true');
+                        }
                     }
                 });
             }
             
-            // Close dropdown when clicking outside
+            // Close dropdowns when clicking outside
             document.addEventListener('click', function(e) {
-                const dropdowns = document.querySelectorAll('.dropdown-menu');
-                dropdowns.forEach(function(dropdown) {
-                    if (!dropdown.closest('.dropdown').contains(e.target)) {
-                        dropdown.classList.remove('show');
-                    }
-                });
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                        menu.classList.remove('show');
+                        const toggle = menu.previousElementSibling;
+                        if (toggle) {
+                            toggle.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                }
             });
         });
     </script>
