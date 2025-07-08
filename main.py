@@ -122,6 +122,7 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_DOMAIN'] = None  # Allow all domains in development
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # 2-hour session timeout
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(hours=2)  # Match session timeout
 
 # Add custom Jinja2 filters for math functions needed by charts
 import math
@@ -168,7 +169,6 @@ login_manager.login_view = 'login'
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token timeout
 app.config['WTF_CSRF_SSL_STRICT'] = False  # Allow CSRF over HTTP in development
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # More lenient CSRF checking
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
@@ -599,7 +599,8 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
-            login_user(user, duration=timedelta(hours=2))  # Session timeout
+            login_user(user, remember=True, duration=timedelta(hours=2))  # Session timeout
+            session.permanent = True
             flash('Login successful!', 'success')
             next_page = request.args.get('next')
             # Redirect admin users to admin dashboard by default
