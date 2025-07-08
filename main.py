@@ -2802,14 +2802,18 @@ def visualization_data():
 def draw_details(lottery_type, draw_number):
     """Show detailed information for a specific draw"""
     try:
-        # Map display lottery type to database lottery type
+        # Map display lottery type to database lottery type - use correct database names
         db_lottery_type = lottery_type
         if lottery_type == 'Lottery':
-            db_lottery_type = 'Lotto'
+            db_lottery_type = 'LOTTO'
         elif lottery_type == 'Powerball':
-            db_lottery_type = 'PowerBall'
+            db_lottery_type = 'POWERBALL'
         elif lottery_type == 'Daily Lottery':
-            db_lottery_type = 'Daily Lotto'
+            db_lottery_type = 'DAILY LOTTO'
+        elif lottery_type == 'DAILY_LOTTO':
+            db_lottery_type = 'DAILY LOTTO'
+        elif lottery_type == 'DAILY LOTTO':
+            db_lottery_type = 'DAILY LOTTO'
         
         # Query for the specific draw (draw_number is stored as integer)
         try:
@@ -2818,31 +2822,98 @@ def draw_details(lottery_type, draw_number):
             flash(f"Invalid draw number: {draw_number}", "error")
             return redirect(url_for('lottery_results', lottery_type=lottery_type))
             
-        result = LotteryResult.query.filter_by(
-            lottery_type=db_lottery_type,
-            draw_number=draw_num_int
-        ).first()
+        # Use the correct model name from our database
+        from sqlalchemy import text
+        query = text("""
+            SELECT * FROM lottery_results 
+            WHERE lottery_type = :lottery_type AND draw_number = :draw_number
+            LIMIT 1
+        """)
+        result = db.session.execute(query, {
+            'lottery_type': db_lottery_type,
+            'draw_number': draw_num_int
+        }).fetchone()
         
         if not result:
             flash(f"Draw {draw_number} not found for {lottery_type}", "warning")
             return redirect(url_for('lottery_results', lottery_type=lottery_type))
         
-        # Get previous and next draws for navigation
-        prev_draw = LotteryResult.query.filter(
-            LotteryResult.lottery_type == db_lottery_type,
-            LotteryResult.draw_date < result.draw_date
-        ).order_by(LotteryResult.draw_date.desc()).first()
+        # Get previous and next draws for navigation using raw SQL
+        prev_query = text("""
+            SELECT * FROM lottery_results 
+            WHERE lottery_type = :lottery_type AND draw_date < :draw_date
+            ORDER BY draw_date DESC, draw_number DESC
+            LIMIT 1
+        """)
+        prev_draw = db.session.execute(prev_query, {
+            'lottery_type': db_lottery_type,
+            'draw_date': result.draw_date
+        }).fetchone()
         
-        next_draw = LotteryResult.query.filter(
-            LotteryResult.lottery_type == db_lottery_type,
-            LotteryResult.draw_date > result.draw_date
-        ).order_by(LotteryResult.draw_date.asc()).first()
+        next_query = text("""
+            SELECT * FROM lottery_results 
+            WHERE lottery_type = :lottery_type AND draw_date > :draw_date
+            ORDER BY draw_date ASC, draw_number ASC
+            LIMIT 1
+        """)
+        next_draw = db.session.execute(next_query, {
+            'lottery_type': db_lottery_type,
+            'draw_date': result.draw_date
+        }).fetchone()
+        
+        # Create wrapper objects for the template
+        import json
+        
+        class DrawResult:
+            def __init__(self, row):
+                self.lottery_type = row.lottery_type
+                self.draw_number = row.draw_number
+                self.draw_date = row.draw_date if hasattr(row, 'draw_date') and row.draw_date else None
+                self.main_numbers = row.main_numbers
+                self.bonus_numbers = row.bonus_numbers
+                self.divisions = getattr(row, 'divisions', None)
+                self.source_url = getattr(row, 'source_url', None)
+                
+            def get_numbers_list(self):
+                """Get main numbers as a list"""
+                try:
+                    if isinstance(self.main_numbers, str):
+                        return json.loads(self.main_numbers)
+                    return self.main_numbers or []
+                except:
+                    return []
+                    
+            def get_bonus_numbers_list(self):
+                """Get bonus numbers as a list"""
+                try:
+                    if isinstance(self.bonus_numbers, str):
+                        return json.loads(self.bonus_numbers)
+                    return self.bonus_numbers or []
+                except:
+                    return []
+                    
+            def get_parsed_divisions(self):
+                """Get parsed divisions data"""
+                try:
+                    if self.divisions:
+                        if isinstance(self.divisions, str):
+                            return json.loads(self.divisions)
+                        return self.divisions
+                    return {}
+                except:
+                    return {}
+        
+        result_obj = DrawResult(result)
+        prev_obj = DrawResult(prev_draw) if prev_draw else None
+        next_obj = DrawResult(next_draw) if next_draw else None
+        
+        app.logger.info(f"Created result object: lottery_type={result_obj.lottery_type}, draw_number={result_obj.draw_number}, draw_date={result_obj.draw_date}")
         
         return render_template('draw_details.html',
-                             result=result,
+                             result=result_obj,
                              lottery_type=lottery_type,
-                             prev_draw=prev_draw,
-                             next_draw=next_draw)
+                             prev_draw=prev_obj,
+                             next_draw=next_obj)
                              
     except Exception as e:
         app.logger.error(f"Error in draw_details: {e}")

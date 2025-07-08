@@ -102,7 +102,13 @@
                     </div>
                     <div class="info-item">
                         <label class="info-label">Draw Date:</label>
-                        <div class="info-value">{{ result.draw_date.strftime('%A, %B %d, %Y') }}</div>
+                        <div class="info-value">
+                            {% if result.draw_date %}
+                                {{ result.draw_date.strftime('%A, %B %d, %Y') }}
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="info-item">
                         <label class="info-label">Data Source:</label>
@@ -172,8 +178,13 @@
                     </div>
                     {% endif %}
                     <div class="stat-item">
-                        <div class="stat-value">{{ result.draw_date.strftime('%d') }}</div>
-                        <div class="stat-label">{{ result.draw_date.strftime('%b') }}</div>
+                        {% if result.draw_date %}
+                            <div class="stat-value">{{ result.draw_date.strftime('%d') }}</div>
+                            <div class="stat-label">{{ result.draw_date.strftime('%b') }}</div>
+                        {% else %}
+                            <div class="stat-value">--</div>
+                            <div class="stat-label">Date</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -200,8 +211,8 @@
                                 <tr>
                                     <td><strong>DIV {{ division.division }}</strong></td>
                                     <td>{{ division.description }}</td>
-                                    <td>{{ "{:,}".format(division.winners) }}</td>
-                                    <td>R{{ "{:,.2f}".format(division.prize_amount) }}</td>
+                                    <td>{{ division.winners if division.winners is not none else 0 }}</td>
+                                    <td>{{ division.prize if division.prize else 'R0.00' }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -218,7 +229,7 @@
                             <div class="col-md-4">
                                 <div class="financial-info-card">
                                     <div class="financial-label">Rollover Amount</div>
-                                    <div class="financial-value">R{{ "{:,.2f}".format(result.rollover_amount) }}</div>
+                                    <div class="financial-value">{{ result.rollover_amount if result.rollover_amount else 'R0.00' }}</div>
                                 </div>
                             </div>
                             {% endif %}
@@ -226,7 +237,7 @@
                             <div class="col-md-4">
                                 <div class="financial-info-card">
                                     <div class="financial-label">Next Estimated Jackpot</div>
-                                    <div class="financial-value">R{{ "{:,.2f}".format(result.next_jackpot) }}</div>
+                                    <div class="financial-value">{{ result.next_jackpot if result.next_jackpot else 'R0.00' }}</div>
                                 </div>
                             </div>
                             {% endif %}
@@ -234,7 +245,7 @@
                             <div class="col-md-4">
                                 <div class="financial-info-card">
                                     <div class="financial-label">Total Prize Pool</div>
-                                    <div class="financial-value">R{{ "{:,.2f}".format(result.total_pool_size) }}</div>
+                                    <div class="financial-value">{{ result.total_pool_size if result.total_pool_size else 'R0.00' }}</div>
                                 </div>
                             </div>
                             {% endif %}
