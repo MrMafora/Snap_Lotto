@@ -120,6 +120,7 @@ if not app.config.get('SECRET_KEY'):
 app.config['SESSION_COOKIE_SECURE'] = False  # False for development, True for production
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_DOMAIN'] = None  # Allow all domains in development
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # 2-hour session timeout
 
 # Add custom Jinja2 filters for math functions needed by charts
@@ -167,6 +168,7 @@ login_manager.login_view = 'login'
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token timeout
 app.config['WTF_CSRF_SSL_STRICT'] = False  # Allow CSRF over HTTP in development
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # More lenient CSRF checking
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
@@ -525,13 +527,13 @@ def debug_data():
         return {'error': str(e)}
 
 
-@app.route('/admin')
+@app.route('/admin', methods=['GET'])
 @login_required
 def admin():
     """Admin dashboard for system administration"""
     if not current_user.is_admin:
         flash('You must be an admin to access this page.', 'danger')
-        return redirect(url_for('home'))
+        return redirect(url_for('index'))
     
     # Get basic system statistics
     system_stats = {
