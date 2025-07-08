@@ -286,15 +286,15 @@ tbody, td, th {
 
 /* Number balls - SA Lottery style */
 .lottery-ball {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     margin: 0 3px;
     font-weight: bold;
-    font-size: 16px;
-    color: #333;
+    font-size: 20px;
+    color: #fff;
     border-radius: 50%;
     position: relative;
     border: 2px solid #fff;
@@ -304,21 +304,21 @@ tbody, td, th {
 /* Mobile lottery ball optimization - readable sizing */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 28px !important;
-        height: 28px !important;
-        font-size: 12px !important;
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
         margin: 0 2px !important;
         border: 1px solid #fff !important;
-        line-height: 28px !important;
+        line-height: 36px !important;
         font-weight: bold !important;
     }
     
     .lottery-ball-mobile {
-        width: 28px !important;
-        height: 28px !important;
-        font-size: 12px !important;
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
         margin: 2px !important;
-        line-height: 28px !important;
+        line-height: 36px !important;
         font-weight: bold !important;
     }
 }
@@ -326,28 +326,28 @@ tbody, td, th {
 /* Extra small mobile screens - maintain readability */
 @media (max-width: 400px) {
     .lottery-ball {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 11px !important;
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 14px !important;
         margin: 0 1px !important;
-        line-height: 24px !important;
+        line-height: 32px !important;
         font-weight: bold !important;
     }
     
     .lottery-ball-mobile {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 11px !important;
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 14px !important;
         margin: 1px !important;
-        line-height: 24px !important;
+        line-height: 32px !important;
         font-weight: bold !important;
     }
     
     .lottery-ball-bonus {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 11px !important;
-        line-height: 24px !important;
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 14px !important;
+        line-height: 32px !important;
         font-weight: bold !important;
     }
 }
