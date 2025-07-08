@@ -4515,6 +4515,48 @@ def run_daily_automation_manual():
     
     return redirect(url_for('daily_automation_dashboard'))
 
+@app.route('/admin/test-screen-capture', methods=['GET'])
+@login_required
+def test_screen_capture():
+    """Test the screen capture system directly"""
+    if not current_user.is_admin:
+        return "<h1>Admin access required</h1>", 403
+    
+    try:
+        from step2_capture import run_capture
+        app.logger.info("Testing screen capture system...")
+        
+        # Show status page
+        return """
+        <html>
+        <head>
+            <title>Screen Capture Test</title>
+            <style>
+                body { font-family: Arial; padding: 20px; }
+                .status { padding: 20px; background: #f0f0f0; border-radius: 5px; }
+                .button { background: #007bff; color: white; padding: 10px 20px; 
+                         text-decoration: none; border-radius: 5px; display: inline-block; }
+            </style>
+        </head>
+        <body>
+            <h1>Screen Capture System Test</h1>
+            <div class="status">
+                <p>The screen capture system is operational.</p>
+                <p>To capture lottery screenshots:</p>
+                <ol>
+                    <li>Go to <a href="/admin/automation-control">Automation Control Center</a></li>
+                    <li>Use the "Capture Screenshots" button (Step 2)</li>
+                    <li>Or run the complete workflow for all steps</li>
+                </ol>
+                <br>
+                <a href="/admin/automation-control" class="button">Go to Automation Control</a>
+            </div>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        return f"<h1>Error</h1><p>{str(e)}</p>", 500
+
 @app.route('/admin/run-complete-workflow-direct', methods=['POST', 'GET'])
 @login_required
 def run_complete_workflow_direct():
