@@ -1,0 +1,50 @@
+/* Dropdown Fix for Admin Navigation */
+.dropdown-toggle::after {
+    pointer-events: none;
+}
+
+.dropdown-toggle {
+    cursor: pointer !important;
+}
+
+.dropdown-menu {
+    position: absolute !important;
+    z-index: 1050 !important;
+}
+
+/* Ensure dropdown works on both mobile and desktop */
+@media (max-width: 991px) {
+    .dropdown-menu-end {
+        right: 0;
+        left: auto;
+    }
+}
+
+/* Force dropdown to be clickable */
+#userDropdown {
+    position: relative;
+    z-index: 1000;
+}
+
+/* Show dropdown menu when active */
+.dropdown-menu.show {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+/* Improve dropdown visibility */
+.dropdown-menu {
+    background-color: white;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: .25rem;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.175);
+}
+
+/* Make entire dropdown toggle area clickable */
+.navbar-nav .dropdown {
+    position: relative;
+}
+
+.navbar-nav .dropdown-toggle {
+    padding-right: 1.5rem !important;
+}

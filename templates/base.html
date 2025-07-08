@@ -64,6 +64,7 @@
     <link rel="preload" href="{{ url_for('static', filename='css/lottery.css') }}?v=20250608" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
     <link rel="preload" href="{{ url_for('static', filename='css/badge-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="{{ url_for('static', filename='css/dropdown-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     
@@ -74,6 +75,7 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}?v=20250608">
 
         <link rel="stylesheet" href="{{ url_for('static', filename='css/badge-fix.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dropdown-fix.css') }}">
     
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </noscript>
@@ -81,57 +83,53 @@
     <!-- Bootstrap JS - Load immediately for dropdown functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Enhanced dropdown functionality -->
+    <!-- Simple dropdown functionality -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Bootstrap dropdowns
-            var dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
-            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
-                return new bootstrap.Dropdown(dropdownToggleEl);
-            });
-            
-            // Fix dropdown on mobile and desktop
-            const userDropdown = document.getElementById('userDropdown');
-            if (userDropdown) {
-                // Remove any existing event listeners
-                const newDropdown = userDropdown.cloneNode(true);
-                userDropdown.parentNode.replaceChild(newDropdown, userDropdown);
+            // Wait a bit for Bootstrap to initialize
+            setTimeout(function() {
+                const userDropdown = document.getElementById('userDropdown');
+                const dropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
                 
-                // Add fresh click handler
-                newDropdown.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const dropdownMenu = this.nextElementSibling;
-                    if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
-                        // Toggle the dropdown menu
-                        if (dropdownMenu.classList.contains('show')) {
-                            dropdownMenu.classList.remove('show');
+                if (userDropdown && dropdownMenu) {
+                    // Simple click handler
+                    userDropdown.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Toggle dropdown
+                        if (dropdownMenu.style.display === 'block') {
+                            dropdownMenu.style.display = 'none';
                             this.setAttribute('aria-expanded', 'false');
                         } else {
-                            // Close other dropdowns first
-                            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
-                                menu.classList.remove('show');
-                            });
-                            dropdownMenu.classList.add('show');
+                            dropdownMenu.style.display = 'block';
                             this.setAttribute('aria-expanded', 'true');
-                        }
-                    }
-                });
-            }
-            
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.dropdown')) {
-                    document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
-                        menu.classList.remove('show');
-                        const toggle = menu.previousElementSibling;
-                        if (toggle) {
-                            toggle.setAttribute('aria-expanded', 'false');
+                            
+                            // Position the dropdown
+                            const rect = this.getBoundingClientRect();
+                            dropdownMenu.style.position = 'absolute';
+                            dropdownMenu.style.top = (rect.bottom - rect.top) + 'px';
+                            dropdownMenu.style.right = '0';
                         }
                     });
+                    
+                    // Close on click outside
+                    document.addEventListener('click', function(e) {
+                        if (!userDropdown.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                            dropdownMenu.style.display = 'none';
+                            userDropdown.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                    
+                    // Close on item click
+                    dropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
+                        item.addEventListener('click', function() {
+                            dropdownMenu.style.display = 'none';
+                            userDropdown.setAttribute('aria-expanded', 'false');
+                        });
+                    });
                 }
-            });
+            }, 100);
         });
     </script>
     <!-- Mobile optimization -->
