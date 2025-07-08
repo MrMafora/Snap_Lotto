@@ -179,12 +179,10 @@ app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token timeout
 app.config['WTF_CSRF_SSL_STRICT'] = False  # Allow CSRF over HTTP in development
 app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Re-enable CSRF checking
+app.config['WTF_CSRF_METHODS'] = ['POST', 'PUT', 'PATCH', 'DELETE']  # Only check these methods
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
-
-# Exempt development login helper from CSRF
-csrf.exempt('/dev-quick-login')
 
 # PHASE 1 SECURITY: Form validation classes
 class LoginForm(FlaskForm):
@@ -621,19 +619,62 @@ def dev_login_helper():
                 Username: admin<br>
                 Password: admin123
             </p>
+            <p style="margin-top: 20px;">Or use direct GET login (no CSRF required):</p>
+            <a href="/dev-auto-login" style="display: inline-block; padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">
+                Auto Login as Admin (GET)
+            </a>
         </div>
         '''
     return redirect(url_for('login'))
 
-@app.route('/dev-quick-login', methods=['POST'])
+@app.route('/dev-quick-login', methods=['GET', 'POST'])
+@csrf.exempt
 def dev_quick_login():
     """Quick login for development environment"""
-    if os.environ.get('REPL_ID') and request.form.get('username') == 'admin':
+    if os.environ.get('REPL_ID'):
+        # For GET requests, show a simple form
+        if request.method == 'GET':
+            return '''
+            <form method="POST" action="/dev-quick-login">
+                <input type="hidden" name="bypass_csrf" value="true">
+                <button type="submit">Click to Login as Admin</button>
+            </form>
+            '''
+        # For POST requests, do the login
         admin_user = User.query.filter_by(username='admin').first()
         if admin_user:
             login_user(admin_user, remember=True)
             session.permanent = True
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin'))
+    return redirect(url_for('login'))
+
+@app.route('/dev-auto-login')
+@csrf.exempt
+def dev_auto_login():
+    """Auto login for development - GET request without CSRF"""
+    if os.environ.get('REPL_ID'):
+        admin_user = User.query.filter_by(username='admin').first()
+        if admin_user and admin_user.is_admin:
+            login_user(admin_user, remember=True, force=True)
+            session.permanent = True
+            session['_fresh'] = True  # Force fresh session
+            app.logger.info(f"Dev auto-login successful for user: {admin_user.username}")
+            flash('Development auto-login successful', 'success')
+            # Return success page instead of redirect to avoid session loss
+            return '''
+            <html>
+            <head>
+                <meta http-equiv="refresh" content="2;url=/admin">
+                <title>Login Successful</title>
+            </head>
+            <body style="padding: 20px; font-family: Arial;">
+                <h2>✓ Login Successful!</h2>
+                <p>You are now logged in as admin.</p>
+                <p>Redirecting to admin dashboard in 2 seconds...</p>
+                <a href="/admin">Click here if not redirected</a>
+            </body>
+            </html>
+            '''
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
