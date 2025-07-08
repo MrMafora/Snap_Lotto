@@ -136,9 +136,13 @@ app.config['SESSION_COOKIE_NAME'] = 'snaplotto_session'  # Unique session name
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
 
-# Configure app to disable CSRF for specific endpoints
+# Configure CSRF exemptions after initialization
+def setup_csrf_exemptions():
+    csrf._exempt_views.add('main.run_complete_workflow_direct')
+    csrf._exempt_views.add('main.run_complete_workflow')
+
+# Call this after routes are defined
 app.config['WTF_CSRF_ENABLED'] = True
-app.config['WTF_CSRF_CHECK_DEFAULT'] = True
 
 # Add custom Jinja2 filters for math functions needed by charts
 import math
@@ -5168,6 +5172,9 @@ if __name__ == "__main__":
     
     # Use port 5000 for deployment compatibility
     port = int(os.environ.get('PORT', 5000))
+    
+    # Setup CSRF exemptions before starting
+    setup_csrf_exemptions()
     
     # Start Flask app
     print(f"Starting Flask application on 0.0.0.0:{port}...")
