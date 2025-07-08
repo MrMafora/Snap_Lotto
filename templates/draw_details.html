@@ -220,7 +220,7 @@
                 </div>
                 
                 <!-- Financial Summary -->
-                {% if result.rollover_amount or result.next_jackpot or result.total_pool_size %}
+                {% if result.rollover_amount or result.next_jackpot or result.total_pool_size or result.total_sales or result.draw_machine %}
                 <div class="row mt-4">
                     <div class="col-12">
                         <h6 class="mb-3">Financial Information</h6>
@@ -229,7 +229,7 @@
                             <div class="col-md-4">
                                 <div class="financial-info-card">
                                     <div class="financial-label">Rollover Amount</div>
-                                    <div class="financial-value">{{ result.rollover_amount if result.rollover_amount else 'R0.00' }}</div>
+                                    <div class="financial-value">R{{ "{:,.2f}".format(result.rollover_amount|float) if result.rollover_amount else '0.00' }}</div>
                                 </div>
                             </div>
                             {% endif %}
@@ -237,7 +237,7 @@
                             <div class="col-md-4">
                                 <div class="financial-info-card">
                                     <div class="financial-label">Next Estimated Jackpot</div>
-                                    <div class="financial-value">{{ result.next_jackpot if result.next_jackpot else 'R0.00' }}</div>
+                                    <div class="financial-value">R{{ "{:,.2f}".format(result.next_jackpot|float) if result.next_jackpot else '0.00' }}</div>
                                 </div>
                             </div>
                             {% endif %}
@@ -245,7 +245,31 @@
                             <div class="col-md-4">
                                 <div class="financial-info-card">
                                     <div class="financial-label">Total Prize Pool</div>
-                                    <div class="financial-value">{{ result.total_pool_size if result.total_pool_size else 'R0.00' }}</div>
+                                    <div class="financial-value">R{{ "{:,.2f}".format(result.total_pool_size|float) if result.total_pool_size else '0.00' }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if result.total_sales %}
+                            <div class="col-md-4">
+                                <div class="financial-info-card">
+                                    <div class="financial-label">Total Sales</div>
+                                    <div class="financial-value">R{{ "{:,.2f}".format(result.total_sales|float) if result.total_sales else '0.00' }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if result.draw_machine %}
+                            <div class="col-md-4">
+                                <div class="financial-info-card">
+                                    <div class="financial-label">Draw Machine</div>
+                                    <div class="financial-value">{{ result.draw_machine }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if result.next_draw_date %}
+                            <div class="col-md-4">
+                                <div class="financial-info-card">
+                                    <div class="financial-label">Next Draw Date</div>
+                                    <div class="financial-value">{{ result.next_draw_date if result.next_draw_date else 'TBD' }}</div>
                                 </div>
                             </div>
                             {% endif %}

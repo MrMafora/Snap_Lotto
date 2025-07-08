@@ -2825,7 +2825,9 @@ def draw_details(lottery_type, draw_number):
         # Use the correct model name from our database
         from sqlalchemy import text
         query = text("""
-            SELECT * FROM lottery_results 
+            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions,
+                   rollover_amount, total_pool_size, total_sales, next_jackpot, draw_machine, next_draw_date, created_at
+            FROM lottery_results 
             WHERE lottery_type = :lottery_type AND draw_number = :draw_number
             LIMIT 1
         """)
@@ -2873,6 +2875,14 @@ def draw_details(lottery_type, draw_number):
                 self.bonus_numbers = row.bonus_numbers
                 self.divisions = getattr(row, 'divisions', None)
                 self.source_url = getattr(row, 'source_url', None)
+                # Financial information
+                self.rollover_amount = getattr(row, 'rollover_amount', None)
+                self.total_pool_size = getattr(row, 'total_pool_size', None)
+                self.total_sales = getattr(row, 'total_sales', None)
+                self.next_jackpot = getattr(row, 'next_jackpot', None)
+                self.draw_machine = getattr(row, 'draw_machine', None)
+                self.next_draw_date = getattr(row, 'next_draw_date', None)
+                self.created_at = getattr(row, 'created_at', None)
                 
             def get_numbers_list(self):
                 """Get main numbers as a list"""
