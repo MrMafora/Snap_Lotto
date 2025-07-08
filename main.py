@@ -183,6 +183,9 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Re-enable CSRF checking
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
 
+# Exempt development login helper from CSRF
+csrf.exempt('/dev-quick-login')
+
 # PHASE 1 SECURITY: Form validation classes
 class LoginForm(FlaskForm):
     username = StringField('Username', [
@@ -613,6 +616,11 @@ def dev_login_helper():
                     Quick Admin Login (Development Only)
                 </button>
             </form>
+            <p style="margin-top: 20px; color: #666;">
+                <strong>Admin credentials:</strong><br>
+                Username: admin<br>
+                Password: admin123
+            </p>
         </div>
         '''
     return redirect(url_for('login'))
