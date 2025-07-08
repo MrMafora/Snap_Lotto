@@ -473,9 +473,9 @@
                                         {% set display_type = display_type.replace('LOTTO', 'LOTTERY') %}
                                     {% endif %}
                                     
-                                    {% if 'POWERBALL' in display_type %}
+                                    {% if 'POWERBALL' in display_type.upper() %}
                                         <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
-                                    {% elif 'DAILY' in display_type %}
+                                    {% elif 'DAILY' in display_type.upper() %}
                                         <span class="game-type-badge game-type-daily">{{ display_type }}</span>
                                     {% else %}
                                         <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
@@ -540,9 +540,9 @@
                                     {% set display_type = display_type.replace('LOTTO', 'LOTTERY') %}
                                 {% endif %}
                                 
-                                {% if 'POWERBALL' in display_type %}
+                                {% if 'POWERBALL' in display_type.upper() %}
                                     <span class="game-type-badge game-type-powerball mobile-badge">{{ display_type }}</span>
-                                {% elif 'DAILY' in display_type %}
+                                {% elif 'DAILY' in display_type.upper() %}
                                     <span class="game-type-badge game-type-daily mobile-badge">{{ display_type }}</span>
                                 {% else %}
                                     <span class="game-type-badge game-type-lottery mobile-badge">{{ display_type }}</span>
