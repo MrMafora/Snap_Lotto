@@ -76,6 +76,34 @@
     white-space: nowrap;
 }
 
+/* Ensure table stays compact and fits on one line */
+.table-lottery tr {
+    height: 35px;
+}
+
+.table-lottery th, .table-lottery td {
+    padding: 4px 6px !important;
+    vertical-align: middle !important;
+    font-size: 0.85rem !important;
+}
+
+/* Specific column widths for prize divisions */
+.table-lottery th:nth-child(1), .table-lottery td:nth-child(1) {
+    width: 15% !important;
+}
+
+.table-lottery th:nth-child(2), .table-lottery td:nth-child(2) {
+    width: 15% !important;
+}
+
+.table-lottery th:nth-child(3), .table-lottery td:nth-child(3) {
+    width: 25% !important;
+}
+
+.table-lottery th:nth-child(4), .table-lottery td:nth-child(4) {
+    width: 45% !important;
+}
+
 /* Specific column widths for results table */
 /* GAME TYPE column */
 .table th:nth-child(1),
