@@ -186,36 +186,52 @@ def index():
                         result_obj.draw_machine = row[10]
                         result_obj.next_draw_date = row[11]
                         
-                        # Add the required methods
-                        def get_numbers_list():
-                            if isinstance(result_obj.numbers, str):
+                        # Add the required methods with proper closure
+                        def make_get_numbers_list(obj):
+                            def get_numbers_list():
+                                logger.info(f"Getting numbers for {obj.lottery_type}: {obj.numbers} (type: {type(obj.numbers)})")
+                                if isinstance(obj.numbers, str):
+                                    try:
+                                        parsed = json.loads(obj.numbers)
+                                        logger.info(f"Parsed JSON numbers: {parsed}")
+                                        return parsed
+                                    except Exception as e:
+                                        logger.error(f"Failed to parse JSON: {e}")
+                                        return []
+                                logger.info(f"Returning numbers directly: {obj.numbers}")
+                                return obj.numbers or []
+                            return get_numbers_list
+                        
+                        def make_get_bonus_numbers_list(obj):
+                            def get_bonus_numbers_list():
+                                logger.debug(f"Getting bonus numbers for {obj.lottery_type}: {obj.bonus_numbers} (type: {type(obj.bonus_numbers)})")
+                                if isinstance(obj.bonus_numbers, str):
+                                    try:
+                                        parsed = json.loads(obj.bonus_numbers)
+                                        logger.debug(f"Parsed JSON bonus numbers: {parsed}")
+                                        return parsed
+                                    except Exception as e:
+                                        logger.debug(f"Failed to parse bonus JSON: {e}")
+                                        return []
+                                logger.debug(f"Returning bonus numbers directly: {obj.bonus_numbers}")
+                                return obj.bonus_numbers or []
+                            return get_bonus_numbers_list
+                        
+                        def make_get_parsed_divisions(obj):
+                            def get_parsed_divisions():
+                                if not obj.divisions or obj.divisions == '[]':
+                                    return []
                                 try:
-                                    return json.loads(result_obj.numbers)
+                                    if isinstance(obj.divisions, str):
+                                        return json.loads(obj.divisions)
+                                    return obj.divisions
                                 except:
                                     return []
-                            return result_obj.numbers or []
+                            return get_parsed_divisions
                         
-                        def get_bonus_numbers_list():
-                            if isinstance(result_obj.bonus_numbers, str):
-                                try:
-                                    return json.loads(result_obj.bonus_numbers)
-                                except:
-                                    return []
-                            return result_obj.bonus_numbers or []
-                        
-                        def get_parsed_divisions():
-                            if not result_obj.divisions or result_obj.divisions == '[]':
-                                return []
-                            try:
-                                if isinstance(result_obj.divisions, str):
-                                    return json.loads(result_obj.divisions)
-                                return result_obj.divisions
-                            except:
-                                return []
-                        
-                        result_obj.get_numbers_list = get_numbers_list
-                        result_obj.get_bonus_numbers_list = get_bonus_numbers_list
-                        result_obj.get_parsed_divisions = get_parsed_divisions
+                        result_obj.get_numbers_list = make_get_numbers_list(result_obj)
+                        result_obj.get_bonus_numbers_list = make_get_bonus_numbers_list(result_obj)
+                        result_obj.get_parsed_divisions = make_get_parsed_divisions(result_obj)
                         
                         latest_results.append(result_obj)
         except Exception as e:
@@ -308,36 +324,42 @@ def results(lottery_type=None):
                             result_obj.draw_machine = row[10]
                             result_obj.next_draw_date = row[11]
                             
-                            # Add the required methods
-                            def get_numbers_list():
-                                if isinstance(result_obj.numbers, str):
+                            # Add the required methods with proper closure
+                            def make_get_numbers_list(obj):
+                                def get_numbers_list():
+                                    if isinstance(obj.numbers, str):
+                                        try:
+                                            return json.loads(obj.numbers)
+                                        except:
+                                            return []
+                                    return obj.numbers or []
+                                return get_numbers_list
+                            
+                            def make_get_bonus_numbers_list(obj):
+                                def get_bonus_numbers_list():
+                                    if isinstance(obj.bonus_numbers, str):
+                                        try:
+                                            return json.loads(obj.bonus_numbers)
+                                        except:
+                                            return []
+                                    return obj.bonus_numbers or []
+                                return get_bonus_numbers_list
+                            
+                            def make_get_parsed_divisions(obj):
+                                def get_parsed_divisions():
+                                    if not obj.divisions or obj.divisions == '[]':
+                                        return []
                                     try:
-                                        return json.loads(result_obj.numbers)
+                                        if isinstance(obj.divisions, str):
+                                            return json.loads(obj.divisions)
+                                        return obj.divisions
                                     except:
                                         return []
-                                return result_obj.numbers or []
+                                return get_parsed_divisions
                             
-                            def get_bonus_numbers_list():
-                                if isinstance(result_obj.bonus_numbers, str):
-                                    try:
-                                        return json.loads(result_obj.bonus_numbers)
-                                    except:
-                                        return []
-                                return result_obj.bonus_numbers or []
-                            
-                            def get_parsed_divisions():
-                                if not result_obj.divisions or result_obj.divisions == '[]':
-                                    return []
-                                try:
-                                    if isinstance(result_obj.divisions, str):
-                                        return json.loads(result_obj.divisions)
-                                    return result_obj.divisions
-                                except:
-                                    return []
-                            
-                            result_obj.get_numbers_list = get_numbers_list
-                            result_obj.get_bonus_numbers_list = get_bonus_numbers_list
-                            result_obj.get_parsed_divisions = get_parsed_divisions
+                            result_obj.get_numbers_list = make_get_numbers_list(result_obj)
+                            result_obj.get_bonus_numbers_list = make_get_bonus_numbers_list(result_obj)
+                            result_obj.get_parsed_divisions = make_get_parsed_divisions(result_obj)
                             
                             results.append(result_obj)
             except Exception as e:
@@ -357,6 +379,8 @@ def results(lottery_type=None):
             
             connection_string = os.environ.get('DATABASE_URL')
             results = []
+            
+            logger.info("=== RESULTS PAGE: Loading all lottery results ===")
             
             try:
                 with psycopg2.connect(connection_string) as conn:
@@ -385,40 +409,49 @@ def results(lottery_type=None):
                             result_obj.draw_machine = row[10]
                             result_obj.next_draw_date = row[11]
                             
-                            # Add the required methods
-                            def get_numbers_list():
-                                if isinstance(result_obj.numbers, str):
+                            # Add the required methods with proper closure
+                            def make_get_numbers_list(obj):
+                                def get_numbers_list():
+                                    if isinstance(obj.numbers, str):
+                                        try:
+                                            return json.loads(obj.numbers)
+                                        except:
+                                            return []
+                                    return obj.numbers or []
+                                return get_numbers_list
+                            
+                            def make_get_bonus_numbers_list(obj):
+                                def get_bonus_numbers_list():
+                                    if isinstance(obj.bonus_numbers, str):
+                                        try:
+                                            return json.loads(obj.bonus_numbers)
+                                        except:
+                                            return []
+                                    return obj.bonus_numbers or []
+                                return get_bonus_numbers_list
+                            
+                            def make_get_parsed_divisions(obj):
+                                def get_parsed_divisions():
+                                    if not obj.divisions or obj.divisions == '[]':
+                                        return []
                                     try:
-                                        return json.loads(result_obj.numbers)
+                                        if isinstance(obj.divisions, str):
+                                            return json.loads(obj.divisions)
+                                        return obj.divisions
                                     except:
                                         return []
-                                return result_obj.numbers or []
+                                return get_parsed_divisions
                             
-                            def get_bonus_numbers_list():
-                                if isinstance(result_obj.bonus_numbers, str):
-                                    try:
-                                        return json.loads(result_obj.bonus_numbers)
-                                    except:
-                                        return []
-                                return result_obj.bonus_numbers or []
-                            
-                            def get_parsed_divisions():
-                                if not result_obj.divisions or result_obj.divisions == '[]':
-                                    return []
-                                try:
-                                    if isinstance(result_obj.divisions, str):
-                                        return json.loads(result_obj.divisions)
-                                    return result_obj.divisions
-                                except:
-                                    return []
-                            
-                            result_obj.get_numbers_list = get_numbers_list
-                            result_obj.get_bonus_numbers_list = get_bonus_numbers_list
-                            result_obj.get_parsed_divisions = get_parsed_divisions
+                            result_obj.get_numbers_list = make_get_numbers_list(result_obj)
+                            result_obj.get_bonus_numbers_list = make_get_bonus_numbers_list(result_obj)
+                            result_obj.get_parsed_divisions = make_get_parsed_divisions(result_obj)
                             
                             results.append(result_obj)
+                            
+                logger.info(f"RESULTS PAGE: Loaded {len(results)} lottery results")
             except Exception as e:
                 logger.error(f"Direct database connection failed: {e}")
+                logger.error(traceback.format_exc())
                 results = []
             
             return render_template('results.html', results=results)
