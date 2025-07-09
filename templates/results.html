@@ -106,12 +106,12 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
                     <li><a class="dropdown-item" href="{{ url_for('results') }}">All Types</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery') }}">Lottery</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery Plus 1') }}">Lottery Plus 1</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery Plus 2') }}">Lottery Plus 2</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball') }}">Powerball</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Daily Lottery') }}">Daily Lottery</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lottery') }}">Lottery</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lottery Plus 1') }}">Lottery Plus 1</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lottery Plus 2') }}">Lottery Plus 2</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball') }}">Powerball</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Daily Lottery') }}">Daily Lottery</a></li>
                 </ul>
             </div>
         </div>
