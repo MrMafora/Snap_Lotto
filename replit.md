@@ -19,6 +19,12 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
+- **COMPLETED: Lottery Display Ordering Fix (July 9, 2025)**
+  - Fixed missing main "POWERBALL" lottery type by standardizing database casing ("PowerBall" → "POWERBALL")
+  - Implemented proper display ordering for all 6 lottery types: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO
+  - Added ordering logic to both homepage and results pages for consistent display sequence
+  - Verified all 6 authentic lottery types displaying correctly with 123 total lottery balls
+  - All lottery numbers confirmed authentic and extracted from database: LOTTO [11,15,30,31,38,43], LOTTO PLUS 1 [1,13,27,28,41,51], LOTTO PLUS 2 [2,5,6,40,43,46], POWERBALL [3,5,23,35,43], POWERBALL PLUS [11,15,16,20,29], DAILY LOTTO [14,17,20,21,24]
 - **COMPLETED: PostgreSQL Type Compatibility and Data Display Fix (July 9, 2025)**
   - Resolved critical "Unknown PG numeric type: 1043" error causing all database queries to fail
   - Implemented direct psycopg2 database connections to bypass SQLAlchemy type handling issues

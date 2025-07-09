@@ -238,14 +238,24 @@ def index():
             logger.error(f"Direct database connection failed: {e}")
             latest_results = []
         
-        # Get unique lottery types with their latest results
-        seen_types = set()
-        unique_results = []
-        for result in latest_results:
-            if result.lottery_type not in seen_types:
-                seen_types.add(result.lottery_type)
-                unique_results.append(result)
+        # Get unique lottery types with their latest results in proper order
+        # Define the correct display order
+        ordered_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
         
+        # Create a dictionary for quick lookup
+        results_by_type = {}
+        for result in latest_results:
+            if result.lottery_type not in results_by_type:
+                results_by_type[result.lottery_type] = result
+        
+        # Build unique_results in the correct order
+        unique_results = []
+        for lottery_type in ordered_types:
+            if lottery_type in results_by_type:
+                unique_results.append(results_by_type[lottery_type])
+        
+        # Debug: Log the ordering
+        logger.info(f"HOMEPAGE: Ordered lottery types: {[r.lottery_type for r in unique_results]}")
         logger.info(f"HOMEPAGE: Loaded {len(unique_results)} results from database")
         
         # Get frequency analysis for homepage charts
@@ -389,7 +399,17 @@ def results(lottery_type=None):
                             SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
                                    rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
                             FROM lottery_result 
-                            ORDER BY draw_date DESC 
+                            ORDER BY 
+                                CASE lottery_type
+                                    WHEN 'LOTTO' THEN 1
+                                    WHEN 'LOTTO PLUS 1' THEN 2
+                                    WHEN 'LOTTO PLUS 2' THEN 3
+                                    WHEN 'POWERBALL' THEN 4
+                                    WHEN 'POWERBALL PLUS' THEN 5
+                                    WHEN 'DAILY LOTTO' THEN 6
+                                    ELSE 7
+                                END,
+                                draw_date DESC 
                             LIMIT 50
                         """)
                         
