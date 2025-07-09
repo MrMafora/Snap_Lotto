@@ -1,118 +1,174 @@
 """
 Security Utilities Module
-Extracted from main.py for better code organization (Phase 2 refactoring)
-Contains rate limiting, input validation, and security functions
+Phase 1 Security Implementation - CSRF Protection and Input Validation
 """
 
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import re
-import time
-from collections import defaultdict, deque
+import html
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, flash, redirect, url_for
+from werkzeug.exceptions import TooManyRequests
 
-class RateLimiter:
-    """In-memory rate limiter for API endpoints"""
-    def __init__(self):
-        self.requests = defaultdict(deque)
-        self.blocked_ips = defaultdict(float)
+# Initialize CSRF protection
+csrf = CSRFProtect()
+
+# Initialize rate limiter
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
+
+class RateLimitExceeded(Exception):
+    """Custom exception for rate limiting"""
+    pass
+
+def sanitize_input(input_string):
+    """
+    Sanitize user input to prevent XSS attacks
+    """
+    if not input_string:
+        return ""
     
-    def is_allowed(self, identifier, max_requests=10, window=60):
-        """Check if request is allowed under rate limit"""
-        now = time.time()
-        
-        # Check if IP is temporarily blocked
-        if identifier in self.blocked_ips:
-            if now < self.blocked_ips[identifier]:
-                return False
-            else:
-                del self.blocked_ips[identifier]
-        
-        # Clean old requests
-        while self.requests[identifier] and self.requests[identifier][0] < now - window:
-            self.requests[identifier].popleft()
-        
-        # Check rate limit
-        if len(self.requests[identifier]) >= max_requests:
-            # Block IP for 5 minutes
-            self.blocked_ips[identifier] = now + 300
-            return False
-        
-        # Add current request
-        self.requests[identifier].append(now)
-        return True
+    # HTML escape the input
+    sanitized = html.escape(str(input_string))
+    
+    # Remove potentially dangerous patterns
+    dangerous_patterns = [
+        r'<script[^>]*>.*?</script>',
+        r'javascript:',
+        r'on\w+\s*=',
+        r'<iframe[^>]*>.*?</iframe>',
+        r'<object[^>]*>.*?</object>',
+        r'<embed[^>]*>.*?</embed>',
+    ]
+    
+    for pattern in dangerous_patterns:
+        sanitized = re.sub(pattern, '', sanitized, flags=re.IGNORECASE | re.DOTALL)
+    
+    return sanitized
 
-# Global rate limiter instance
-rate_limiter = RateLimiter()
+def validate_form_data(form_data, required_fields=None, field_types=None):
+    """
+    Validate form data with type checking and required field validation
+    """
+    errors = {}
+    
+    # Check required fields
+    if required_fields:
+        for field in required_fields:
+            if field not in form_data or not form_data[field]:
+                errors[field] = f"{field} is required"
+    
+    # Check field types
+    if field_types:
+        for field, expected_type in field_types.items():
+            if field in form_data and form_data[field]:
+                try:
+                    if expected_type == 'email':
+                        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', form_data[field]):
+                            errors[field] = "Invalid email format"
+                    elif expected_type == 'int':
+                        int(form_data[field])
+                    elif expected_type == 'float':
+                        float(form_data[field])
+                    elif expected_type == 'alphanumeric':
+                        if not re.match(r'^[a-zA-Z0-9_]+$', form_data[field]):
+                            errors[field] = "Only alphanumeric characters and underscores allowed"
+                except (ValueError, TypeError):
+                    errors[field] = f"Invalid {expected_type} format"
+    
+    return errors
 
-def rate_limit(max_requests=10, window=60):
-    """Decorator for rate limiting endpoints"""
+def require_auth(f):
+    """
+    Decorator to require authentication
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask_login import current_user
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def require_admin(f):
+    """
+    Decorator to require admin privileges
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask_login import current_user
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Admin access required.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def rate_limit_api(limit="5 per minute"):
+    """
+    Rate limiting decorator for API endpoints
+    """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            identifier = request.remote_addr
-            
-            if not rate_limiter.is_allowed(identifier, max_requests, window):
-                return jsonify({
-                    'error': 'Rate limit exceeded',
-                    'message': 'Too many requests. Please try again later.'
-                }), 429
-                
-            return f(*args, **kwargs)
+            try:
+                return limiter.limit(limit)(f)(*args, **kwargs)
+            except TooManyRequests:
+                raise RateLimitExceeded("Rate limit exceeded")
         return decorated_function
     return decorator
 
-def validate_lottery_type(lottery_type):
-    """Validate lottery type input"""
-    valid_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO']
-    if lottery_type not in valid_types:
-        raise ValueError(f"Invalid lottery type: {lottery_type}")
-    return lottery_type
-
-def validate_draw_number(draw_number):
-    """Validate draw number input"""
-    try:
-        num = int(draw_number)
-        if num < 1 or num > 99999:
-            raise ValueError("Draw number must be between 1 and 99999")
-        return num
-    except (ValueError, TypeError):
-        raise ValueError("Draw number must be a valid integer")
-
-def sanitize_input(input_str, max_length=255):
-    """Sanitize string input to prevent XSS"""
-    if not input_str:
-        return ""
-    # Remove potentially dangerous characters
-    sanitized = re.sub(r'[<>&"\']', '', str(input_str))
-    return sanitized[:max_length]
-
-def validate_file_upload(file, allowed_extensions=None, max_size_mb=10):
-    """Validate uploaded file"""
-    if allowed_extensions is None:
-        allowed_extensions = {'.png', '.jpg', '.jpeg', '.gif'}
+def validate_file_upload(file):
+    """
+    Validate uploaded files for security
+    """
+    if not file:
+        return False, "No file selected"
     
-    if not file or not file.filename:
-        raise ValueError("No file provided")
+    # Check file size (16MB limit)
+    MAX_FILE_SIZE = 16 * 1024 * 1024
+    if hasattr(file, 'content_length') and file.content_length > MAX_FILE_SIZE:
+        return False, "File too large (max 16MB)"
     
     # Check file extension
-    file_ext = '.' + file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-    if file_ext not in allowed_extensions:
-        raise ValueError(f"Invalid file type. Allowed: {', '.join(allowed_extensions)}")
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+    if '.' not in file.filename:
+        return False, "File must have an extension"
     
-    # Check file size
-    file.seek(0, 2)  # Seek to end
-    file_size = file.tell()
-    file.seek(0)  # Reset to beginning
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    if ext not in allowed_extensions:
+        return False, f"File type not allowed. Allowed: {', '.join(allowed_extensions)}"
     
-    if file_size > max_size_mb * 1024 * 1024:
-        raise ValueError(f"File too large. Maximum size: {max_size_mb}MB")
-    
-    return True
+    return True, "File is valid"
 
-def log_security_event(event_type, details, request_ip=None):
-    """Log security-related events"""
-    import logging
-    logger = logging.getLogger('security')
+def secure_headers(response):
+    """
+    Add security headers to response
+    """
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
+    return response
+
+def init_security(app):
+    """
+    Initialize security features
+    """
+    csrf.init_app(app)
+    limiter.init_app(app)
     
-    ip = request_ip or (request.remote_addr if request else 'unknown')
-    logger.warning(f"Security Event [{event_type}] from {ip}: {details}")
+    # Add security headers to all responses
+    @app.after_request
+    def after_request(response):
+        return secure_headers(response)
+    
+    # Handle CSRF errors
+    @app.errorhandler(400)
+    def csrf_error(error):
+        return jsonify({'error': 'CSRF token missing or invalid'}), 400

@@ -1,178 +1,189 @@
 """
 Lottery Analysis Module
-Provides comprehensive lottery data analysis and visualization
+Provides frequency analysis and statistics for lottery numbers
 """
-import logging
-import json
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
+
 from flask import Blueprint, jsonify, request
 from models import db, LotteryResult
 from datetime import datetime, timedelta
-import base64
-import io
-import os
+import json
+import logging
+from collections import Counter
+from cache_manager import cached_query
 
 logger = logging.getLogger(__name__)
 
 # Create blueprint
-lottery_analysis_bp = Blueprint('lottery_analysis', __name__)
+bp = Blueprint('lottery_analysis', __name__, url_prefix='/api/lottery-analysis')
 
-# Cache for analysis results
-analysis_cache = {}
-
-def get_optimized_lottery_stats():
-    """Get lottery statistics with caching"""
-    cache_key = "lottery_stats"
-    
-    if cache_key in analysis_cache:
-        return analysis_cache[cache_key]
-    
-    try:
-        # Get latest results
-        latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(50).all()
-        
-        stats = {
-            'total_draws': len(latest_results),
-            'lottery_types': len(set([r.lottery_type for r in latest_results])),
-            'latest_draw_date': latest_results[0].draw_date.strftime('%Y-%m-%d') if latest_results else None
-        }
-        
-        analysis_cache[cache_key] = stats
-        return stats
-    except Exception as e:
-        logger.error(f"Error getting lottery stats: {e}")
-        return {}
-
-@lottery_analysis_bp.route('/api/lottery-analysis/frequency')
+@bp.route('/frequency')
+@cached_query(ttl=300)
 def frequency_analysis():
-    """API endpoint for frequency analysis"""
-    logger.info("=== FREQUENCY ANALYSIS API CALLED ===")
-    
+    """Get frequency analysis of lottery numbers"""
     try:
+        logger.info("=== FREQUENCY ANALYSIS API CALLED ===")
+        
+        # Get query parameters
         lottery_type = request.args.get('lottery_type')
         days = int(request.args.get('days', 365))
         
         logger.info(f"Performing optimized analysis for: lottery_type={lottery_type}, days={days}")
         
-        # Check cache first
-        cache_key = f"frequency_{lottery_type}_{days}"
-        if cache_key in analysis_cache:
-            logger.info(f"Returning cached frequency analysis for {cache_key}")
-            return jsonify(analysis_cache[cache_key])
+        # Calculate date range
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days)
         
-        # Get lottery results
-        cutoff_date = datetime.now() - timedelta(days=days)
+        # Build query
+        query = db.session.query(LotteryResult).filter(
+            LotteryResult.draw_date >= start_date,
+            LotteryResult.draw_date <= end_date
+        )
         
-        query = LotteryResult.query.filter(LotteryResult.draw_date >= cutoff_date)
         if lottery_type and lottery_type != 'All Lottery Types':
             query = query.filter(LotteryResult.lottery_type == lottery_type)
         
+        # Get results
         results = query.all()
         logger.info(f"Retrieved {len(results)} lottery results for analysis")
         
-        # Process numbers
+        # Extract all numbers
         all_numbers = []
-        for result in results:
-            try:
-                if result.main_numbers:
-                    numbers = json.loads(result.main_numbers) if isinstance(result.main_numbers, str) else result.main_numbers
-                    if isinstance(numbers, list):
-                        all_numbers.extend([int(n) for n in numbers if isinstance(n, (int, str)) and str(n).isdigit()])
-            except Exception as e:
-                logger.warning(f"Error processing numbers for result {result.id}: {e}")
-                continue
+        lottery_types = set()
         
-        if not all_numbers:
-            return jsonify({
-                "All Lottery Types": {
-                    "frequency": [0] * 50,
-                    "top_numbers": [],
-                    "chart_path": "",
-                    "chart_base64": ""
-                }
-            })
+        for result in results:
+            lottery_types.add(result.lottery_type)
+            
+            # Parse main numbers
+            if result.numbers:
+                try:
+                    if isinstance(result.numbers, str):
+                        numbers = json.loads(result.numbers)
+                    else:
+                        numbers = result.numbers
+                    
+                    if isinstance(numbers, list):
+                        all_numbers.extend(numbers)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            
+            # Parse bonus numbers
+            if result.bonus_numbers:
+                try:
+                    if isinstance(result.bonus_numbers, str):
+                        bonus_numbers = json.loads(result.bonus_numbers)
+                    else:
+                        bonus_numbers = result.bonus_numbers
+                    
+                    if isinstance(bonus_numbers, list):
+                        all_numbers.extend(bonus_numbers)
+                except (json.JSONDecodeError, TypeError):
+                    pass
         
         # Calculate frequency
-        frequency = [0] * 50
-        for num in all_numbers:
-            if 1 <= num <= 50:
-                frequency[num - 1] += 1
+        frequency = Counter(all_numbers)
         
         # Get top numbers
-        number_counts = {}
-        for num in all_numbers:
-            if 1 <= num <= 50:
-                number_counts[num] = number_counts.get(num, 0) + 1
+        top_numbers = frequency.most_common(50)
         
-        top_numbers = sorted(number_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-        
-        # Generate chart
-        chart_base64 = generate_frequency_chart(frequency, lottery_type or "All Lottery Types")
-        
-        result = {
-            (lottery_type or "All Lottery Types"): {
-                "frequency": frequency,
-                "top_numbers": top_numbers,
-                "chart_path": f"/static/analysis/frequency_{lottery_type or 'All_Lottery_Types'}.png",
-                "chart_base64": chart_base64
+        # Prepare response
+        response = {
+            'lottery_types': list(lottery_types),
+            'total_draws': len(results),
+            'total_numbers': len(all_numbers),
+            'unique_numbers': len(set(all_numbers)),
+            'frequency_data': [
+                {
+                    'number': num,
+                    'frequency': freq,
+                    'percentage': round((freq / len(all_numbers)) * 100, 2) if all_numbers else 0
+                }
+                for num, freq in top_numbers
+            ],
+            'date_range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat(),
+                'days': days
             }
         }
         
-        # Cache the result for future requests
-        analysis_cache[cache_key] = result
-        logger.info(f"Cached frequency analysis result for {cache_key}")
+        logger.info(f"Cached frequency analysis result for frequency_{lottery_type}_{days}")
         
-        return jsonify(result)
+        return jsonify(response)
         
     except Exception as e:
-        logger.error(f"Error in frequency analysis: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Frequency analysis error: {e}")
+        return jsonify({'error': str(e)}), 500
 
-def generate_frequency_chart(frequency, lottery_type):
-    """Generate frequency chart and return base64 encoded image"""
+@bp.route('/stats')
+@cached_query(ttl=600)
+def lottery_stats():
+    """Get general lottery statistics"""
     try:
-        plt.figure(figsize=(16, 8))
+        # Get total draws per lottery type
+        stats = db.session.query(
+            LotteryResult.lottery_type,
+            db.func.count(LotteryResult.id).label('total_draws'),
+            db.func.max(LotteryResult.draw_date).label('latest_draw')
+        ).group_by(LotteryResult.lottery_type).all()
         
-        numbers = list(range(1, 51))
-        bars = plt.bar(numbers, frequency, alpha=0.7, color='steelblue')
+        response = {
+            'lottery_types': [
+                {
+                    'type': stat.lottery_type,
+                    'total_draws': stat.total_draws,
+                    'latest_draw': stat.latest_draw.isoformat() if stat.latest_draw else None
+                }
+                for stat in stats
+            ],
+            'total_draws': sum(stat.total_draws for stat in stats)
+        }
         
-        # Highlight top numbers
-        max_freq = max(frequency) if frequency else 0
-        for i, freq in enumerate(frequency):
-            if freq == max_freq and freq > 0:
-                bars[i].set_color('red')
-                bars[i].set_alpha(0.8)
-        
-        plt.xlabel('Lottery Numbers')
-        plt.ylabel('Frequency')
-        plt.title(f'Number Frequency Analysis - {lottery_type}')
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        
-        # Convert to base64
-        img_buffer = io.BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight')
-        img_buffer.seek(0)
-        img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
-        plt.close()
-        
-        return img_base64
+        return jsonify(response)
         
     except Exception as e:
-        logger.error(f"Error generating chart: {e}")
-        return ""
+        logger.error(f"Stats error: {e}")
+        return jsonify({'error': str(e)}), 500
 
-# Register blueprint
-def init_lottery_analysis():
-    """Initialize lottery analysis module"""
-    logger.info("Lottery analysis routes registered")
-    return lottery_analysis_bp
-
-def register_analysis_routes(app, db):
-    """Register lottery analysis routes with the Flask app"""
-    app.register_blueprint(lottery_analysis_bp)
-    logger.info("Lottery analysis routes registered")
+@bp.route('/patterns')
+@cached_query(ttl=900)
+def pattern_analysis():
+    """Analyze number patterns"""
+    try:
+        # Get recent results
+        results = db.session.query(LotteryResult).filter(
+            LotteryResult.draw_date >= datetime.now().date() - timedelta(days=90)
+        ).all()
+        
+        patterns = {
+            'consecutive_pairs': [],
+            'even_odd_ratio': {},
+            'sum_ranges': {},
+            'hot_numbers': [],
+            'cold_numbers': []
+        }
+        
+        # Analyze patterns (simplified)
+        all_numbers = []
+        for result in results:
+            if result.numbers:
+                try:
+                    if isinstance(result.numbers, str):
+                        numbers = json.loads(result.numbers)
+                    else:
+                        numbers = result.numbers
+                    
+                    if isinstance(numbers, list):
+                        all_numbers.extend(numbers)
+                except:
+                    pass
+        
+        # Calculate frequency for hot/cold numbers
+        frequency = Counter(all_numbers)
+        patterns['hot_numbers'] = frequency.most_common(10)
+        patterns['cold_numbers'] = frequency.most_common()[-10:]
+        
+        return jsonify(patterns)
+        
+    except Exception as e:
+        logger.error(f"Pattern analysis error: {e}")
+        return jsonify({'error': str(e)}), 500
