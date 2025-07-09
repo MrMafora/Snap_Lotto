@@ -151,10 +151,76 @@ def index():
     try:
         logger.info("=== HOMEPAGE: Loading fresh lottery data from database ===")
         
-        # Get latest results for each lottery type
-        latest_results = db.session.query(LotteryResult).filter(
-            LotteryResult.lottery_type.in_(['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'])
-        ).order_by(LotteryResult.draw_date.desc()).limit(50).all()
+        # Use direct psycopg2 connection to bypass SQLAlchemy type issues
+        import psycopg2
+        import os
+        
+        connection_string = os.environ.get('DATABASE_URL')
+        latest_results = []
+        
+        try:
+            with psycopg2.connect(connection_string) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                               rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
+                        FROM lottery_result 
+                        WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO')
+                        ORDER BY draw_date DESC 
+                        LIMIT 50
+                    """)
+                    
+                    for row in cur.fetchall():
+                        # Create a fake LotteryResult object with the required methods
+                        result_obj = type('Result', (), {})()
+                        result_obj.lottery_type = row[0]
+                        result_obj.draw_number = row[1]
+                        result_obj.draw_date = row[2]
+                        result_obj.numbers = row[3]
+                        result_obj.bonus_numbers = row[4]
+                        result_obj.divisions = row[5]
+                        result_obj.rollover_amount = row[6]
+                        result_obj.next_jackpot = row[7]
+                        result_obj.total_pool_size = row[8]
+                        result_obj.total_sales = row[9]
+                        result_obj.draw_machine = row[10]
+                        result_obj.next_draw_date = row[11]
+                        
+                        # Add the required methods
+                        def get_numbers_list():
+                            if isinstance(result_obj.numbers, str):
+                                try:
+                                    return json.loads(result_obj.numbers)
+                                except:
+                                    return []
+                            return result_obj.numbers or []
+                        
+                        def get_bonus_numbers_list():
+                            if isinstance(result_obj.bonus_numbers, str):
+                                try:
+                                    return json.loads(result_obj.bonus_numbers)
+                                except:
+                                    return []
+                            return result_obj.bonus_numbers or []
+                        
+                        def get_parsed_divisions():
+                            if not result_obj.divisions or result_obj.divisions == '[]':
+                                return []
+                            try:
+                                if isinstance(result_obj.divisions, str):
+                                    return json.loads(result_obj.divisions)
+                                return result_obj.divisions
+                            except:
+                                return []
+                        
+                        result_obj.get_numbers_list = get_numbers_list
+                        result_obj.get_bonus_numbers_list = get_bonus_numbers_list
+                        result_obj.get_parsed_divisions = get_parsed_divisions
+                        
+                        latest_results.append(result_obj)
+        except Exception as e:
+            logger.error(f"Direct database connection failed: {e}")
+            latest_results = []
         
         # Get unique lottery types with their latest results
         seen_types = set()
@@ -164,12 +230,6 @@ def index():
                 seen_types.add(result.lottery_type)
                 unique_results.append(result)
         
-        # Log raw database results
-        raw_results = db.session.query(LotteryResult.lottery_type, LotteryResult.draw_number, LotteryResult.draw_date).filter(
-            LotteryResult.lottery_type.in_(['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'])
-        ).order_by(LotteryResult.draw_date.desc()).limit(6).all()
-        
-        logger.info(f"Raw database results: {raw_results}")
         logger.info(f"HOMEPAGE: Loaded {len(unique_results)} results from database")
         
         # Get frequency analysis for homepage charts
@@ -213,10 +273,76 @@ def results(lottery_type=None):
             
             logger.info(f"Looking for lottery type '{lottery_type}' mapped to DB types '{db_types}'")
             
-            # Get results for this lottery type
-            results = db.session.query(LotteryResult).filter(
-                LotteryResult.lottery_type.in_(db_types)
-            ).order_by(LotteryResult.draw_date.desc()).limit(20).all()
+            # Use direct psycopg2 connection to bypass SQLAlchemy type issues
+            import psycopg2
+            import os
+            
+            connection_string = os.environ.get('DATABASE_URL')
+            results = []
+            
+            try:
+                with psycopg2.connect(connection_string) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                                   rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
+                            FROM lottery_result 
+                            WHERE lottery_type = ANY(%s)
+                            ORDER BY draw_date DESC 
+                            LIMIT 20
+                        """, (db_types,))
+                        
+                        for row in cur.fetchall():
+                            # Create a fake LotteryResult object with the required methods
+                            result_obj = type('Result', (), {})()
+                            result_obj.lottery_type = row[0]
+                            result_obj.draw_number = row[1]
+                            result_obj.draw_date = row[2]
+                            result_obj.numbers = row[3]
+                            result_obj.bonus_numbers = row[4]
+                            result_obj.divisions = row[5]
+                            result_obj.rollover_amount = row[6]
+                            result_obj.next_jackpot = row[7]
+                            result_obj.total_pool_size = row[8]
+                            result_obj.total_sales = row[9]
+                            result_obj.draw_machine = row[10]
+                            result_obj.next_draw_date = row[11]
+                            
+                            # Add the required methods
+                            def get_numbers_list():
+                                if isinstance(result_obj.numbers, str):
+                                    try:
+                                        return json.loads(result_obj.numbers)
+                                    except:
+                                        return []
+                                return result_obj.numbers or []
+                            
+                            def get_bonus_numbers_list():
+                                if isinstance(result_obj.bonus_numbers, str):
+                                    try:
+                                        return json.loads(result_obj.bonus_numbers)
+                                    except:
+                                        return []
+                                return result_obj.bonus_numbers or []
+                            
+                            def get_parsed_divisions():
+                                if not result_obj.divisions or result_obj.divisions == '[]':
+                                    return []
+                                try:
+                                    if isinstance(result_obj.divisions, str):
+                                        return json.loads(result_obj.divisions)
+                                    return result_obj.divisions
+                                except:
+                                    return []
+                            
+                            result_obj.get_numbers_list = get_numbers_list
+                            result_obj.get_bonus_numbers_list = get_bonus_numbers_list
+                            result_obj.get_parsed_divisions = get_parsed_divisions
+                            
+                            results.append(result_obj)
+            except Exception as e:
+                logger.error(f"Direct database connection failed: {e}")
+                results = []
             
             logger.info(f"Found {len(results)} results")
             
@@ -225,8 +351,76 @@ def results(lottery_type=None):
                                  lottery_type=lottery_type,
                                  display_name=lottery_type)
         else:
-            # Show all results
-            results = db.session.query(LotteryResult).order_by(LotteryResult.draw_date.desc()).limit(50).all()
+            # Show all results using direct psycopg2 connection
+            import psycopg2
+            import os
+            
+            connection_string = os.environ.get('DATABASE_URL')
+            results = []
+            
+            try:
+                with psycopg2.connect(connection_string) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                                   rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
+                            FROM lottery_result 
+                            ORDER BY draw_date DESC 
+                            LIMIT 50
+                        """)
+                        
+                        for row in cur.fetchall():
+                            # Create a fake LotteryResult object with the required methods
+                            result_obj = type('Result', (), {})()
+                            result_obj.lottery_type = row[0]
+                            result_obj.draw_number = row[1]
+                            result_obj.draw_date = row[2]
+                            result_obj.numbers = row[3]
+                            result_obj.bonus_numbers = row[4]
+                            result_obj.divisions = row[5]
+                            result_obj.rollover_amount = row[6]
+                            result_obj.next_jackpot = row[7]
+                            result_obj.total_pool_size = row[8]
+                            result_obj.total_sales = row[9]
+                            result_obj.draw_machine = row[10]
+                            result_obj.next_draw_date = row[11]
+                            
+                            # Add the required methods
+                            def get_numbers_list():
+                                if isinstance(result_obj.numbers, str):
+                                    try:
+                                        return json.loads(result_obj.numbers)
+                                    except:
+                                        return []
+                                return result_obj.numbers or []
+                            
+                            def get_bonus_numbers_list():
+                                if isinstance(result_obj.bonus_numbers, str):
+                                    try:
+                                        return json.loads(result_obj.bonus_numbers)
+                                    except:
+                                        return []
+                                return result_obj.bonus_numbers or []
+                            
+                            def get_parsed_divisions():
+                                if not result_obj.divisions or result_obj.divisions == '[]':
+                                    return []
+                                try:
+                                    if isinstance(result_obj.divisions, str):
+                                        return json.loads(result_obj.divisions)
+                                    return result_obj.divisions
+                                except:
+                                    return []
+                            
+                            result_obj.get_numbers_list = get_numbers_list
+                            result_obj.get_bonus_numbers_list = get_bonus_numbers_list
+                            result_obj.get_parsed_divisions = get_parsed_divisions
+                            
+                            results.append(result_obj)
+            except Exception as e:
+                logger.error(f"Direct database connection failed: {e}")
+                results = []
+            
             return render_template('results.html', results=results)
             
     except Exception as e:
