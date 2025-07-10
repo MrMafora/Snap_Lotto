@@ -90,11 +90,10 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                 {% endfor %}
                                 
                                 {% if result.get_bonus_numbers_list() %}
-                                    <div class="mt-2">
-                                        {% for bonus in result.get_bonus_numbers_list() %}
-                                            <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">{{ bonus }}</span>
-                                        {% endfor %}
-                                    </div>
+                                    <span class="lottery-plus-sign">+</span>
+                                    {% for bonus in result.get_bonus_numbers_list() %}
+                                        <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
+                                    {% endfor %}
                                 {% endif %}
                             </div>
                             

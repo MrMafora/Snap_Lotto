@@ -285,6 +285,37 @@
     color: var(--lottery-dark);
 }
 
+/* Plus sign between main and bonus numbers */
+.lottery-plus-sign {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 10px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    vertical-align: middle;
+    height: 50px;
+    line-height: 1;
+}
+
+/* Mobile responsive plus sign */
+@media (max-width: 576px) {
+    .lottery-plus-sign {
+        font-size: 20px;
+        margin: 0 8px;
+        height: 40px;
+    }
+}
+
+@media (max-width: 360px) {
+    .lottery-plus-sign {
+        font-size: 18px;
+        margin: 0 6px;
+        height: 34px;
+    }
+}
+
 .lottery-ball-bonus {
     position: relative;
     background-color: var(--lottery-yellow);
