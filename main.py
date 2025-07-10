@@ -474,7 +474,19 @@ def results(lottery_type=None):
                 logger.error(traceback.format_exc())
                 results = []
             
-            return render_template('results.html', results=results)
+            # Create latest_results dict and lottery_types list for the template
+            latest_results = {}
+            lottery_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
+            
+            # Group results by lottery type to get the latest for each
+            for result in results:
+                if result.lottery_type not in latest_results:
+                    latest_results[result.lottery_type] = result
+            
+            return render_template('results.html', 
+                                 results=results,
+                                 latest_results=latest_results,
+                                 lottery_types=lottery_types)
             
     except Exception as e:
         logger.error(f"Results page error: {e}")
