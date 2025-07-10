@@ -933,6 +933,99 @@ function updateHotColdNumbers(data) {
         hotColdLoading.classList.remove('d-none');
     }
     
+    // Check if we have the new API format with direct hot_numbers, cold_numbers, etc.
+    if (data.hot_numbers && data.cold_numbers && data.absent_numbers) {
+        // Use the new API format directly
+        const hotNumbers = data.hot_numbers || [];
+        const coldNumbers = data.cold_numbers || [];
+        const absentNumbers = data.absent_numbers || [];
+        
+        console.log('Using new API format:', {
+            hotNumbers: hotNumbers.length,
+            coldNumbers: coldNumbers.length,
+            absentNumbers: absentNumbers.length
+        });
+        
+        // Update hot numbers container
+        const hotNumbersContainer = document.getElementById('hotNumbersContainer');
+        if (hotNumbersContainer && hotNumbers.length > 0) {
+            let hotHTML = '';
+            const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
+            
+            hotNumbers.slice(0, 5).forEach((number, index) => {
+                // Find frequency for this number from frequency_data
+                const frequencyItem = data.frequency_data.find(item => item.number === number);
+                const frequency = frequencyItem ? frequencyItem.frequency : 0;
+                
+                hotHTML += `
+                    <div class="hot-number-item interactive-number me-2 mb-2" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-sm ${colors[index]}">
+                            <span class="number">${number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                    </div>
+                `;
+            });
+            
+            hotNumbersContainer.innerHTML = hotHTML;
+        } else {
+            document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
+        }
+        
+        // Update cold numbers container  
+        const coldNumbersContainer = document.getElementById('coldNumbersContainer');
+        if (coldNumbersContainer && coldNumbers.length > 0) {
+            let coldHTML = '';
+            
+            coldNumbers.slice(0, 5).forEach((number, index) => {
+                // Find frequency for this number from frequency_data
+                const frequencyItem = data.frequency_data.find(item => item.number === number);
+                const frequency = frequencyItem ? frequencyItem.frequency : 0;
+                
+                coldHTML += `
+                    <div class="cold-number-item interactive-number me-2 mb-2" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                            <span class="number">${number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                    </div>
+                `;
+            });
+            
+            coldNumbersContainer.innerHTML = coldHTML;
+        } else {
+            document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
+        }
+        
+        // Update absent numbers container
+        const absentNumbersContainer = document.getElementById('absentNumbersContainer');
+        if (absentNumbersContainer && absentNumbers.length > 0) {
+            let absentHTML = '';
+            
+            absentNumbers.slice(0, 5).forEach((number, index) => {
+                absentHTML += `
+                    <div class="absent-number-item me-2 mb-2">
+                        <span class="lottery-ball lottery-ball-sm lottery-ball-gray">
+                            <span class="number">${number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">0x</small>
+                    </div>
+                `;
+            });
+            
+            absentNumbersContainer.innerHTML = absentHTML;
+        } else {
+            document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
+        }
+        
+        // Hide loading indicator
+        if (hotColdLoading) {
+            hotColdLoading.classList.add('d-none');
+        }
+        return;
+    }
+    
+    // Fallback to old format if new format is not available
     // Find the lottery type with the most data (similar logic as updateFrequencyChart)
     let selectedLotteryType = null;
     let maxFrequencyData = [];
@@ -1079,6 +1172,22 @@ function updateFrequencyChart(data) {
     barChartContainer.style.width = '100%';
     barChartContainer.style.overflow = 'hidden';
     
+    // Check if we have the new API format with frequency_data
+    if (data.frequency_data && Array.isArray(data.frequency_data)) {
+        // Use the new API format directly
+        const frequencyData = data.frequency_data.slice(0, 10); // Get top 10
+        
+        console.log('Using new API format for frequency chart:', frequencyData.length, 'items');
+        
+        // Create topNumbers array in the expected format
+        const topNumbers = frequencyData.map(item => [item.number, item.frequency]);
+        
+        // Call the existing chart rendering function
+        renderFrequencyChart(topNumbers, barChartContainer);
+        return;
+    }
+    
+    // Fallback to old format
     // We need to get the lottery type with the most data
     let selectedLotteryType = null;
     let maxFrequencyData = [];
@@ -1105,6 +1214,13 @@ function updateFrequencyChart(data) {
         barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
         return;
     }
+    
+    // Call the existing chart rendering function
+    renderFrequencyChart(topNumbers, barChartContainer);
+}
+
+// Function to render the frequency chart
+function renderFrequencyChart(topNumbers, barChartContainer) {
     
     // Save the existing header before clearing the container
     const existingHeader = barChartContainer.querySelector('h6');
