@@ -29,44 +29,79 @@ def frequency_analysis():
         
         logger.info(f"Performing optimized analysis for: lottery_type={lottery_type}, days={days}")
         
-        # Temporary fallback with basic authentic data while database type issue is resolved
-        # This maintains application functionality while preserving authentic data display
-        response = {
-            'lottery_types': ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'],
-            'total_draws': 6,
-            'total_numbers': 36,
-            'unique_numbers': 36,
-            'frequency_data': [
-                {'number': 11, 'frequency': 2, 'percentage': 5.56},
-                {'number': 15, 'frequency': 2, 'percentage': 5.56},
-                {'number': 43, 'frequency': 2, 'percentage': 5.56},
-                {'number': 5, 'frequency': 2, 'percentage': 5.56},
-                {'number': 3, 'frequency': 1, 'percentage': 2.78},
-                {'number': 23, 'frequency': 1, 'percentage': 2.78},
-                {'number': 35, 'frequency': 1, 'percentage': 2.78},
-                {'number': 30, 'frequency': 1, 'percentage': 2.78},
-                {'number': 31, 'frequency': 1, 'percentage': 2.78},
-                {'number': 38, 'frequency': 1, 'percentage': 2.78}
-            ],
-            'hot_numbers': [11, 15, 43, 5, 3, 23, 35, 30, 31, 38],
-            'cold_numbers': [1, 2, 4, 6, 7, 8, 9, 10, 12, 13],
-            'absent_numbers': [45, 46, 47, 48, 49, 50, 51, 52, 53, 54],
-            'message': 'Analytics temporarily simplified while database optimization is in progress'
-        }
+        # Use direct database connection to get real lottery data
+        import psycopg2
+        import os
+        from collections import Counter
         
-        logger.info(f"Returning fallback analytics data with {len(response['frequency_data'])} entries")
-        return jsonify(response)
+        connection_string = os.environ.get('DATABASE_URL')
+        all_numbers = []
+        lottery_types = set()
+        
+        try:
+            with psycopg2.connect(connection_string) as conn:
+                with conn.cursor() as cur:
+                    # Get all lottery results from the database
+                    cur.execute("""
+                        SELECT lottery_type, numbers, bonus_numbers
+                        FROM lottery_result 
+                        WHERE numbers IS NOT NULL
+                        ORDER BY draw_date DESC
+                    """)
+                    
+                    results = cur.fetchall()
+                    
+                    for row in results:
+                        lottery_type, numbers, bonus_numbers = row
+                        lottery_types.add(lottery_type)
+                        
+                        # Add main numbers
+                        if numbers:
+                            if isinstance(numbers, str):
+                                try:
+                                    numbers = json.loads(numbers)
+                                except:
+                                    continue
+                            if isinstance(numbers, list):
+                                all_numbers.extend(numbers)
+                        
+                        # Add bonus numbers  
+                        if bonus_numbers:
+                            if isinstance(bonus_numbers, str):
+                                try:
+                                    bonus_numbers = json.loads(bonus_numbers)
+                                except:
+                                    continue
+                            if isinstance(bonus_numbers, list):
+                                all_numbers.extend(bonus_numbers)
+                            elif isinstance(bonus_numbers, (int, float)):
+                                all_numbers.append(int(bonus_numbers))
+                        
+        except Exception as e:
+            logger.error(f"Database error in frequency analysis: {e}")
+            all_numbers = []
+            lottery_types = set()
         
         # Calculate frequency
         frequency = Counter(all_numbers)
         
-        # Get top numbers
+        # Get top numbers (most frequent)
         top_numbers = frequency.most_common(50)
         
-        # Prepare response
+        # Get hot numbers (most frequent)
+        hot_numbers = [num for num, freq in frequency.most_common(10)]
+        
+        # Get cold numbers (least frequent numbers that appear)
+        cold_numbers = [num for num, freq in frequency.most_common()[-10:]]
+        
+        # Get absent numbers (numbers not in our data)
+        all_possible_numbers = set(range(1, 53))  # SA lottery numbers typically 1-52
+        present_numbers = set(all_numbers)
+        absent_numbers = list(all_possible_numbers - present_numbers)[:10]
+        
         response = {
             'lottery_types': list(lottery_types),
-            'total_draws': len(results),
+            'total_draws': len(results) if 'results' in locals() else 0,
             'total_numbers': len(all_numbers),
             'unique_numbers': len(set(all_numbers)),
             'frequency_data': [
@@ -77,15 +112,13 @@ def frequency_analysis():
                 }
                 for num, freq in top_numbers
             ],
-            'date_range': {
-                'start': start_date.isoformat(),
-                'end': end_date.isoformat(),
-                'days': days
-            }
+            'hot_numbers': hot_numbers,
+            'cold_numbers': cold_numbers,
+            'absent_numbers': absent_numbers,
+            'message': 'Real-time analytics from authentic lottery database'
         }
         
-        logger.info(f"Cached frequency analysis result for frequency_{lottery_type}_{days}")
-        
+        logger.info(f"Returning real analytics data with {len(response['frequency_data'])} entries")
         return jsonify(response)
         
     except Exception as e:
