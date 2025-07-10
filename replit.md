@@ -19,6 +19,15 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
+- **COMPLETED: Lottery Number Layout and Button Fix (July 10, 2025)**
+  - Fixed lottery number display to show all numbers in single row with consistent ball sizes
+  - Removed separate row for smaller bonus numbers, now all balls are same size
+  - Added plus sign (+) between main numbers and bonus numbers for clear separation
+  - Added responsive CSS styling for plus sign (.lottery-plus-sign) with mobile breakpoints
+  - Fixed "View All Lottery Results" buttons to properly filter results by lottery type
+  - Updated button links from individual draws to filtered results pages (e.g., /results?lottery_type=Lottery)
+  - All lottery cards now display: [Main Numbers] + [Bonus Numbers] in single row format
+  - Layout improvements verified working with authentic lottery data
 - **COMPLETED: Results Page Card Layout Fix (July 10, 2025)**
   - Fixed results page template data structure to display lottery cards instead of blank page
   - Updated results() function in main.py to pass latest_results dict and lottery_types list to template

@@ -99,7 +99,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                             
                         </div>
                         <div class="card-footer bg-white border-top-0">
-                            <a href="/results/{{ lottery_type }}/{{ result.draw_number }}" class="btn btn-sm w-100" style="background-color: #c53030; color: white;">
+                            <a href="{{ url_for('results', lottery_type=display_name) }}" class="btn btn-sm w-100" style="background-color: #c53030; color: white;">
                                 View All {{ display_name }} Results
                             </a>
                         </div>
