@@ -1,5 +1,6 @@
 """
-Screenshot capture functionality for South African lottery websites
+UNIFIED Screenshot Capture System for South African Lottery
+Single, clean system with tight cropping and no white space
 """
 
 import os
@@ -186,95 +187,37 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         # Random delay before accessing each URL (like a human browsing)
         human_like_delay(2, 8)
         
-        # Navigate to the lottery page (start with main page to avoid blocking)
+        # STREAMLINED NAVIGATION - Direct to URL without complex browsing
         driver.get(url)
         
-        # Wait for page to load with longer timeout for slow networks
-        WebDriverWait(driver, 15).until(
+        # Wait for page to load
+        WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
-        # Check if we're on main page - homepage contains lottery information
-        if url == 'https://www.nationallottery.co.za/':
-            try:
-                # Wait for page content to load completely
-                human_like_delay(5, 8)
-                
-                # Check if homepage contains lottery information (which it does based on testing)
-                page_content = driver.page_source.lower()
-                if any(keyword in page_content for keyword in ['lotto', 'powerball', 'daily lotto', 'winning numbers']):
-                    logger.info(f"Homepage contains lottery information for {lottery_type}")
-                else:
-                    logger.warning(f"Homepage may not contain lottery data for {lottery_type}")
-                    
-                # Try to scroll to lottery results section if visible
-                try:
-                    # Look for lottery game elements and scroll to them
-                    lottery_elements = driver.find_elements(By.CSS_SELECTOR, "[class*='lotto'], [class*='powerball'], [class*='lottery']")
-                    if lottery_elements:
-                        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", lottery_elements[0])
-                        human_like_delay(2, 4)
-                except:
-                    pass
-                
-            except Exception as nav_error:
-                logger.warning(f"Homepage processing error: {nav_error}")
-                # Continue with screenshot of current page
+        # Simple wait for content to load
+        human_like_delay(3, 5)
         
-        # Simulate human browsing behavior
-        simulate_human_browsing(driver)
-        
-        # Wait for any dynamic content to load
-        human_like_delay(3, 6)
-        
-        # Sometimes refresh like a human would do if page seems slow
-        if random.choice([True, False, False]):  # 33% chance
-            logger.debug(f"Refreshing page for {lottery_type} (human-like behavior)")
-            driver.refresh()
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
-            human_like_delay(2, 4)
-        
-        # Force browser to start from absolute top before refresh
+        # Ensure at top
         driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
-        human_like_delay(1, 2)
         
-        # Navigate to page fresh to ensure complete header capture
-        driver.get(url)
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
-        )
+        # UNIFIED TIGHT CAPTURE METHOD - No white space
+        logger.info("Using unified tight capture method")
         
-        # Wait for complete page load including header elements
-        human_like_delay(8, 10)
-        
-        # Ensure we're at absolute top - multiple aggressive attempts
-        for attempt in range(10):
-            driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
-            driver.execute_script("document.documentElement.scrollTop = 0;")
-            driver.execute_script("document.body.scrollTop = 0;")
-            driver.execute_script("window.pageYOffset = 0;")
-            human_like_delay(0.5, 1)
-        
-        # Set standard viewport size (matching your reference images)
+        # Set standard viewport size for consistency
         driver.set_window_size(1920, 1080)
         human_like_delay(2, 3)
         
-        # Ensure we're at absolute top
+        # Ensure at absolute top
         driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
         human_like_delay(1, 2)
         
-        # Get actual content dimensions for precise cropping
+        # Get precise content dimensions for tight cropping (eliminates white space)
         content_info = driver.execute_script("""
-            // Get the actual content boundaries without white space
             var body = document.body;
             var html = document.documentElement;
             
-            // Find the main container that holds all visible content
-            var mainContainer = document.querySelector('div[class*="container"], .main-wrapper, .page-wrapper, body > div:first-of-type') || body;
-            
-            // Calculate the exact content height and width
+            // Calculate exact content boundaries
             var actualHeight = Math.max(
                 body.scrollHeight,
                 body.offsetHeight,
@@ -291,12 +234,12 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
                 html.offsetWidth
             );
             
-            // Find the bottom-most visible element to determine real content height
+            // Find bottom-most visible element for real content height
             var allElements = document.querySelectorAll('*');
             var maxBottom = 0;
             for (var i = 0; i < allElements.length; i++) {
                 var element = allElements[i];
-                if (element.offsetParent !== null) { // Only visible elements
+                if (element.offsetParent !== null) {
                     var rect = element.getBoundingClientRect();
                     var elementBottom = rect.bottom + window.pageYOffset;
                     if (elementBottom > maxBottom) {
@@ -306,26 +249,25 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
             }
             
             return {
-                width: Math.min(actualWidth, 1920), // Cap at viewport width to avoid white space
-                height: Math.max(actualHeight, maxBottom, 1080) // Ensure we capture full content
+                width: Math.min(actualWidth, 1920), // Cap to avoid white space
+                height: Math.max(actualHeight, maxBottom, 1080) // Ensure full content
             };
         """)
         
-        logger.info(f"Detected tight content dimensions: {content_info['width']}x{content_info['height']}")
+        logger.info(f"Tight content dimensions: {content_info['width']}x{content_info['height']}")
         
-        # Use precise content dimensions to eliminate white space
+        # Set precise window size to match content exactly (eliminates white space)
         capture_width = int(content_info['width'])
         capture_height = int(content_info['height'])
         
-        # Set precise window size to match content exactly
         driver.set_window_size(capture_width, capture_height)
         human_like_delay(2, 3)
         
-        # Final position check and screenshot
+        # Final position at top
         driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
         human_like_delay(1, 2)
         
-        # Take screenshot with precise dimensions (no white space)
+        # Take tight screenshot (no white space)
         driver.save_screenshot(filepath)
         
         logger.info(f"FULL-PAGE screenshot captured: {filepath} (window: {capture_width}x{capture_height})")

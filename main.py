@@ -716,8 +716,8 @@ def automation_control():
     
     # Get latest screenshots for display
     try:
-        from screenshot_capture import get_latest_screenshots
-        screenshots = get_latest_screenshots()
+        from models import Screenshot
+        screenshots = Screenshot.query.order_by(Screenshot.created_at.desc()).limit(20).all()
         logger.info(f"Loaded {len(screenshots)} screenshots for display")
     except Exception as e:
         logger.warning(f"Could not load screenshots: {e}")
