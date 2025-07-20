@@ -257,15 +257,34 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
             driver.execute_script("window.pageYOffset = 0;")
             human_like_delay(0.5, 1)
         
-        # Get accurate full page dimensions
+        # Get complete full page dimensions including footer
         total_height = driver.execute_script("""
-            return Math.max(
-                document.body.scrollHeight,
+            // Get all possible height measurements
+            var bodyHeight = document.body.scrollHeight;
+            var htmlHeight = document.documentElement.scrollHeight;
+            var viewportHeight = window.innerHeight;
+            
+            // Find footer element if it exists
+            var footer = document.querySelector('footer, .footer, [class*="footer"], .navigation-footer');
+            var footerBottom = 0;
+            if (footer) {
+                var rect = footer.getBoundingClientRect();
+                footerBottom = rect.bottom + window.pageYOffset;
+            }
+            
+            // Get the absolute maximum height including footer
+            var maxHeight = Math.max(
+                bodyHeight,
+                htmlHeight,
+                footerBottom,
                 document.body.offsetHeight,
                 document.documentElement.clientHeight,
-                document.documentElement.scrollHeight,
-                document.documentElement.offsetHeight
+                document.documentElement.offsetHeight,
+                viewportHeight
             );
+            
+            // Add extra buffer to ensure footer is captured
+            return maxHeight + 100;
         """)
         
         total_width = driver.execute_script("""
@@ -303,9 +322,9 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         
         logger.info(f"Detected full page dimensions: {total_width}x{total_height}")
         
-        # Ensure dimensions capture complete page including sidebar and headers
+        # Ensure dimensions capture complete page including sidebar, headers and footer
         capture_width = max(total_width, 2000)  # Increased width to ensure left sidebar capture
-        capture_height = max(total_height, 1800)  # Increased height to ensure complete header capture
+        capture_height = max(total_height, 3000)  # Force minimum 3000px height to ensure complete footer capture
         
         # Set browser window size to capture entire page
         driver.set_window_size(capture_width, capture_height)
@@ -334,6 +353,10 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
             logger.warning(f"Still not at top (position: {scroll_position}), forcing again...")
             driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
             human_like_delay(2, 3)
+        
+        # Force browser to render complete page before screenshot
+        driver.execute_script("document.body.style.minHeight = '3000px';")
+        human_like_delay(2, 3)
         
         # Take full-page screenshot - this should capture everything
         driver.save_screenshot(filepath)
