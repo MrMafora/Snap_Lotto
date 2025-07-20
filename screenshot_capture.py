@@ -257,108 +257,75 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
             driver.execute_script("window.pageYOffset = 0;")
             human_like_delay(0.5, 1)
         
-        # Get complete full page dimensions including footer
-        total_height = driver.execute_script("""
-            // Get all possible height measurements
-            var bodyHeight = document.body.scrollHeight;
-            var htmlHeight = document.documentElement.scrollHeight;
-            var viewportHeight = window.innerHeight;
+        # Set standard viewport size (matching your reference images)
+        driver.set_window_size(1920, 1080)
+        human_like_delay(2, 3)
+        
+        # Ensure we're at absolute top
+        driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
+        human_like_delay(1, 2)
+        
+        # Get actual content dimensions for precise cropping
+        content_info = driver.execute_script("""
+            // Get the actual content boundaries without white space
+            var body = document.body;
+            var html = document.documentElement;
             
-            // Find footer element if it exists
-            var footer = document.querySelector('footer, .footer, [class*="footer"], .navigation-footer');
-            var footerBottom = 0;
-            if (footer) {
-                var rect = footer.getBoundingClientRect();
-                footerBottom = rect.bottom + window.pageYOffset;
-            }
+            // Find the main container that holds all visible content
+            var mainContainer = document.querySelector('div[class*="container"], .main-wrapper, .page-wrapper, body > div:first-of-type') || body;
             
-            // Get the absolute maximum height including footer
-            var maxHeight = Math.max(
-                bodyHeight,
-                htmlHeight,
-                footerBottom,
-                document.body.offsetHeight,
-                document.documentElement.clientHeight,
-                document.documentElement.offsetHeight,
-                viewportHeight
+            // Calculate the exact content height and width
+            var actualHeight = Math.max(
+                body.scrollHeight,
+                body.offsetHeight,
+                html.clientHeight,
+                html.scrollHeight,
+                html.offsetHeight
             );
             
-            // Add extra buffer to ensure footer is captured
-            return maxHeight + 100;
-        """)
-        
-        total_width = driver.execute_script("""
-            // Find all possible sidebar/navigation elements
-            var sidebars = document.querySelectorAll('.sidebar, .nav-sidebar, .left-nav, .side-nav, [class*="sidebar"], [class*="nav-left"], .navigation-column, .lottery-nav');
-            var sidebarWidth = 0;
+            var actualWidth = Math.max(
+                body.scrollWidth,
+                body.offsetWidth, 
+                html.clientWidth,
+                html.scrollWidth,
+                html.offsetWidth
+            );
             
-            // Get the widest sidebar if any exist
-            for (var i = 0; i < sidebars.length; i++) {
-                var sidebar = sidebars[i];
-                if (sidebar.offsetWidth > sidebarWidth) {
-                    sidebarWidth = sidebar.offsetWidth;
+            // Find the bottom-most visible element to determine real content height
+            var allElements = document.querySelectorAll('*');
+            var maxBottom = 0;
+            for (var i = 0; i < allElements.length; i++) {
+                var element = allElements[i];
+                if (element.offsetParent !== null) { // Only visible elements
+                    var rect = element.getBoundingClientRect();
+                    var elementBottom = rect.bottom + window.pageYOffset;
+                    if (elementBottom > maxBottom) {
+                        maxBottom = elementBottom;
+                    }
                 }
             }
             
-            // Get main content area width
-            var mainContent = document.querySelector('.main-content, .content, [class*="main"], [class*="content"]') || document.body;
-            var contentWidth = mainContent.offsetWidth;
-            
-            // Calculate total width ensuring we capture both sidebar and content
-            var fullWidth = Math.max(
-                document.body.scrollWidth,
-                document.body.offsetWidth,
-                document.documentElement.clientWidth,
-                document.documentElement.scrollWidth,
-                document.documentElement.offsetWidth,
-                sidebarWidth + contentWidth + 50, // Add padding for safety
-                window.innerWidth,
-                1400 // Minimum width to ensure sidebar capture
-            );
-            
-            console.log('Sidebar width:', sidebarWidth, 'Content width:', contentWidth, 'Full width:', fullWidth);
-            return fullWidth;
+            return {
+                width: Math.min(actualWidth, 1920), // Cap at viewport width to avoid white space
+                height: Math.max(actualHeight, maxBottom, 1080) // Ensure we capture full content
+            };
         """)
         
-        logger.info(f"Detected full page dimensions: {total_width}x{total_height}")
+        logger.info(f"Detected tight content dimensions: {content_info['width']}x{content_info['height']}")
         
-        # Ensure dimensions capture complete page including sidebar, headers and footer
-        capture_width = max(total_width, 2000)  # Increased width to ensure left sidebar capture
-        capture_height = max(total_height, 3000)  # Force minimum 3000px height to ensure complete footer capture
+        # Use precise content dimensions to eliminate white space
+        capture_width = int(content_info['width'])
+        capture_height = int(content_info['height'])
         
-        # Set browser window size to capture entire page
+        # Set precise window size to match content exactly
         driver.set_window_size(capture_width, capture_height)
-        logger.info(f"Set browser window size to: {capture_width}x{capture_height}")
-        
-        # Wait for page to fully adjust and load at new dimensions
-        human_like_delay(3, 5)
-        
-        # Final aggressive scroll to absolute top
-        for i in range(5):
-            driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
-            driver.execute_script("document.documentElement.scrollTop = 0;")
-            driver.execute_script("document.body.scrollTop = 0;")
-            # Also force viewport to top
-            driver.execute_script("document.querySelector('html').scrollTop = 0;")
-            human_like_delay(0.5, 1)
-        
-        # Wait for any sticky headers or dynamic content to fully settle
-        human_like_delay(3, 5)
-        
-        # Verify we're actually at the top
-        scroll_position = driver.execute_script("return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;")
-        logger.info(f"Final scroll position before screenshot: {scroll_position}")
-        
-        if scroll_position > 0:
-            logger.warning(f"Still not at top (position: {scroll_position}), forcing again...")
-            driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
-            human_like_delay(2, 3)
-        
-        # Force browser to render complete page before screenshot
-        driver.execute_script("document.body.style.minHeight = '3000px';")
         human_like_delay(2, 3)
         
-        # Take full-page screenshot - this should capture everything
+        # Final position check and screenshot
+        driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
+        human_like_delay(1, 2)
+        
+        # Take screenshot with precise dimensions (no white space)
         driver.save_screenshot(filepath)
         
         logger.info(f"FULL-PAGE screenshot captured: {filepath} (window: {capture_width}x{capture_height})")
