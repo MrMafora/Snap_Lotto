@@ -58,48 +58,27 @@ def setup_chrome_driver():
     
     logger.info(f"Using user agent: {user_agent[:50]}... and screen size: {screen_width}x{screen_height}")
     
-    # Try without headless mode for maximum stealth (comment out headless)
-    # chrome_options.add_argument('--headless')  # Temporarily disabled for testing
+    # Essential headless mode for Replit environment
+    chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    
-    # Add virtual display arguments for headless environment
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--remote-debugging-port=9222')
-    chrome_options.add_argument('--display=:99')
     
-    # Advanced anti-detection measures
-    chrome_options.add_argument(f'--user-agent={user_agent}')
+    # Basic window setup
     chrome_options.add_argument(f'--window-size={screen_width},{screen_height}')
+    chrome_options.add_argument(f'--user-agent={user_agent}')
+    
+    # Performance and stealth settings
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
     
-    # Remove automation indicators
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-extensions-file-access-check')
-    chrome_options.add_argument('--disable-extensions-http-throttling')
-    chrome_options.add_argument('--disable-component-extensions-with-background-pages')
-    
-    # Mimic real browser behavior
-    chrome_options.add_argument('--enable-features=VizDisplayCompositor')
-    chrome_options.add_argument('--disable-ipc-flooding-protection')
-    
-    # Stealth mode settings - REMOVE JavaScript disabling as it blocks content
-    # chrome_options.add_argument('--disable-javascript')  # This was causing issues!
-    chrome_options.add_argument('--enable-automation')  # Paradoxically, this can help sometimes
-    
-    # Realistic browser settings
-    chrome_options.add_argument('--lang=en-US,en;q=0.9')
-    chrome_options.add_argument('--accept-encoding=gzip, deflate, br')
-    chrome_options.add_argument('--accept-language=en-US,en;q=0.9')
-    
-    # Performance optimizations
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--disable-logging')
-    chrome_options.add_argument('--disable-background-timer-throttling')
-    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
-    chrome_options.add_argument('--disable-renderer-backgrounding')
+    # Additional anti-detection measures
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-plugins')
+    chrome_options.add_argument('--disable-images')  # Faster loading
+    chrome_options.add_argument('--disable-javascript')  # Prevent bot detection scripts
     
     try:
         driver = webdriver.Chrome(options=chrome_options)
