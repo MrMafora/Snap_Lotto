@@ -269,20 +269,43 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         """)
         
         total_width = driver.execute_script("""
-            return Math.max(
+            // Find all possible sidebar/navigation elements
+            var sidebars = document.querySelectorAll('.sidebar, .nav-sidebar, .left-nav, .side-nav, [class*="sidebar"], [class*="nav-left"], .navigation-column, .lottery-nav');
+            var sidebarWidth = 0;
+            
+            // Get the widest sidebar if any exist
+            for (var i = 0; i < sidebars.length; i++) {
+                var sidebar = sidebars[i];
+                if (sidebar.offsetWidth > sidebarWidth) {
+                    sidebarWidth = sidebar.offsetWidth;
+                }
+            }
+            
+            // Get main content area width
+            var mainContent = document.querySelector('.main-content, .content, [class*="main"], [class*="content"]') || document.body;
+            var contentWidth = mainContent.offsetWidth;
+            
+            // Calculate total width ensuring we capture both sidebar and content
+            var fullWidth = Math.max(
                 document.body.scrollWidth,
                 document.body.offsetWidth,
                 document.documentElement.clientWidth,
                 document.documentElement.scrollWidth,
-                document.documentElement.offsetWidth
+                document.documentElement.offsetWidth,
+                sidebarWidth + contentWidth + 50, // Add padding for safety
+                window.innerWidth,
+                1400 // Minimum width to ensure sidebar capture
             );
+            
+            console.log('Sidebar width:', sidebarWidth, 'Content width:', contentWidth, 'Full width:', fullWidth);
+            return fullWidth;
         """)
         
         logger.info(f"Detected full page dimensions: {total_width}x{total_height}")
         
-        # Ensure dimensions capture complete page including all headers
-        capture_width = max(total_width, 1800)  # Increased width for full content
-        capture_height = max(total_height, 1600)  # Increased height to ensure header capture
+        # Ensure dimensions capture complete page including sidebar and headers
+        capture_width = max(total_width, 2000)  # Increased width to ensure left sidebar capture
+        capture_height = max(total_height, 1800)  # Increased height to ensure complete header capture
         
         # Set browser window size to capture entire page
         driver.set_window_size(capture_width, capture_height)
