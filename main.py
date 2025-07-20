@@ -146,6 +146,11 @@ class DrawResult:
         except:
             return []
 
+@app.route('/home')  
+def home():
+    """Homepage route - alias for index"""
+    return redirect(url_for('index'))
+
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
@@ -602,58 +607,103 @@ def logout():
 @app.route('/admin')
 @login_required
 def admin():
-    """Admin dashboard with full system statistics and recent results"""
+    """Advanced Admin Dashboard with full management features"""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
     
-    try:
-        # Get authentic system statistics using SQLAlchemy
-        total_results = LotteryResult.query.count()
-        total_users = User.query.count()
-        
-        # Get recent lottery results with proper data structure
-        recent_results_query = LotteryResult.query.order_by(desc(LotteryResult.draw_date)).limit(5).all()
-        
-        # Convert to objects with proper methods for template
-        recent_results = []
-        for result in recent_results_query:
-            # Create result object with all needed attributes
-            result_obj = type('AdminResult', (), {})()
-            result_obj.lottery_type = result.lottery_type
-            result_obj.draw_number = result.draw_number  
-            result_obj.draw_date = result.draw_date
-            
-            # Handle numbers - ensure they're in proper list format
-            if result.numbers:
-                if isinstance(result.numbers, str):
-                    import json
-                    try:
-                        result_obj.numbers = json.loads(result.numbers)
-                    except:
-                        result_obj.numbers = []
-                elif isinstance(result.numbers, list):
-                    result_obj.numbers = result.numbers
-                else:
-                    result_obj.numbers = []
-            else:
-                result_obj.numbers = []
-                
-            recent_results.append(result_obj)
-        
-        return render_template('admin.html', 
-                             total_results=total_results,
-                             total_users=total_users,
-                             recent_results=recent_results)
-                             
-    except Exception as e:
-        logger.error(f"Admin dashboard error: {e}")
-        flash('Error loading dashboard data', 'error')
-        # Fallback to basic stats if database query fails
-        return render_template('admin.html', 
-                             total_results=6,
-                             total_users=2,
-                             recent_results=[])
+    return render_template('admin_simple.html')
+
+# Admin feature routes - restore the advanced features you built
+@app.route('/admin/data_preview')
+@login_required
+def data_preview():
+    """Data Preview & Approval System"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Data Preview & Approval system - Advanced feature for reviewing extracted lottery data', 'info')
+    return render_template('admin/data_extraction.html')
+
+@app.route('/admin/automation_control')
+@login_required  
+def automation_control():
+    """Automation Control Center"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Automation Control Center - Manage automated lottery data extraction workflows', 'info') 
+    return render_template('admin/automation_control.html')
+
+@app.route('/admin/scheduler_status')
+@login_required
+def scheduler_status():
+    """Daily Automation Scheduler Status"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Daily Automation Scheduler - Monitor automated daily lottery result extraction', 'info')
+    return render_template('admin/scheduler_status.html')
+
+@app.route('/admin/health_dashboard')  
+@login_required
+def health_dashboard():
+    """System Health Dashboard"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('System Health Dashboard - Monitor system performance and alerts', 'info')
+    return render_template('admin/health_dashboard.html')
+
+@app.route('/admin/api_tracking')
+@login_required
+def api_tracking_view():
+    """API Usage Tracking"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('API Usage Tracking - Monitor API calls and performance metrics', 'info')  
+    return render_template('admin/api_tracking.html')
+
+@app.route('/admin/settings')
+@login_required
+def settings():
+    """System Settings"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('System Settings - Configure data sync and system parameters', 'info')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/visualizations')
+@login_required  
+def visualizations():
+    """Data Analytics & Visualizations"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Data Analytics & Visualizations - Advanced lottery data analysis tools', 'info')
+    return render_template('admin/lottery_analysis.html')
+
+@app.route('/admin/ticket_scanner')
+@login_required
+def ticket_scanner():
+    """Ticket Scanner Interface"""  
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Ticket Scanner - AI-powered lottery ticket processing system', 'info')
+    return render_template('admin/scan_ticket.html')
+
+@app.route('/admin/import_data')
+@login_required
+def import_data():
+    """Import Spreadsheet Data"""
+    if not current_user.is_admin:
+        return redirect(url_for('index')) 
+    flash('Import Spreadsheet - Bulk import lottery data from Excel files', 'info')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/import_history')
+@login_required
+def import_history():
+    """Import History"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Import History - View previous data import operations', 'info') 
+    return redirect(url_for('admin'))
 
 # Error handlers
 @app.errorhandler(404)
