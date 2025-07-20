@@ -38,14 +38,14 @@ SCREEN_SIZES = [
     (1280, 720), (1600, 900), (2560, 1440), (1920, 1200)
 ]
 
-# South African lottery websites - using homepage strategy that works
+# EXACT URLs from database - these are the specific result pages we need
 LOTTERY_URLS = {
-    'LOTTO': 'https://www.nationallottery.co.za/',
-    'LOTTO PLUS 1': 'https://www.nationallottery.co.za/', 
-    'LOTTO PLUS 2': 'https://www.nationallottery.co.za/',
-    'POWERBALL': 'https://www.nationallottery.co.za/',
-    'POWERBALL PLUS': 'https://www.nationallottery.co.za/',
-    'DAILY LOTTO': 'https://www.nationallottery.co.za/'
+    'LOTTO': 'https://www.nationallottery.co.za/results/lotto',
+    'LOTTO PLUS 1': 'https://www.nationallottery.co.za/results/lotto-plus-1-results',
+    'LOTTO PLUS 2': 'https://www.nationallottery.co.za/results/lotto-plus-2-results',
+    'POWERBALL': 'https://www.nationallottery.co.za/results/powerball',
+    'POWERBALL PLUS': 'https://www.nationallottery.co.za/results/powerball-plus',
+    'DAILY LOTTO': 'https://www.nationallottery.co.za/results/daily-lotto'
 }
 
 # Alternative URL patterns to try if main page fails
@@ -236,8 +236,52 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
             )
             human_like_delay(2, 4)
         
-        # Take screenshot
+        # Scroll to top first to ensure we capture from the beginning
+        driver.execute_script("window.scrollTo(0, 0);")
+        human_like_delay(1, 2)
+        
+        # Get accurate full page dimensions
+        total_height = driver.execute_script("""
+            return Math.max(
+                document.body.scrollHeight,
+                document.body.offsetHeight,
+                document.documentElement.clientHeight,
+                document.documentElement.scrollHeight,
+                document.documentElement.offsetHeight
+            );
+        """)
+        
+        total_width = driver.execute_script("""
+            return Math.max(
+                document.body.scrollWidth,
+                document.body.offsetWidth,
+                document.documentElement.clientWidth,
+                document.documentElement.scrollWidth,
+                document.documentElement.offsetWidth
+            );
+        """)
+        
+        logger.info(f"Detected full page dimensions: {total_width}x{total_height}")
+        
+        # Ensure minimum dimensions for complete capture
+        capture_width = max(total_width, 1400)  # Minimum width to capture full content
+        capture_height = max(total_height, 1200)  # Minimum height for complete page
+        
+        # Set browser window size to capture entire page
+        driver.set_window_size(capture_width, capture_height)
+        logger.info(f"Set browser window size to: {capture_width}x{capture_height}")
+        
+        # Wait for page to fully adjust and load at new dimensions
+        human_like_delay(3, 5)
+        
+        # Ensure we're at the top of the page
+        driver.execute_script("window.scrollTo(0, 0);")
+        human_like_delay(1, 2)
+        
+        # Take full-page screenshot - this should capture everything
         driver.save_screenshot(filepath)
+        
+        logger.info(f"FULL-PAGE screenshot captured: {filepath} (window: {capture_width}x{capture_height})")
         
         # Get file size
         file_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
