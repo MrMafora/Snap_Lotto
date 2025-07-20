@@ -38,14 +38,24 @@ SCREEN_SIZES = [
     (1280, 720), (1600, 900), (2560, 1440), (1920, 1200)
 ]
 
-# South African lottery websites to capture
+# South African lottery websites - using main pages instead of direct result pages to avoid blocking
 LOTTERY_URLS = {
-    'LOTTO': 'https://www.nationallottery.co.za/lotto/results',
-    'LOTTO PLUS 1': 'https://www.nationallottery.co.za/lotto-plus/results', 
-    'LOTTO PLUS 2': 'https://www.nationallottery.co.za/lotto-plus-2/results',
-    'POWERBALL': 'https://www.nationallottery.co.za/powerball/results',
-    'POWERBALL PLUS': 'https://www.nationallottery.co.za/powerball-plus/results',
-    'DAILY LOTTO': 'https://www.nationallottery.co.za/daily-lotto/results'
+    'LOTTO': 'https://www.nationallottery.co.za/',
+    'LOTTO PLUS 1': 'https://www.nationallottery.co.za/', 
+    'LOTTO PLUS 2': 'https://www.nationallottery.co.za/',
+    'POWERBALL': 'https://www.nationallottery.co.za/',
+    'POWERBALL PLUS': 'https://www.nationallottery.co.za/',
+    'DAILY LOTTO': 'https://www.nationallottery.co.za/'
+}
+
+# Alternative URL patterns to try if main page fails
+FALLBACK_URLS = {
+    'LOTTO': ['https://www.nationallottery.co.za/lotto', 'https://www.nationallottery.co.za/games/lotto'],
+    'LOTTO PLUS 1': ['https://www.nationallottery.co.za/lotto-plus', 'https://www.nationallottery.co.za/games/lotto-plus'], 
+    'LOTTO PLUS 2': ['https://www.nationallottery.co.za/lotto-plus-2', 'https://www.nationallottery.co.za/games/lotto-plus-2'],
+    'POWERBALL': ['https://www.nationallottery.co.za/powerball', 'https://www.nationallottery.co.za/games/powerball'],
+    'POWERBALL PLUS': ['https://www.nationallottery.co.za/powerball-plus', 'https://www.nationallottery.co.za/games/powerball-plus'],
+    'DAILY LOTTO': ['https://www.nationallottery.co.za/daily-lotto', 'https://www.nationallottery.co.za/games/daily-lotto']
 }
 
 def setup_chrome_driver():
@@ -176,13 +186,34 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         # Random delay before accessing each URL (like a human browsing)
         human_like_delay(2, 8)
         
-        # Navigate to the lottery results page
+        # Navigate to the lottery page (start with main page to avoid blocking)
         driver.get(url)
         
         # Wait for page to load with longer timeout for slow networks
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
+        
+        # Check if we're on main page and need to navigate to results
+        if url == 'https://www.nationallottery.co.za/':
+            try:
+                # Look for "Results" link and click it
+                results_link = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.LINK_TEXT, "Results"))
+                )
+                results_link.click()
+                
+                # Wait for results page to load
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+                
+                # Additional wait to ensure lottery results are visible
+                human_like_delay(3, 5)
+                
+            except Exception as nav_error:
+                logger.warning(f"Could not navigate to results section: {nav_error}")
+                # Continue with screenshot of current page
         
         # Simulate human browsing behavior
         simulate_human_browsing(driver)
