@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% set page_title = "Upload Lottery Results" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-upload"></i> Upload Lottery Result Image
+                    </h4>
+                    <p class="mb-0 mt-2 small">Upload an official SA National Lottery results page for AI processing</p>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Upload Form -->
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                        {{ csrf_token() }}
+                        
+                        <div class="mb-4">
+                            <label for="lottery_image" class="form-label">Select Lottery Results Image</label>
+                            <input type="file" class="form-control" id="lottery_image" name="lottery_image" 
+                                   accept="image/*" required onchange="previewImage(this)">
+                            <div class="form-text">
+                                Supported formats: PNG, JPG, JPEG. Maximum size: 10MB
+                            </div>
+                        </div>
+                        
+                        <!-- Image Preview -->
+                        <div id="imagePreview" class="mb-4" style="display: none;">
+                            <label class="form-label">Image Preview:</label>
+                            <div class="border rounded p-3 text-center">
+                                <img id="previewImg" src="" alt="Preview" style="max-width: 100%; max-height: 400px;">
+                            </div>
+                        </div>
+                        
+                        <!-- Lottery Type Selection (Optional) -->
+                        <div class="mb-4">
+                            <label for="expected_lottery_type" class="form-label">Expected Lottery Type (Optional)</label>
+                            <select class="form-select" id="expected_lottery_type" name="expected_lottery_type">
+                                <option value="">Auto-detect from image</option>
+                                <option value="LOTTO">LOTTO</option>
+                                <option value="LOTTO PLUS 1">LOTTO PLUS 1</option>
+                                <option value="LOTTO PLUS 2">LOTTO PLUS 2</option>
+                                <option value="POWERBALL">POWERBALL</option>
+                                <option value="POWERBALL PLUS">POWERBALL PLUS</option>
+                                <option value="DAILY LOTTO">DAILY LOTTO</option>
+                            </select>
+                            <div class="form-text">
+                                Leave blank to automatically detect the lottery type from the image
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                                <i class="fas fa-brain"></i> Process with AI
+                            </button>
+                        </div>
+                    </form>
+                    
+                </div>
+            </div>
+            
+            <!-- Required Image Format Examples -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📋 Required Image Format</h5>
+                </div>
+                <div class="card-body">
+                    <p>Upload official SA National Lottery results pages that include:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>✅ Required Elements:</h6>
+                            <ul class="small">
+                                <li>Winning lottery numbers</li>
+                                <li>Complete prize divisions (DIV 1-8/9)</li>
+                                <li>Winner counts for each division</li>
+                                <li>Prize amounts for each division</li>
+                                <li>Draw date and number</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>💰 Financial Information:</h6>
+                            <ul class="small">
+                                <li>Rollover amounts</li>
+                                <li>Next jackpot amounts</li>
+                                <li>Total pool size</li>
+                                <li>Total ticket sales</li>
+                                <li>Draw machine information</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Best Results:</strong> Use clear screenshots from 
+                        <a href="https://www.nationallottery.co.za/" target="_blank">www.nationallottery.co.za</a> 
+                        results pages showing complete lottery data.
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Processing Modal -->
+<div class="modal fade" id="processingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Processing...</span>
+                </div>
+                <h5>Processing Lottery Image</h5>
+                <p class="text-muted">AI is extracting lottery data from your image...</p>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 75%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    // Show processing modal
+    const modal = new bootstrap.Modal(document.getElementById('processingModal'));
+    modal.show();
+    
+    // Disable upload button
+    document.getElementById('uploadBtn').disabled = true;
+});
+</script>
+{% endblock %}

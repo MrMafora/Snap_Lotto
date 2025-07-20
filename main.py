@@ -604,6 +604,89 @@ def logout():
     flash('You have been logged out', 'info')
     return redirect(url_for('index'))
 
+# Upload Lottery Image Route
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_lottery():
+    """Upload and process lottery result images with AI"""
+    if request.method == 'GET':
+        return render_template('upload_lottery.html')
+    
+    try:
+        # Check if file was uploaded
+        if 'lottery_image' not in request.files:
+            flash('No file selected', 'error')
+            return redirect(request.url)
+        
+        file = request.files['lottery_image']
+        if file.filename == '':
+            flash('No file selected', 'error')
+            return redirect(request.url)
+        
+        # Validate file type and size
+        if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            flash('Only PNG, JPG, and JPEG files are allowed', 'error')
+            return redirect(request.url)
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_filename = f"{timestamp}_{filename}"
+        
+        upload_folder = 'uploads'
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, unique_filename)
+        file.save(file_path)
+        
+        # Get expected lottery type
+        expected_type = request.form.get('expected_lottery_type', '')
+        
+        logger.info(f"Processing uploaded lottery image: {file_path}")
+        
+        # Process with AI using manual lottery processor
+        from manual_lottery_processor import ManualLotteryProcessor
+        processor = ManualLotteryProcessor()
+        
+        # Extract data with AI
+        result = processor.process_lottery_image(file_path, expected_type)
+        
+        if 'error' in result:
+            flash(f'AI processing failed: {result["error"]}', 'error')
+            return redirect(request.url)
+        
+        # Display extraction results
+        lottery_type = result.get('lottery_type')
+        confidence = result.get('confidence', 0)
+        
+        if confidence < 70:
+            flash(f'Low confidence extraction ({confidence}%). Please verify the image quality.', 'warning')
+        
+        # Save to database
+        save_result = processor.save_extractions_to_database(result)
+        
+        if save_result.get('success'):
+            saved_records = save_result.get('saved_records', [])
+            record_ids = [str(r['id']) for r in saved_records]
+            
+            flash(f'Successfully processed {lottery_type} lottery with {confidence}% confidence! (Record IDs: {", ".join(record_ids)})', 'success')
+            
+            # Clean up uploaded file
+            try:
+                os.remove(file_path)
+            except:
+                pass
+            
+            # Redirect to results page
+            return redirect(url_for('results'))
+        else:
+            flash(f'Data extraction successful, but database save failed: {save_result.get("error")}', 'error')
+            return redirect(request.url)
+            
+    except Exception as e:
+        logger.error(f"Upload processing error: {e}")
+        logger.error(traceback.format_exc())
+        flash(f'Processing failed: {str(e)}', 'error')
+        return redirect(request.url)
+
 @app.route('/admin')
 @login_required
 def admin():

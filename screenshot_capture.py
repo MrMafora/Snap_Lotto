@@ -38,7 +38,7 @@ SCREEN_SIZES = [
     (1280, 720), (1600, 900), (2560, 1440), (1920, 1200)
 ]
 
-# South African lottery websites - using main pages instead of direct result pages to avoid blocking
+# South African lottery websites - using homepage strategy that works
 LOTTERY_URLS = {
     'LOTTO': 'https://www.nationallottery.co.za/',
     'LOTTO PLUS 1': 'https://www.nationallottery.co.za/', 
@@ -194,25 +194,31 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
-        # Check if we're on main page and need to navigate to results
+        # Check if we're on main page - homepage contains lottery information
         if url == 'https://www.nationallottery.co.za/':
             try:
-                # Look for "Results" link and click it
-                results_link = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.LINK_TEXT, "Results"))
-                )
-                results_link.click()
+                # Wait for page content to load completely
+                human_like_delay(5, 8)
                 
-                # Wait for results page to load
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
-                )
-                
-                # Additional wait to ensure lottery results are visible
-                human_like_delay(3, 5)
+                # Check if homepage contains lottery information (which it does based on testing)
+                page_content = driver.page_source.lower()
+                if any(keyword in page_content for keyword in ['lotto', 'powerball', 'daily lotto', 'winning numbers']):
+                    logger.info(f"Homepage contains lottery information for {lottery_type}")
+                else:
+                    logger.warning(f"Homepage may not contain lottery data for {lottery_type}")
+                    
+                # Try to scroll to lottery results section if visible
+                try:
+                    # Look for lottery game elements and scroll to them
+                    lottery_elements = driver.find_elements(By.CSS_SELECTOR, "[class*='lotto'], [class*='powerball'], [class*='lottery']")
+                    if lottery_elements:
+                        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", lottery_elements[0])
+                        human_like_delay(2, 4)
+                except:
+                    pass
                 
             except Exception as nav_error:
-                logger.warning(f"Could not navigate to results section: {nav_error}")
+                logger.warning(f"Homepage processing error: {nav_error}")
                 # Continue with screenshot of current page
         
         # Simulate human browsing behavior
