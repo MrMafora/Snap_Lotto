@@ -33,3 +33,4 @@ openpyxl
 pyjwt
 sift-stack-py
 selenium
+webdriver-manager
