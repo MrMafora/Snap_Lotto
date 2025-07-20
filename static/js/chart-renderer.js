@@ -2,9 +2,11 @@
  * Chart Renderer for Snap Lotto
  * Responsible for creating and updating chart visualizations with data from the API
  */
+console.log('CHART RENDERER JS: External chart renderer file loaded successfully');
 
 // Function to render the frequency chart with the provided data
-function renderFrequencyChart(frequencyData) {
+function renderExternalFrequencyChart(frequencyData) {
+    console.log('CHART RENDERER: renderExternalFrequencyChart called with:', frequencyData);
     if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
         console.warn('No frequency data to render');
         return;
