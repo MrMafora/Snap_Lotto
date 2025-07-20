@@ -529,6 +529,42 @@ def draw_details(lottery_type, draw_number):
         flash(f"Error loading draw details: {e}", 'error')
         return redirect(url_for('results'))
 
+# Simple form classes to replace WTForms dependency
+class SimpleForm:
+    """Simple form object to replace WTForms dependency"""
+    def __init__(self):
+        self.username = SimpleField('username', 'Username')
+        self.password = SimpleField('password', 'Password')
+    
+    def hidden_tag(self):
+        try:
+            return f'<input type="hidden" name="csrf_token" value="{csrf.generate_csrf()}">'
+        except Exception:
+            return '<input type="hidden" name="csrf_token" value="">'
+
+class SimpleField:
+    """Simple field object"""
+    def __init__(self, name, label):
+        self.name = name
+        self.label_text = label
+        self.errors = []
+    
+    def label(self, class_=None):
+        return f'<label for="{self.name}" class="{class_ or ""}">{self.label_text}</label>'
+    
+    def __call__(self, class_=None, placeholder=None, autocomplete=None):
+        attrs = []
+        if class_:
+            attrs.append(f'class="{class_}"')
+        if placeholder:
+            attrs.append(f'placeholder="{placeholder}"')
+        if autocomplete:
+            attrs.append(f'autocomplete="{autocomplete}"')
+        
+        field_type = "password" if self.name == "password" else "text"
+        attr_str = ' '.join(attrs)
+        return f'<input type="{field_type}" name="{self.name}" id="{self.name}" {attr_str}>'
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """User login"""
