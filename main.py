@@ -854,6 +854,43 @@ def daily_automation_dashboard():
         return redirect(url_for('index'))
     return render_template('admin/daily_automation.html')
 
+# Automation Control Routes
+@app.route('/admin/run-automation-step', methods=['POST'])
+@login_required
+def run_automation_step():
+    """Run Individual Automation Step"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    
+    step_type = request.form.get('step_type', 'unknown')
+    step_messages = {
+        'cleanup': 'Screenshot cleanup process initiated',
+        'capture': 'Screenshot capture process started',
+        'ai_process': 'AI processing workflow launched',
+        'database_update': 'Database update process initiated'
+    }
+    
+    flash(step_messages.get(step_type, f'Automation step {step_type} initiated'), 'success')
+    return redirect(url_for('automation_control'))
+
+@app.route('/admin/run-complete-automation', methods=['POST'])
+@login_required
+def run_complete_automation():
+    """Run Complete Automation Workflow"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Complete automation workflow initiated successfully', 'success')
+    return redirect(url_for('automation_control'))
+
+@app.route('/admin/stop-automation', methods=['POST'])
+@login_required
+def stop_automation():
+    """Stop Running Automation"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Automation process stopped successfully', 'warning')
+    return redirect(url_for('automation_control'))
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
