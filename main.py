@@ -574,7 +574,11 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             flash('Login successful!', 'success')
-            return redirect(url_for('index'))
+            # Redirect admin users to admin dashboard
+            if user.is_admin:
+                return redirect(url_for('admin'))
+            else:
+                return redirect(url_for('index'))
         else:
             flash('Invalid username or password', 'error')
     
@@ -587,6 +591,53 @@ def logout():
     logout_user()
     flash('You have been logged out', 'info')
     return redirect(url_for('index'))
+
+@app.route('/admin')
+@login_required
+def admin():
+    """Admin dashboard"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('index'))
+    
+    # Use direct database connection to avoid SQLAlchemy type issues
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    
+    try:
+        # Get system statistics
+        cursor.execute("SELECT COUNT(*) FROM lottery_result")
+        total_results = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM "user"')
+        total_users = cursor.fetchone()[0]
+        
+        # Get recent lottery results
+        cursor.execute("""
+            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers
+            FROM lottery_result 
+            ORDER BY draw_date DESC 
+            LIMIT 5
+        """)
+        
+        recent_results = []
+        for row in cursor.fetchall():
+            result = type('Result', (), {})()
+            result.lottery_type = row[0]
+            result.draw_number = row[1]
+            result.draw_date = row[2]
+            result.numbers = row[3] if row[3] else []
+            result.bonus_numbers = row[4] if row[4] else []
+            recent_results.append(result)
+            
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return render_template('admin.html', 
+                         total_results=total_results,
+                         total_users=total_users,
+                         recent_results=recent_results)
 
 # Error handlers
 @app.errorhandler(404)

@@ -186,7 +186,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 {% if current_user.is_admin %}
-                                <li><a class="dropdown-item" href="/results"><i class="fas fa-shield-alt me-2"></i> Admin Panel</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin') }}"><i class="fas fa-shield-alt me-2"></i> Admin Dashboard</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 {% endif %}
                                 <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
@@ -367,7 +367,7 @@
             <small>Analytics</small>
         </a>
         {% if current_user.is_authenticated and current_user.is_admin %}
-        <a href="/results" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/results' %}#dc3545{% else %}#666{% endif %};">
+        <a href="{{ url_for('admin') }}" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/admin' %}#dc3545{% else %}#666{% endif %};">
             <i class="fas fa-shield-alt" style="font-size: 16px; margin-bottom: 2px;"></i>
             <small>Admin</small>
         </a>
