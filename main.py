@@ -602,20 +602,58 @@ def logout():
 @app.route('/admin')
 @login_required
 def admin():
-    """Admin dashboard"""
+    """Admin dashboard with full system statistics and recent results"""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
     
-    # Simple admin dashboard without complex database queries
-    total_results = 6  # We know there are 6 lottery types 
-    total_users = 2    # Admin user + any test users
-    recent_results = [] # Empty for now to avoid database complexity
-    
-    return render_template('admin.html', 
-                         total_results=total_results,
-                         total_users=total_users,
-                         recent_results=recent_results)
+    try:
+        # Get authentic system statistics using SQLAlchemy
+        total_results = LotteryResult.query.count()
+        total_users = User.query.count()
+        
+        # Get recent lottery results with proper data structure
+        recent_results_query = LotteryResult.query.order_by(desc(LotteryResult.draw_date)).limit(5).all()
+        
+        # Convert to objects with proper methods for template
+        recent_results = []
+        for result in recent_results_query:
+            # Create result object with all needed attributes
+            result_obj = type('AdminResult', (), {})()
+            result_obj.lottery_type = result.lottery_type
+            result_obj.draw_number = result.draw_number  
+            result_obj.draw_date = result.draw_date
+            
+            # Handle numbers - ensure they're in proper list format
+            if result.numbers:
+                if isinstance(result.numbers, str):
+                    import json
+                    try:
+                        result_obj.numbers = json.loads(result.numbers)
+                    except:
+                        result_obj.numbers = []
+                elif isinstance(result.numbers, list):
+                    result_obj.numbers = result.numbers
+                else:
+                    result_obj.numbers = []
+            else:
+                result_obj.numbers = []
+                
+            recent_results.append(result_obj)
+        
+        return render_template('admin.html', 
+                             total_results=total_results,
+                             total_users=total_users,
+                             recent_results=recent_results)
+                             
+    except Exception as e:
+        logger.error(f"Admin dashboard error: {e}")
+        flash('Error loading dashboard data', 'error')
+        # Fallback to basic stats if database query fails
+        return render_template('admin.html', 
+                             total_results=6,
+                             total_users=2,
+                             recent_results=[])
 
 # Error handlers
 @app.errorhandler(404)
