@@ -575,6 +575,12 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             flash('Login successful!', 'success')
+            
+            # Handle next URL parameter properly
+            next_page = request.args.get('next')
+            if next_page and next_page.startswith('/'):
+                return redirect(next_page)
+            
             # Redirect admin users to admin dashboard
             if user.is_admin:
                 return redirect(url_for('admin'))
