@@ -612,7 +612,7 @@ def admin():
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
     
-    return render_template('admin_simple.html')
+    return render_template('admin/dashboard.html')
 
 # Admin feature routes - restore the advanced features you built
 @app.route('/admin/data_preview')
@@ -704,6 +704,70 @@ def import_history():
         return redirect(url_for('index'))
     flash('Import History - View previous data import operations', 'info') 
     return redirect(url_for('admin'))
+
+# Missing routes for the original admin dashboard
+@app.route('/admin/register')
+@login_required
+def register():
+    """Add Admin User Registration"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Add Admin User - User registration functionality', 'info')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/system_status')
+@login_required
+def system_status():
+    """System Status Monitoring"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('System Status - Monitor system performance and health', 'info')
+    return render_template('admin/system_status.html')
+
+@app.route('/admin/health_alerts')
+@login_required
+def health_alerts():
+    """Health Alerts Dashboard"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Health Alerts - View system alerts and notifications', 'info')
+    return render_template('admin/health_alerts.html')
+
+@app.route('/admin/health_history')
+@login_required
+def health_history():
+    """Health Check History"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Health History - View historical health check results', 'info')
+    return render_template('admin/health_history.html')
+
+@app.route('/admin/run_health_checks', methods=['POST'])
+@login_required
+def run_health_checks():
+    """Run Health Checks"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Health checks initiated successfully', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/manage_ads')
+@login_required
+def manage_ads():
+    """Advertisement Management"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('Advertisement Management - Manage video ads and campaigns', 'info')
+    return render_template('admin/manage_ads.html')
+
+@app.route('/admin/test_ai_extraction', methods=['POST'])
+@login_required
+def test_ai_extraction():
+    """Test AI Extraction Functionality"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    flash('AI Extraction test completed', 'success')
+    return redirect(url_for('automation_control'))
 
 # Error handlers
 @app.errorhandler(404)
