@@ -630,8 +630,17 @@ def automation_control():
     """Automation Control Center"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    flash('Automation Control Center - Manage automated lottery data extraction workflows', 'info') 
-    return render_template('admin/automation_control.html')
+    
+    # Get latest screenshots for display
+    try:
+        from screenshot_capture import get_latest_screenshots
+        screenshots = get_latest_screenshots()
+        logger.info(f"Loaded {len(screenshots)} screenshots for display")
+    except Exception as e:
+        logger.warning(f"Could not load screenshots: {e}")
+        screenshots = []
+    
+    return render_template('admin/automation_control.html', screenshots=screenshots)
 
 @app.route('/admin/scheduler_status')
 @login_required
@@ -825,8 +834,23 @@ def view_screenshot(screenshot_id):
     """View Individual Screenshot"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    flash(f'Screenshot {screenshot_id} accessed', 'info')
-    return redirect(url_for('automation_control'))
+    
+    try:
+        from models import Screenshot
+        screenshot = Screenshot.query.get_or_404(screenshot_id)
+        
+        # Check if file exists and serve it
+        if os.path.exists(screenshot.file_path):
+            from flask import send_file
+            return send_file(screenshot.file_path, as_attachment=False)
+        else:
+            flash(f'Screenshot file not found: {screenshot.filename}', 'error')
+            return redirect(url_for('automation_control'))
+            
+    except Exception as e:
+        logger.error(f"Error viewing screenshot {screenshot_id}: {e}")
+        flash(f'Error accessing screenshot: {str(e)}', 'error')
+        return redirect(url_for('automation_control'))
 
 @app.route('/admin/view_zoomed_screenshot/<int:screenshot_id>')
 @login_required
@@ -862,15 +886,49 @@ def run_automation_step():
     if not current_user.is_admin:
         return redirect(url_for('index'))
     
-    step_type = request.form.get('step_type', 'unknown')
-    step_messages = {
-        'cleanup': 'Screenshot cleanup process initiated',
-        'capture': 'Screenshot capture process started',
-        'ai_process': 'AI processing workflow launched',
-        'database_update': 'Database update process initiated'
-    }
+    step = request.form.get('step', 'unknown')
+    logger.info(f"Running automation step: {step}")
     
-    flash(step_messages.get(step_type, f'Automation step {step_type} initiated'), 'success')
+    try:
+        if step == 'cleanup':
+            # Clean up old screenshots
+            from screenshot_capture import cleanup_old_screenshots
+            result = cleanup_old_screenshots(days_old=7)
+            
+            if result['success']:
+                flash(f'Cleanup completed: {result["deleted_files"]} files and {result["deleted_records"]} records removed', 'success')
+            else:
+                flash(f'Cleanup failed: {result.get("error", "Unknown error")}', 'error')
+                
+        elif step == 'capture':
+            # Capture fresh screenshots from lottery websites
+            from screenshot_capture import capture_all_lottery_screenshots
+            results = capture_all_lottery_screenshots()
+            
+            if results['total_success'] > 0:
+                flash(f'Screenshot capture completed: {results["total_success"]}/{results["total_processed"]} successful', 'success')
+                if results['total_failed'] > 0:
+                    flash(f'{results["total_failed"]} screenshots failed to capture', 'warning')
+            else:
+                flash('Screenshot capture failed: No screenshots were captured successfully', 'error')
+                
+        elif step == 'ai_process':
+            # AI processing of captured screenshots
+            flash('AI processing workflow launched - processing captured screenshots', 'info')
+            logger.info("AI processing step initiated")
+            
+        elif step == 'database_update':
+            # Database update with processed data
+            flash('Database update process initiated', 'info')
+            logger.info("Database update step initiated")
+            
+        else:
+            flash(f'Unknown automation step: {step}', 'warning')
+            
+    except Exception as e:
+        logger.error(f"Error in automation step {step}: {e}")
+        flash(f'Error in automation step: {str(e)}', 'error')
+    
     return redirect(url_for('automation_control'))
 
 @app.route('/admin/run-complete-automation', methods=['POST'])

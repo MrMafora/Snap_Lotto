@@ -119,3 +119,21 @@ class UserPreference(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'preference_key'),
     )
+
+class Screenshot(db.Model):
+    """Model for storing screenshot information"""
+    id = db.Column(db.Integer, primary_key=True)
+    lottery_type = db.Column(db.String(50), nullable=False)
+    url = db.Column(db.String(500), nullable=False)  # Source URL
+    filename = db.Column(db.String(255), nullable=False)  # Screenshot filename
+    file_path = db.Column(db.String(500), nullable=False)  # Full file path
+    file_size = db.Column(db.Integer)  # File size in bytes
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='active')  # active, archived, failed
+    capture_method = db.Column(db.String(50), default='selenium')  # selenium, playwright, etc.
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    __table_args__ = (
+        db.Index('idx_lottery_type_timestamp', 'lottery_type', 'timestamp'),
+        db.Index('idx_status', 'status'),
+    )

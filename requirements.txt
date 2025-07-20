@@ -32,3 +32,4 @@ flask-limiter
 openpyxl
 pyjwt
 sift-stack-py
+selenium
