@@ -58,23 +58,36 @@ def setup_chrome_driver():
     
     logger.info(f"Using user agent: {user_agent[:50]}... and screen size: {screen_width}x{screen_height}")
     
-    # Essential for headless operation
-    chrome_options.add_argument('--headless')
+    # Try without headless mode for maximum stealth (comment out headless)
+    # chrome_options.add_argument('--headless')  # Temporarily disabled for testing
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     
-    # Anti-detection measures
+    # Add virtual display arguments for headless environment
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--remote-debugging-port=9222')
+    chrome_options.add_argument('--display=:99')
+    
+    # Advanced anti-detection measures
     chrome_options.add_argument(f'--user-agent={user_agent}')
     chrome_options.add_argument(f'--window-size={screen_width},{screen_height}')
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
-    chrome_options.add_argument('--disable-web-security')
-    chrome_options.add_argument('--allow-running-insecure-content')
-    chrome_options.add_argument('--disable-extensions')
-    chrome_options.add_argument('--disable-plugins')
-    chrome_options.add_argument('--disable-images')  # Faster loading
-    chrome_options.add_argument('--disable-javascript')  # Sometimes helps with anti-bot detection
+    
+    # Remove automation indicators
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-extensions-file-access-check')
+    chrome_options.add_argument('--disable-extensions-http-throttling')
+    chrome_options.add_argument('--disable-component-extensions-with-background-pages')
+    
+    # Mimic real browser behavior
+    chrome_options.add_argument('--enable-features=VizDisplayCompositor')
+    chrome_options.add_argument('--disable-ipc-flooding-protection')
+    
+    # Stealth mode settings - REMOVE JavaScript disabling as it blocks content
+    # chrome_options.add_argument('--disable-javascript')  # This was causing issues!
+    chrome_options.add_argument('--enable-automation')  # Paradoxically, this can help sometimes
     
     # Realistic browser settings
     chrome_options.add_argument('--lang=en-US,en;q=0.9')
@@ -91,13 +104,22 @@ def setup_chrome_driver():
     try:
         driver = webdriver.Chrome(options=chrome_options)
         
-        # Additional anti-detection measures
+        # Advanced anti-detection JavaScript injections
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]})")
+        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']})")
+        driver.execute_script("window.chrome = { runtime: {} }")
+        driver.execute_script("Object.defineProperty(navigator, 'permissions', {get: () => ({ query: x => ({ state: 'granted' })})})")
+        
+        # Set realistic browser properties via CDP
         driver.execute_cdp_cmd('Network.setUserAgentOverride', {
             "userAgent": user_agent,
             "acceptLanguage": "en-US,en;q=0.9",
             "platform": "Win32"
         })
+        
+        # Set timezone to South Africa (simplified)
+        driver.execute_cdp_cmd('Emulation.setTimezoneOverride', {'timezoneId': 'Africa/Johannesburg'})
         
         return driver
     except Exception as e:
@@ -348,11 +370,23 @@ def capture_single_lottery_with_driver(driver, lottery_type, url):
         # Random delay before accessing each URL (like a human browsing)
         human_like_delay(2, 8)
         
-        # Navigate to the lottery results page
+        # First visit the main site to establish session (like a real user)
+        base_url = "https://www.nationallottery.co.za"
+        logger.debug(f"Establishing session by visiting main site: {base_url}")
+        driver.get(base_url)
+        
+        # Wait and simulate looking around the main site
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        human_like_delay(3, 6)
+        
+        # Now navigate to the specific lottery results page
+        logger.debug(f"Now navigating to specific lottery page: {url}")
         driver.get(url)
         
         # Wait for page to load with longer timeout for slow networks
-        WebDriverWait(driver, 15).until(
+        WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
