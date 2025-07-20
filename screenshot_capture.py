@@ -236,9 +236,26 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
             )
             human_like_delay(2, 4)
         
-        # Scroll to top first to ensure we capture from the beginning
-        driver.execute_script("window.scrollTo(0, 0);")
+        # Force browser to start from absolute top before refresh
+        driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
         human_like_delay(1, 2)
+        
+        # Navigate to page fresh to ensure complete header capture
+        driver.get(url)
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        
+        # Wait for complete page load including header elements
+        human_like_delay(8, 10)
+        
+        # Ensure we're at absolute top - multiple aggressive attempts
+        for attempt in range(10):
+            driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
+            driver.execute_script("document.documentElement.scrollTop = 0;")
+            driver.execute_script("document.body.scrollTop = 0;")
+            driver.execute_script("window.pageYOffset = 0;")
+            human_like_delay(0.5, 1)
         
         # Get accurate full page dimensions
         total_height = driver.execute_script("""
@@ -263,9 +280,9 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         
         logger.info(f"Detected full page dimensions: {total_width}x{total_height}")
         
-        # Ensure minimum dimensions for complete capture
-        capture_width = max(total_width, 1400)  # Minimum width to capture full content
-        capture_height = max(total_height, 1200)  # Minimum height for complete page
+        # Ensure dimensions capture complete page including all headers
+        capture_width = max(total_width, 1800)  # Increased width for full content
+        capture_height = max(total_height, 1600)  # Increased height to ensure header capture
         
         # Set browser window size to capture entire page
         driver.set_window_size(capture_width, capture_height)
@@ -274,9 +291,26 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         # Wait for page to fully adjust and load at new dimensions
         human_like_delay(3, 5)
         
-        # Ensure we're at the top of the page
-        driver.execute_script("window.scrollTo(0, 0);")
-        human_like_delay(1, 2)
+        # Final aggressive scroll to absolute top
+        for i in range(5):
+            driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
+            driver.execute_script("document.documentElement.scrollTop = 0;")
+            driver.execute_script("document.body.scrollTop = 0;")
+            # Also force viewport to top
+            driver.execute_script("document.querySelector('html').scrollTop = 0;")
+            human_like_delay(0.5, 1)
+        
+        # Wait for any sticky headers or dynamic content to fully settle
+        human_like_delay(3, 5)
+        
+        # Verify we're actually at the top
+        scroll_position = driver.execute_script("return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;")
+        logger.info(f"Final scroll position before screenshot: {scroll_position}")
+        
+        if scroll_position > 0:
+            logger.warning(f"Still not at top (position: {scroll_position}), forcing again...")
+            driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
+            human_like_delay(2, 3)
         
         # Take full-page screenshot - this should capture everything
         driver.save_screenshot(filepath)
