@@ -4,6 +4,7 @@ Screenshot capture functionality for South African lottery websites
 
 import os
 import time
+import random
 import logging
 from datetime import datetime
 from selenium import webdriver
@@ -11,11 +12,31 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 from models import Screenshot, db
 from flask_login import current_user
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Human-like user agents for rotation
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15'
+]
+
+# Realistic screen resolutions
+SCREEN_SIZES = [
+    (1920, 1080), (1366, 768), (1536, 864), (1440, 900),
+    (1280, 720), (1600, 900), (2560, 1440), (1920, 1200)
+]
 
 # South African lottery websites to capture
 LOTTERY_URLS = {
@@ -28,21 +49,96 @@ LOTTERY_URLS = {
 }
 
 def setup_chrome_driver():
-    """Setup Chrome driver with appropriate options for screenshot capture"""
+    """Setup Chrome driver with human-like anti-detection features"""
     chrome_options = Options()
-    chrome_options.add_argument('--headless')  # Run in background
+    
+    # Choose random user agent and screen size to appear human
+    user_agent = random.choice(USER_AGENTS)
+    screen_width, screen_height = random.choice(SCREEN_SIZES)
+    
+    logger.info(f"Using user agent: {user_agent[:50]}... and screen size: {screen_width}x{screen_height}")
+    
+    # Essential for headless operation
+    chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    
+    # Anti-detection measures
+    chrome_options.add_argument(f'--user-agent={user_agent}')
+    chrome_options.add_argument(f'--window-size={screen_width},{screen_height}')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--allow-running-insecure-content')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-plugins')
+    chrome_options.add_argument('--disable-images')  # Faster loading
+    chrome_options.add_argument('--disable-javascript')  # Sometimes helps with anti-bot detection
+    
+    # Realistic browser settings
+    chrome_options.add_argument('--lang=en-US,en;q=0.9')
+    chrome_options.add_argument('--accept-encoding=gzip, deflate, br')
+    chrome_options.add_argument('--accept-language=en-US,en;q=0.9')
+    
+    # Performance optimizations
     chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--window-size=1920,1080')  # Full HD resolution
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+    chrome_options.add_argument('--disable-logging')
+    chrome_options.add_argument('--disable-background-timer-throttling')
+    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+    chrome_options.add_argument('--disable-renderer-backgrounding')
     
     try:
         driver = webdriver.Chrome(options=chrome_options)
+        
+        # Additional anti-detection measures
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+            "userAgent": user_agent,
+            "acceptLanguage": "en-US,en;q=0.9",
+            "platform": "Win32"
+        })
+        
         return driver
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {e}")
         return None
+
+def human_like_delay(min_seconds=1, max_seconds=4):
+    """Add random human-like delays"""
+    delay = random.uniform(min_seconds, max_seconds)
+    logger.debug(f"Human-like delay: {delay:.2f} seconds")
+    time.sleep(delay)
+
+def simulate_human_browsing(driver):
+    """Simulate human-like browsing behavior"""
+    try:
+        # Random mouse movements
+        actions = ActionChains(driver)
+        
+        # Move mouse to random positions (simulate reading)
+        for _ in range(random.randint(2, 5)):
+            x = random.randint(100, 800)
+            y = random.randint(100, 600)
+            actions.move_by_offset(x, y).perform()
+            time.sleep(random.uniform(0.5, 1.5))
+            actions.reset_actions()
+        
+        # Simulate scrolling behavior
+        scroll_amount = random.randint(200, 800)
+        driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+        human_like_delay(1, 2)
+        
+        # Random back scroll
+        if random.choice([True, False]):
+            driver.execute_script(f"window.scrollBy(0, -{scroll_amount//2});")
+            human_like_delay(0.5, 1)
+        
+        # Simulate reading time
+        human_like_delay(2, 5)
+        
+    except Exception as e:
+        logger.debug(f"Human simulation error (non-critical): {e}")
 
 def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
     """
@@ -76,22 +172,31 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
     try:
         logger.info(f"Capturing screenshot for {lottery_type} from {url}")
         
+        # Random delay before accessing each URL (like a human browsing)
+        human_like_delay(2, 8)
+        
         # Navigate to the lottery results page
         driver.get(url)
         
-        # Wait for page to load
-        WebDriverWait(driver, 10).until(
+        # Wait for page to load with longer timeout for slow networks
+        WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
-        # Additional wait for dynamic content
-        time.sleep(3)
+        # Simulate human browsing behavior
+        simulate_human_browsing(driver)
         
-        # Scroll to ensure all content is loaded
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-        driver.execute_script("window.scrollTo(0, 0);")
-        time.sleep(1)
+        # Wait for any dynamic content to load
+        human_like_delay(3, 6)
+        
+        # Sometimes refresh like a human would do if page seems slow
+        if random.choice([True, False, False]):  # 33% chance
+            logger.debug(f"Refreshing page for {lottery_type} (human-like behavior)")
+            driver.refresh()
+            WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+            human_like_delay(2, 4)
         
         # Take screenshot
         driver.save_screenshot(filepath)
@@ -138,7 +243,7 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
 
 def capture_all_lottery_screenshots():
     """
-    Capture screenshots for all South African lottery types
+    Capture screenshots for all South African lottery types with human-like behavior
     
     Returns:
         dict: Summary of capture results
@@ -152,25 +257,175 @@ def capture_all_lottery_screenshots():
         'total_failed': 0
     }
     
-    logger.info("Starting capture of all lottery screenshots")
+    logger.info("Starting capture of all lottery screenshots with anti-detection measures")
     
-    for lottery_type, url in LOTTERY_URLS.items():
-        results['total_processed'] += 1
+    # Randomize the order to appear more human
+    lottery_items = list(LOTTERY_URLS.items())
+    random.shuffle(lottery_items)
+    logger.info(f"Processing lotteries in randomized order: {[item[0] for item in lottery_items]}")
+    
+    driver = None
+    
+    try:
+        # Use single driver session to appear more human (like browsing in tabs)
+        driver = setup_chrome_driver()
+        if not driver:
+            logger.error("Failed to setup Chrome driver")
+            return {
+                'success': [],
+                'failed': [{'lottery_type': 'ALL', 'error': 'Failed to setup browser driver'}],
+                'total_processed': 0,
+                'total_success': 0,
+                'total_failed': 1
+            }
         
-        result = capture_lottery_screenshot(lottery_type, url)
+        for i, (lottery_type, url) in enumerate(lottery_items):
+            results['total_processed'] += 1
+            
+            try:
+                logger.info(f"Processing {i+1}/{len(lottery_items)}: {lottery_type}")
+                
+                # Random delay between lottery types (like browsing different pages)
+                if i > 0:  # Skip delay for first lottery
+                    long_delay = random.uniform(8, 20)  # Longer delays between different lottery pages
+                    logger.info(f"Human-like delay between pages: {long_delay:.2f} seconds")
+                    time.sleep(long_delay)
+                
+                result = capture_single_lottery_with_driver(driver, lottery_type, url)
+                
+                if result['success']:
+                    results['success'].append(result)
+                    results['total_success'] += 1
+                    logger.info(f"✅ {lottery_type}: {result['filename']}")
+                else:
+                    results['failed'].append(result)
+                    results['total_failed'] += 1
+                    logger.error(f"❌ {lottery_type}: {result.get('error', 'Unknown error')}")
+                    
+            except Exception as e:
+                results['failed'].append({
+                    'lottery_type': lottery_type,
+                    'error': str(e),
+                    'success': False
+                })
+                results['total_failed'] += 1
+                logger.error(f"❌ {lottery_type}: {e}")
         
-        if result['success']:
-            results['success'].append(result)
-            results['total_success'] += 1
-            logger.info(f"✅ {lottery_type}: {result['filename']}")
-        else:
-            results['failed'].append(result)
-            results['total_failed'] += 1
-            logger.error(f"❌ {lottery_type}: {result.get('error', 'Unknown error')}")
+    finally:
+        if driver:
+            # Add human-like delay before closing browser
+            human_like_delay(2, 5)
+            driver.quit()
     
     logger.info(f"Screenshot capture completed: {results['total_success']}/{results['total_processed']} successful")
     
     return results
+
+def capture_single_lottery_with_driver(driver, lottery_type, url):
+    """
+    Capture screenshot for a single lottery type using existing driver session with human behavior
+    
+    Args:
+        driver: Existing Chrome driver instance
+        lottery_type (str): Type of lottery
+        url (str): URL to capture
+        
+    Returns:
+        dict: Result with success status and details
+    """
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{timestamp}_{lottery_type.lower().replace(' ', '_')}.png"
+    filepath = os.path.join('screenshots', filename)
+    
+    # Ensure output directory exists
+    os.makedirs('screenshots', exist_ok=True)
+    
+    try:
+        logger.info(f"Capturing screenshot for {lottery_type} from {url}")
+        
+        # Random delay before accessing each URL (like a human browsing)
+        human_like_delay(2, 8)
+        
+        # Navigate to the lottery results page
+        driver.get(url)
+        
+        # Wait for page to load with longer timeout for slow networks
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        
+        # Simulate human browsing behavior
+        simulate_human_browsing(driver)
+        
+        # Wait for any dynamic content to load
+        human_like_delay(3, 6)
+        
+        # Sometimes refresh like a human would do if page seems slow
+        if random.choice([True, False, False]):  # 33% chance
+            logger.debug(f"Refreshing page for {lottery_type} (human-like behavior)")
+            driver.refresh()
+            WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+            human_like_delay(2, 4)
+        
+        # Take screenshot
+        success = driver.save_screenshot(filepath)
+        
+        if not success:
+            return {
+                'success': False,
+                'error': 'Failed to save screenshot file',
+                'lottery_type': lottery_type
+            }
+        
+        # Get file size
+        file_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
+        
+        # Save screenshot info to database
+        try:
+            screenshot = Screenshot(
+                lottery_type=lottery_type,
+                url=url,
+                filename=filename,
+                file_path=filepath,
+                file_size=file_size,
+                capture_method='selenium',
+                created_by=current_user.id if hasattr(current_user, 'id') else None
+            )
+            
+            db.session.add(screenshot)
+            db.session.commit()
+            
+            logger.info(f"Successfully captured screenshot for {lottery_type}: {filename}")
+            
+            return {
+                'success': True,
+                'lottery_type': lottery_type,
+                'filename': filename,
+                'filepath': filepath,
+                'file_size': file_size,
+                'screenshot_id': screenshot.id
+            }
+        
+        except Exception as db_error:
+            logger.error(f"Database error for {lottery_type}: {db_error}")
+            db.session.rollback()
+            return {
+                'success': False,
+                'error': f'Database error: {str(db_error)}',
+                'lottery_type': lottery_type
+            }
+        
+    except Exception as e:
+        logger.error(f"Error capturing screenshot for {lottery_type}: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'lottery_type': lottery_type
+        }
 
 def cleanup_old_screenshots(days_old=7):
     """
