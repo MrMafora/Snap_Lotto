@@ -172,12 +172,15 @@ def capture_lottery_screenshot(lottery_type, url):
 
 def capture_all_lottery_screenshots():
     """
-    Capture screenshots for all lottery types
+    Capture screenshots for all lottery types - ensuring only ONE per type
     
     Returns:
         dict: Summary of results
     """
     logger.info("Starting capture of all lottery screenshots...")
+    
+    # First, clean up old screenshots for each lottery type to ensure only 1 per type
+    cleanup_duplicate_screenshots()
     
     results = {
         'success': [],
@@ -189,6 +192,27 @@ def capture_all_lottery_screenshots():
     
     for lottery_type, url in LOTTERY_URLS.items():
         logger.info(f"Processing {lottery_type}...")
+        
+        # Delete existing screenshots for this lottery type before capturing new one
+        try:
+            from models import Screenshot, db
+            existing_screenshots = Screenshot.query.filter_by(lottery_type=lottery_type).all()
+            for screenshot in existing_screenshots:
+                # Delete file if it exists
+                if screenshot.file_path and os.path.exists(screenshot.file_path):
+                    try:
+                        os.remove(screenshot.file_path)
+                        logger.info(f"Deleted old file: {screenshot.file_path}")
+                    except Exception as e:
+                        logger.warning(f"Could not delete file {screenshot.file_path}: {e}")
+                # Delete database record
+                db.session.delete(screenshot)
+            db.session.commit()
+            logger.info(f"Cleaned up existing {lottery_type} screenshots")
+        except Exception as e:
+            logger.warning(f"Error cleaning up existing screenshots for {lottery_type}: {e}")
+        
+        # Now capture new screenshot
         result = capture_lottery_screenshot(lottery_type, url)
         
         if result['success']:
@@ -205,7 +229,42 @@ def capture_all_lottery_screenshots():
             time.sleep(2)
     
     logger.info(f"Capture complete: {results['total_success']}/{results['total_processed']} successful")
+    logger.info(f"Total screenshots in system: exactly {results['total_success']} (one per lottery type)")
     return results
+
+def cleanup_duplicate_screenshots():
+    """Remove duplicate screenshots, keeping only the latest one per lottery type"""
+    try:
+        from models import Screenshot, db
+        
+        lottery_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
+        total_deleted = 0
+        
+        for lottery_type in lottery_types:
+            # Get all screenshots for this lottery type, ordered by timestamp (newest first)
+            screenshots = Screenshot.query.filter_by(lottery_type=lottery_type).order_by(Screenshot.timestamp.desc()).all()
+            
+            if len(screenshots) > 1:
+                # Keep the first (newest) one, delete the rest
+                screenshots_to_delete = screenshots[1:]  # Skip the first (newest)
+                
+                for screenshot in screenshots_to_delete:
+                    # Delete file if it exists
+                    if screenshot.file_path and os.path.exists(screenshot.file_path):
+                        try:
+                            os.remove(screenshot.file_path)
+                        except Exception as e:
+                            logger.warning(f"Could not delete file {screenshot.file_path}: {e}")
+                    
+                    # Delete database record
+                    db.session.delete(screenshot)
+                    total_deleted += 1
+        
+        db.session.commit()
+        logger.info(f"Cleanup complete: deleted {total_deleted} duplicate screenshots")
+        
+    except Exception as e:
+        logger.error(f"Error during cleanup: {e}")
 
 def test_screenshot_capture():
     """Test screenshot capture with one lottery type"""
