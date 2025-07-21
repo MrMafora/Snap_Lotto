@@ -1169,9 +1169,24 @@ def run_automation_step():
                 flash('Screenshot capture failed: No screenshots were captured successfully', 'error')
                 
         elif step == 'ai_process':
-            # AI processing of captured screenshots
-            flash('AI processing workflow launched - processing captured screenshots', 'info')
-            logger.info("AI processing step initiated")
+            # AI processing of captured screenshots with Google Gemini 2.5 Pro
+            try:
+                from ai_lottery_processor import run_complete_ai_workflow
+                ai_results = run_complete_ai_workflow()
+                
+                if ai_results['total_success'] > 0:
+                    flash(f'AI processing completed: {ai_results["total_success"]}/{ai_results["total_processed"]} screenshots processed with Gemini 2.5 Pro', 'success')
+                    flash(f'Database records created: {len(ai_results.get("database_records", []))}', 'info')
+                    if ai_results['total_failed'] > 0:
+                        flash(f'{ai_results["total_failed"]} screenshots failed processing', 'warning')
+                else:
+                    flash('AI processing failed: No screenshots processed successfully', 'error')
+                    if 'error' in ai_results:
+                        flash(f'Error details: {ai_results["error"]}', 'error')
+                    
+            except Exception as e:
+                logger.error(f"AI processing workflow error: {e}")
+                flash(f'AI workflow error: {str(e)}', 'error')
             
         elif step == 'database_update':
             # Database update with processed data
@@ -1219,20 +1234,25 @@ def run_complete_workflow_direct():
         logger.info("Starting complete automation workflow")
         
         # Step 1: Capture fresh screenshots
-        results = capture_all_lottery_screenshots()
+        screenshot_results = capture_all_lottery_screenshots()
+        
+        # Step 2: Process screenshots with AI (Google Gemini 2.5 Pro)
+        from ai_lottery_processor import run_complete_ai_workflow
+        ai_results = run_complete_ai_workflow()
         
         workflow_results = {
             'status': 'success',
-            'steps_completed': ['screenshot_capture'],
-            'screenshot_results': results,
-            'message': f'Complete workflow finished: {results["total_success"]}/6 screenshots captured'
+            'steps_completed': ['screenshot_capture', 'ai_processing'],
+            'screenshot_results': screenshot_results,
+            'ai_results': ai_results,
+            'message': f'Complete workflow finished: {screenshot_results["total_success"]}/6 screenshots captured, {ai_results["total_success"]} processed with AI'
         }
         
-        if results['total_success'] > 0:
-            logger.info(f"Workflow completed successfully: {results['total_success']} screenshots captured")
+        if screenshot_results['total_success'] > 0 and ai_results['total_success'] > 0:
+            logger.info(f"Workflow completed successfully: {screenshot_results['total_success']} screenshots captured, {ai_results['total_success']} AI processed")
         else:
             workflow_results['status'] = 'partial_failure'
-            workflow_results['message'] = 'Workflow completed but no screenshots were captured'
+            workflow_results['message'] = f'Workflow completed with issues: Screenshots: {screenshot_results["total_success"]}/6, AI: {ai_results["total_success"]}'
         
         return jsonify(workflow_results)
         
