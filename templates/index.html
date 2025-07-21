@@ -510,7 +510,7 @@
                                                 </span>
                                             </div>
                                         {% endfor %}
-                                        {% if result.bonus_numbers %}
+                                        {% if result.bonus_numbers and result.get_bonus_numbers_list() and 'DAILY' not in result.lottery_type.upper() %}
                                             <div class="mx-1 d-flex align-items-center">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
                                                 <div class="lottery-ball-container">
@@ -573,7 +573,7 @@
                                     <span class="number">{{ num }}</span>
                                 </span>
                             {% endfor %}
-                            {% if result.bonus_numbers %}
+                            {% if result.bonus_numbers and result.get_bonus_numbers_list() and 'DAILY' not in result.lottery_type.upper() %}
                                 <span class="bonus-separator">+</span>
                                 {% for num in result.get_bonus_numbers_list() %}
                                     <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow lottery-ball-bonus">
