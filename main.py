@@ -911,6 +911,36 @@ def sync_all_screenshots():
     flash('Screenshot synchronization initiated', 'success')
     return redirect(url_for('automation_control'))
 
+@app.route('/admin/capture_fresh_screenshots', methods=['POST'])
+@login_required
+def capture_fresh_screenshots():
+    """Capture Fresh Screenshots Using Verified System"""
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    
+    try:
+        # Import the verified screenshot capture system
+        from screenshot_capture import capture_all_lottery_screenshots
+        
+        # Trigger the capture process
+        results = capture_all_lottery_screenshots()
+        
+        # Report results
+        if results['total_success'] > 0:
+            flash(f'Successfully captured {results["total_success"]}/6 lottery screenshots', 'success')
+            
+            if results['total_failed'] > 0:
+                failed_types = [result['lottery_type'] for result in results['failed']]
+                flash(f'Failed to capture: {", ".join(failed_types)}', 'warning')
+        else:
+            flash('No screenshots captured successfully', 'error')
+            
+    except Exception as e:
+        logger.error(f"Error in capture_fresh_screenshots: {e}")
+        flash(f'Screenshot capture error: {str(e)}', 'error')
+        
+    return redirect(url_for('automation_control'))
+
 @app.route('/admin/view_screenshot/<int:screenshot_id>')
 @login_required
 def view_screenshot(screenshot_id):
