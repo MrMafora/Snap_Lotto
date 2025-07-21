@@ -118,22 +118,26 @@ class DrawResult:
         self.next_draw_date = result.next_draw_date
         
     def get_numbers_list(self):
-        """Get main numbers as a list"""
+        """Get main numbers as a sorted list (small to large)"""
         if isinstance(self.main_numbers, str):
             try:
-                return json.loads(self.main_numbers)
+                numbers = json.loads(self.main_numbers)
+                return sorted(numbers) if numbers else []
             except:
                 return []
-        return self.main_numbers or []
+        numbers = self.main_numbers or []
+        return sorted(numbers) if numbers else []
     
     def get_bonus_numbers_list(self):
-        """Get bonus numbers as a list"""
+        """Get bonus numbers as a sorted list (small to large)"""
         if isinstance(self.bonus_numbers, str):
             try:
-                return json.loads(self.bonus_numbers)
+                numbers = json.loads(self.bonus_numbers)
+                return sorted(numbers) if numbers else []
             except:
                 return []
-        return self.bonus_numbers or []
+        numbers = self.bonus_numbers or []
+        return sorted(numbers) if numbers else []
     
     def get_parsed_divisions(self):
         """Get parsed divisions data"""
@@ -200,13 +204,16 @@ def index():
                                 if isinstance(obj.main_numbers, str):
                                     try:
                                         parsed = json.loads(obj.main_numbers)
-                                        logger.info(f"Parsed JSON numbers: {parsed}")
-                                        return parsed
+                                        sorted_numbers = sorted(parsed) if parsed else []
+                                        logger.info(f"Parsed and sorted JSON numbers: {sorted_numbers}")
+                                        return sorted_numbers
                                     except Exception as e:
                                         logger.error(f"Failed to parse JSON: {e}")
                                         return []
-                                logger.info(f"Returning numbers directly: {obj.main_numbers}")
-                                return obj.main_numbers or []
+                                numbers = obj.main_numbers or []
+                                sorted_numbers = sorted(numbers) if numbers else []
+                                logger.info(f"Returning sorted numbers directly: {sorted_numbers}")
+                                return sorted_numbers
                             return get_numbers_list
                         
                         def make_get_bonus_numbers_list(obj):
@@ -215,13 +222,16 @@ def index():
                                 if isinstance(obj.bonus_numbers, str):
                                     try:
                                         parsed = json.loads(obj.bonus_numbers)
-                                        logger.debug(f"Parsed JSON bonus numbers: {parsed}")
-                                        return parsed
+                                        sorted_bonus = sorted(parsed) if parsed else []
+                                        logger.debug(f"Parsed and sorted JSON bonus numbers: {sorted_bonus}")
+                                        return sorted_bonus
                                     except Exception as e:
                                         logger.debug(f"Failed to parse bonus JSON: {e}")
                                         return []
-                                logger.debug(f"Returning bonus numbers directly: {obj.bonus_numbers}")
-                                return obj.bonus_numbers or []
+                                numbers = obj.bonus_numbers or []
+                                sorted_bonus = sorted(numbers) if numbers else []
+                                logger.debug(f"Returning sorted bonus numbers directly: {sorted_bonus}")
+                                return sorted_bonus
                             return get_bonus_numbers_list
                         
                         def make_get_parsed_divisions(obj):

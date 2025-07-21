@@ -19,6 +19,13 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
+- **COMPLETED: Lottery Number Sorting Fixed (July 21, 2025)**
+  - **USER REQUEST FULFILLED**: Fixed lottery numbers to display in ascending order (small to large) followed by bonus numbers
+  - **SORTING LOGIC IMPLEMENTED**: Updated both DrawResult class and homepage display methods to sort numbers properly
+  - **ENHANCED USER EXPERIENCE**: Numbers now display consistently as [2, 8, 11, 13, 36, 46] + [30] instead of random order
+  - **ALL LOTTERY TYPES AFFECTED**: Applied sorting to LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, and DAILY LOTTO
+  - **BONUS NUMBERS SORTED**: Both main numbers and bonus numbers are sorted when multiple exist
+  - **VERIFIED WORKING**: Latest results now show proper number ordering across all pages
 - **COMPLETED: Complete Navigation System Fix - All Routes Working (July 21, 2025)**
   - **CRITICAL SUCCESS**: Fixed all major 404 navigation errors preventing access to key platform features
   - **GUIDES ROUTE RESTORED**: Added `/guides` route with complete lottery guides and tutorials (HTTP 200, 36.9KB)
