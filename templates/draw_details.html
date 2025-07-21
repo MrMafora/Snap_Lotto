@@ -178,10 +178,10 @@
                             <tbody>
                                 {% for division in division_data %}
                                     <tr>
-                                        <td><strong>{{ division.division }}</strong></td>
-                                        <td class="match-compact">{{ division.match }}</td>
-                                        <td>{{ division.winners }}</td>
-                                        <td>{{ division.prize_per_winner }}</td>
+                                        <td><strong>DIV {{ loop.index }}</strong></td>
+                                        <td class="match-compact">{{ division.match if division.match else 'N/A' }}</td>
+                                        <td>{{ division.winners if division.winners else '0' }}</td>
+                                        <td>{{ division.prize_per_winner if division.prize_per_winner else 'R0.00' }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

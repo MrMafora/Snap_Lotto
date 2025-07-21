@@ -148,20 +148,22 @@
                                         <!-- Handle list format -->
                                         {% for div in divisions %}
                                             <tr>
-                                                <td><strong>{{ div.division }}</strong></td>
-                                                <td>{{ div.get('description', div.division) }}</td>
+                                                <td><strong>DIV {{ loop.index }}</strong></td>
+                                                <td>{{ div.get('description', div.get('match', 'Match ' + div.match if div.match else '')) }}</td>
                                                 <td>
-                                                    {% if div.winners == 0 %}
+                                                    {% set winner_count = div.winners|string %}
+                                                    {% if winner_count == "0" %}
                                                         <span class="text-muted">0 winners</span>
                                                     {% else %}
-                                                        <span class="text-success">{{ div.winners }} winner{{ 's' if div.winners != 1 else '' }}</span>
+                                                        <span class="text-success">{{ winner_count.replace(',', '') | int | string | replace('000', ',000') }} winner{{ 's' if winner_count != '1' else '' }}</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>
-                                                    {% if div.prize_amount == "R0.00" %}
-                                                        <span class="text-muted">{{ div.prize_amount }}</span>
+                                                    {% set prize = div.get('prize_per_winner', div.get('prize_amount', 'R0.00')) %}
+                                                    {% if prize == "R0.00" %}
+                                                        <span class="text-muted">{{ prize }}</span>
                                                     {% else %}
-                                                        <span class="text-primary"><strong>{{ div.prize_amount }}</strong></span>
+                                                        <span class="text-primary"><strong>{{ prize }}</strong></span>
                                                     {% endif %}
                                                 </td>
                                             </tr>
