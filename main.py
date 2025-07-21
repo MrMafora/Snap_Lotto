@@ -416,6 +416,7 @@ def results(lottery_type=None):
                             SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
                                    rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
                             FROM lottery_results 
+                            WHERE draw_number IS NOT NULL AND main_numbers IS NOT NULL
                             ORDER BY 
                                 CASE lottery_type
                                     WHEN 'LOTTO' THEN 1
