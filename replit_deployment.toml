@@ -1,6 +1,6 @@
 # Replit Deployment Configuration
 
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=2 --worker-class=gthread --threads=2 --timeout=60 main:app"]
+run = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=2 --worker-class=gthread --threads=2 --timeout=60 main:app"]
 entrypoint = "main.py"
 
 # Environment variables for Cloud Run

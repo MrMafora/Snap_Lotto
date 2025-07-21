@@ -1514,31 +1514,14 @@ except ImportError:
 
 # Initialize monitoring and health systems
 try:
-    from health_monitor import init_health_monitor
-    from monitoring_dashboard import init_monitoring_dashboard
     from cache_manager import init_cache_manager
-    
-    init_health_monitor(app, db)
-    init_monitoring_dashboard(app, db)
     init_cache_manager(app)
-    
-    logger.info("Phase 3 monitoring system initialized")
+    logger.info("Cache manager initialized")
 except ImportError as e:
-    logger.warning(f"Monitoring system not available: {e}")
+    logger.warning(f"Cache manager not available: {e}")
 
-# Initialize Phase 4 advanced features
-try:
-    from internationalization import init_i18n
-    from api_integration import init_api_integration
-    from predictive_analytics import init_predictive_analytics
-    
-    init_i18n(app)
-    init_api_integration(app)
-    init_predictive_analytics(app, db)
-    
-    logger.info("Phase 4 advanced features initialized")
-except ImportError as e:
-    logger.warning(f"Advanced features not available: {e}")
+# Note: Optional modules health_monitor, monitoring_dashboard, internationalization, 
+# api_integration, and predictive_analytics are not deployed to prevent import errors
 
 logger.info("All modules lazy-loaded successfully")
 

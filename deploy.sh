@@ -8,8 +8,12 @@ echo "=== Cloud Run Deployment Preparation ==="
 # Fix pyee package installation issues by forcing reinstall
 echo "1. Fixing pyee package installation..."
 pip uninstall pyee -y 2>/dev/null || true
-pip install --force-reinstall --no-cache-dir pyee==12.1.1 || {
-    echo "Warning: pyee installation failed, continuing..."
+pip install --force-reinstall --no-deps pyee==12.1.1 || {
+    echo "Warning: pyee installation failed, trying alternative approach..."
+    pip install --force-reinstall --no-cache-dir pyee==12.1.1 || {
+        echo "Still failing, installing without dependencies..."
+        pip install --no-deps pyee==12.1.1
+    }
 }
 
 # Verify essential packages
