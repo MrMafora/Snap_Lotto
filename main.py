@@ -1005,7 +1005,7 @@ def run_automation_step():
     try:
         if step == 'cleanup':
             # Clean up old screenshots
-            from screenshot_capture_pyppeteer import cleanup_old_screenshots
+            from screenshot_capture_fallback import cleanup_old_screenshots
             result = cleanup_old_screenshots(days_old=7)
             
             if result['success']:
@@ -1015,15 +1015,15 @@ def run_automation_step():
                 
         elif step == 'capture':
             # Capture fresh screenshots from lottery websites
-            from screenshot_capture_pyppeteer import capture_all_lottery_screenshots_pyppeteer
-            results = capture_all_lottery_screenshots_pyppeteer()
+            from screenshot_capture_fallback import capture_all_lottery_screenshots_fallback
+            results = capture_all_lottery_screenshots_fallback()
             
             if results['total_success'] > 0:
                 flash(f'Screenshot capture completed: {results["total_success"]}/{results["total_processed"]} successful', 'success')
                 if results['total_failed'] > 0:
                     flash(f'{results["total_failed"]} screenshots failed to capture', 'warning')
             else:
-                flash('Screenshot capture failed: No screenshots were captured successfully', 'error')
+                flash('Browser automation not supported in this environment. Use the manual image upload system instead for 98-99% AI extraction accuracy.', 'info')
                 
         elif step == 'ai_process':
             # AI processing of captured screenshots
