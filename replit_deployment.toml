@@ -1,23 +1,9 @@
 # Replit Deployment Configuration
 
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "--workers=2", "--worker-class=gthread", "--threads=2", "--timeout=60", "--reload", "main:app"]
+run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers=2", "--worker-class=gthread", "--threads=2", "--timeout=60", "main:app"]
 entrypoint = "main.py"
 
-# Environment variables
+# Environment variables for Cloud Run
 [env]
-PORT = "5000"
 FLASK_APP = "main.py"
 FLASK_ENV = "production"
-
-# Make sure all HTTP requests are forwarded to our app
-[[ports]]
-port = 5000
-protocol = "http"
-onBoot = true
-
-# Explicitly prevent service from starting on port 8080
-# This helps Replit understand we're using port 5000
-[[ports]]
-port = 8080
-protocol = "http"
-onBoot = false
