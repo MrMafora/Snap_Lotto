@@ -1433,10 +1433,55 @@ def run_automation_step():
 @app.route('/admin/run-complete-automation', methods=['POST'])
 @login_required
 def run_complete_automation():
-    """Run Complete Automation Workflow"""
+    """Run Complete Automation Workflow with Cleanup"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    flash('Complete automation workflow initiated successfully', 'success')
+    
+    logger.info("Starting complete automation workflow with cleanup")
+    
+    try:
+        # Step 1: Capture fresh screenshots
+        from screenshot_capture import capture_all_lottery_screenshots
+        screenshot_results = capture_all_lottery_screenshots()
+        
+        if screenshot_results['total_success'] == 0:
+            flash('Screenshot capture failed - cannot proceed', 'error')
+            return redirect(url_for('automation_control'))
+        
+        # Step 2: Process with AI
+        from ai_lottery_processor import run_complete_ai_workflow
+        ai_results = run_complete_ai_workflow()
+        
+        new_results_count = len(ai_results.get('database_records', []))
+        
+        # Step 3: Clean up old files if we have new results
+        if new_results_count > 0:
+            logger.info(f"Found {new_results_count} new results - initiating cleanup")
+            
+            try:
+                from screenshot_capture import cleanup_old_screenshots
+                cleanup_results = cleanup_old_screenshots(days_old=1)  # Clean old files
+                
+                if cleanup_results['success']:
+                    flash(f'Cleanup completed: {cleanup_results["deleted_files"]} old files removed', 'info')
+                    
+            except Exception as cleanup_error:
+                logger.warning(f"Cleanup failed but workflow succeeded: {cleanup_error}")
+                flash('Workflow completed but cleanup had issues', 'warning')
+        
+        # Report final results
+        flash(f'Automation completed: {screenshot_results["total_success"]}/6 screenshots captured', 'success')
+        flash(f'AI processing: {ai_results["total_success"]} screenshots processed', 'success')
+        
+        if new_results_count > 0:
+            flash(f'🎯 {new_results_count} NEW lottery results detected and saved!', 'success')
+        else:
+            flash('No new lottery results found (all current)', 'info')
+            
+    except Exception as e:
+        logger.error(f"Complete automation workflow failed: {e}")
+        flash(f'Automation workflow error: {str(e)}', 'error')
+    
     return redirect(url_for('automation_control'))
 
 @app.route('/admin/stop-automation', methods=['POST'])
@@ -1468,16 +1513,31 @@ def run_complete_workflow_direct():
         from ai_lottery_processor import run_complete_ai_workflow
         ai_results = run_complete_ai_workflow()
         
+        # Step 3: Clean up old files if new results found
+        new_results_count = len(ai_results.get('database_records', []))
+        cleanup_performed = False
+        
+        if new_results_count > 0:
+            try:
+                from screenshot_capture import cleanup_old_screenshots
+                cleanup_results = cleanup_old_screenshots(days_old=1)
+                cleanup_performed = cleanup_results['success']
+                logger.info(f"Cleanup after new results: {cleanup_results}")
+            except Exception as cleanup_error:
+                logger.warning(f"Cleanup failed: {cleanup_error}")
+        
         workflow_results = {
             'status': 'success',
-            'steps_completed': ['screenshot_capture', 'ai_processing'],
+            'steps_completed': ['screenshot_capture', 'ai_processing', 'cleanup'],
             'screenshot_results': screenshot_results,
             'ai_results': ai_results,
-            'message': f'Complete workflow finished: {screenshot_results["total_success"]}/6 screenshots captured, {ai_results["total_success"]} processed with AI'
+            'new_results': new_results_count,
+            'cleanup_performed': cleanup_performed,
+            'message': f'Complete workflow finished: {screenshot_results["total_success"]}/6 screenshots captured, {ai_results["total_success"]} processed with AI, {new_results_count} new results found'
         }
         
         if screenshot_results['total_success'] > 0 and ai_results['total_success'] > 0:
-            logger.info(f"Workflow completed successfully: {screenshot_results['total_success']} screenshots captured, {ai_results['total_success']} AI processed")
+            logger.info(f"Workflow completed successfully: {screenshot_results['total_success']} screenshots captured, {ai_results['total_success']} AI processed, {new_results_count} new results")
         else:
             workflow_results['status'] = 'partial_failure'
             workflow_results['message'] = f'Workflow completed with issues: Screenshots: {screenshot_results["total_success"]}/6, AI: {ai_results["total_success"]}'
