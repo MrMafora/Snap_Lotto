@@ -400,12 +400,23 @@ def results(lottery_type=None):
                             
                             def make_get_bonus_numbers_list(obj):
                                 def get_bonus_numbers_list():
-                                    if isinstance(obj.bonus_numbers, str):
-                                        try:
-                                            return json.loads(obj.bonus_numbers)
-                                        except:
-                                            return []
-                                    return obj.bonus_numbers or []
+                                    try:
+                                        if isinstance(obj.bonus_numbers, str):
+                                            # Handle PostgreSQL array format like {30} or {15,20}
+                                            if obj.bonus_numbers.startswith('{') and obj.bonus_numbers.endswith('}'):
+                                                inner = obj.bonus_numbers[1:-1].strip()
+                                                if not inner:  # Empty like {}
+                                                    return []
+                                                numbers = [int(x.strip()) for x in inner.split(',') if x.strip()]
+                                                return sorted(numbers)
+                                            # Try JSON format as fallback
+                                            try:
+                                                return sorted(json.loads(obj.bonus_numbers))
+                                            except:
+                                                pass
+                                        return obj.bonus_numbers or []
+                                    except:
+                                        return []
                                 return get_bonus_numbers_list
                             
                             def make_get_parsed_divisions(obj):
