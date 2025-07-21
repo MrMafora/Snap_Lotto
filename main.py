@@ -1205,6 +1205,44 @@ def stop_automation():
     flash('Automation process stopped successfully', 'warning')
     return redirect(url_for('automation_control'))
 
+@app.route('/admin/run-complete-workflow-direct')
+@login_required
+def run_complete_workflow_direct():
+    """Run Complete Workflow - Direct GET endpoint for JavaScript"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        # Import the screenshot capture system
+        from screenshot_capture import capture_all_lottery_screenshots
+        
+        logger.info("Starting complete automation workflow")
+        
+        # Step 1: Capture fresh screenshots
+        results = capture_all_lottery_screenshots()
+        
+        workflow_results = {
+            'status': 'success',
+            'steps_completed': ['screenshot_capture'],
+            'screenshot_results': results,
+            'message': f'Complete workflow finished: {results["total_success"]}/6 screenshots captured'
+        }
+        
+        if results['total_success'] > 0:
+            logger.info(f"Workflow completed successfully: {results['total_success']} screenshots captured")
+        else:
+            workflow_results['status'] = 'partial_failure'
+            workflow_results['message'] = 'Workflow completed but no screenshots were captured'
+        
+        return jsonify(workflow_results)
+        
+    except Exception as e:
+        logger.error(f"Complete workflow error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Workflow failed: {str(e)}'
+        }), 500
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
