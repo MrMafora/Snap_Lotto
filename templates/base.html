@@ -177,9 +177,7 @@
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center py-2 px-2 {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}" href="/scanner-landing"><i class="fas fa-ticket-alt me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Scanner</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center py-2 px-2 {% if request.path == '/upload' %}active{% endif %}" href="{{ url_for('upload_lottery') }}"><i class="fas fa-upload me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Upload</a>
-                    </li>
+
                 </ul>
                 <ul class="navbar-nav flex-shrink-0">
                     {% if current_user.is_authenticated %}
