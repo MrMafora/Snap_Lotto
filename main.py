@@ -913,42 +913,75 @@ def export_combined_zip():
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             # Add screenshots
             screenshots = Screenshot.query.all()
+            screenshot_count = 0
             for screenshot in screenshots:
-                if screenshot.file_path and os.path.exists(screenshot.file_path):
-                    try:
-                        zip_file.write(screenshot.file_path, f"screenshots/{screenshot.filename}")
-                        logger.info(f"Added screenshot to zip: {screenshot.filename}")
-                    except Exception as e:
-                        logger.warning(f"Could not add screenshot {screenshot.filename}: {e}")
+                # Check both file_path and construct path from filename
+                file_paths_to_try = []
+                if screenshot.file_path:
+                    file_paths_to_try.append(screenshot.file_path)
+                if screenshot.filename:
+                    file_paths_to_try.append(f"screenshots/{screenshot.filename}")
+                
+                for file_path in file_paths_to_try:
+                    if os.path.exists(file_path):
+                        try:
+                            zip_file.write(file_path, f"screenshots/{screenshot.filename}")
+                            logger.info(f"Added screenshot to zip: {screenshot.filename} from {file_path}")
+                            screenshot_count += 1
+                            break
+                        except Exception as e:
+                            logger.warning(f"Could not add screenshot {screenshot.filename} from {file_path}: {e}")
+                    else:
+                        logger.warning(f"Screenshot file not found: {file_path}")
             
-            # Add lottery data as JSON
+            logger.info(f"Successfully added {screenshot_count} screenshots to ZIP")
+            
+            # Add lottery data as JSON - use raw SQL to avoid PostgreSQL type issues
             try:
-                lottery_results = LotteryResult.query.all()
+                import psycopg2
+                from config import Config
+                
+                conn = psycopg2.connect(Config.SQLALCHEMY_DATABASE_URI)
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers, 
+                           divisions, rollover_amount, next_jackpot, total_pool_size, 
+                           total_sales, draw_machine, next_draw_date, created_at
+                    FROM lottery_result 
+                    ORDER BY draw_date DESC
+                """)
+                
                 lottery_data = []
-                for result in lottery_results:
+                for row in cur.fetchall():
                     lottery_data.append({
-                        'id': result.id,
-                        'lottery_type': result.lottery_type,
-                        'draw_number': result.draw_number,
-                        'draw_date': result.draw_date.isoformat() if result.draw_date else None,
-                        'numbers': result.numbers,
-                        'bonus_numbers': result.bonus_numbers,
-                        'divisions': result.divisions,
-                        'rollover_amount': result.rollover_amount,
-                        'next_jackpot': result.next_jackpot,
-                        'total_pool_size': result.total_pool_size,
-                        'total_sales': result.total_sales,
-                        'draw_machine': result.draw_machine,
-                        'next_draw_date': result.next_draw_date.isoformat() if result.next_draw_date else None,
-                        'created_at': result.created_at.isoformat() if result.created_at else None
+                        'id': row[0],
+                        'lottery_type': row[1],
+                        'draw_number': row[2],
+                        'draw_date': row[3].isoformat() if row[3] else None,
+                        'numbers': row[4],
+                        'bonus_numbers': row[5],
+                        'divisions': row[6],
+                        'rollover_amount': str(row[7]) if row[7] else None,
+                        'next_jackpot': str(row[8]) if row[8] else None,
+                        'total_pool_size': str(row[9]) if row[9] else None,
+                        'total_sales': str(row[10]) if row[10] else None,
+                        'draw_machine': row[11],
+                        'next_draw_date': row[12].isoformat() if row[12] else None,
+                        'created_at': row[13].isoformat() if row[13] else None
                     })
+                
+                cur.close()
+                conn.close()
                 
                 lottery_json = json.dumps(lottery_data, indent=2, ensure_ascii=False)
                 zip_file.writestr('lottery_data.json', lottery_json)
-                logger.info("Added lottery data to zip")
+                logger.info(f"Added lottery data to zip: {len(lottery_data)} records")
                 
             except Exception as e:
                 logger.warning(f"Could not add lottery data: {e}")
+                # Add fallback empty data
+                zip_file.writestr('lottery_data.json', '{"error": "Could not export lottery data", "message": "' + str(e) + '"}')
             
             # Add screenshot metadata
             try:
