@@ -19,6 +19,12 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
+- **COMPLETED: Game Type Headings Display Fix (July 21, 2025)**
+  - **CRITICAL FIX**: Added missing game type headings to lottery result cards that were previously showing without game type identification
+  - **ENHANCED STYLING**: Applied strong visual styling with dark header backgrounds (#333) and bold white text for maximum visibility
+  - **TEMPLATE FIXES**: Updated results.html template with `!important` CSS flags to ensure header styling overrides any conflicting styles
+  - **USER ISSUE RESOLVED**: Cards now clearly display game types - "Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"
+  - **VERIFIED WORKING**: All lottery cards now show proper game type identification in dark header sections
 - **COMPLETED: Prize Division Display & Data Source Text Removal (July 21, 2025)**
   - **CRITICAL SUCCESS**: Removed "Data Source: manual-import (excel-spreadsheet)" text from draw details templates
   - **DATABASE COLUMN FIXES**: Corrected database queries to use proper column names (`main_numbers`, `bonus_numbers`)

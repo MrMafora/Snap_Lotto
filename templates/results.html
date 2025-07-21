@@ -44,7 +44,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                 {% set result = latest_results[lottery_type] %}
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100">
-                        <div class="card-header text-white text-center" style="background-color: #333;">
+                        <div class="card-header text-white text-center lottery-header" style="background-color: #333 !important; color: white !important;">
                             {% set display_name = lottery_type %}
                             {% if 'LOTTO' in lottery_type and 'PLUS' not in lottery_type %}
                                 {% set display_name = 'Lottery' %}
@@ -59,7 +59,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                             {% elif 'DAILY' in lottery_type %}
                                 {% set display_name = 'Daily Lottery' %}
                             {% endif %}
-                            <h5 class="card-title mb-0">{{ display_name }}</h5>
+                            <h5 class="card-title mb-0" style="color: white !important; font-weight: bold;">{{ display_name }}</h5>
                         </div>
                         <div class="card-body">
                             
