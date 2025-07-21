@@ -34,4 +34,3 @@ pyjwt
 sift-stack-py
 playwright
 pyppeteer
-pyee
