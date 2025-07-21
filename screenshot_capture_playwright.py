@@ -1,6 +1,6 @@
 """
-Playwright-based Screenshot Capture System
-Based on the original working implementation from GitHub
+Playwright Screenshot Capture System - Original GitHub Implementation
+Complete page capture with full_page=True for authentic content
 """
 
 import os
@@ -14,7 +14,7 @@ from flask_login import current_user
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# South African Lottery URLs
+# South African Lottery URLs - exact URLs from original system
 LOTTERY_URLS = {
     'LOTTO': 'https://www.nationallottery.co.za/results/lotto',
     'LOTTO PLUS 1': 'https://www.nationallottery.co.za/results/lotto-plus-1-results',
@@ -39,56 +39,66 @@ def capture_lottery_screenshot_playwright(lottery_type, url, output_dir='screens
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
-    # Generate filename with timestamp
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{timestamp}_{lottery_type.lower().replace(' ', '_')}_playwright.png"
+    # Generate unique filename
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S') 
+    unique_id = int(time.time() * 1000000) % 1000000  # Add microsecond precision
+    filename = f"{timestamp}_{lottery_type.lower().replace(' ', '_')}_{unique_id}.png"
     filepath = os.path.join(output_dir, filename)
     
     try:
-        logger.info(f"PLAYWRIGHT METHOD: Capturing {lottery_type} from {url}")
+        logger.info(f"Starting PLAYWRIGHT capture: {lottery_type} from {url}")
         
         with sync_playwright() as p:
-            # Launch browser with optimal settings
+            # Launch browser - use system chromium if available
             browser = p.chromium.launch(
                 headless=True,
                 args=[
                     "--no-sandbox",
                     "--disable-setuid-sandbox",
                     "--disable-dev-shm-usage",
-                    "--disable-blink-features=AutomationControlled"
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-web-security",
+                    "--allow-running-insecure-content",
+                    "--disable-features=VizDisplayCompositor"
                 ]
             )
             
-            # Create context with proper viewport
+            # Create context with larger viewport for complete content
             context = browser.new_context(
-                viewport={'width': 1280, 'height': 1600},
+                viewport={'width': 1920, 'height': 1080},
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             )
             
             page = context.new_page()
             
-            # Set extra headers for authenticity
+            # Set realistic headers
             page.set_extra_http_headers({
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
                 "Accept-Encoding": "gzip, deflate, br",
                 "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1"
+                "Upgrade-Insecure-Requests": "1",
+                "Cache-Control": "max-age=0"
             })
             
-            # Navigate and wait for network idle (critical for complete loading)
-            page.goto(url, wait_until='networkidle')
+            # Navigate with networkidle wait for complete loading
+            logger.info(f"Navigating to {url}...")
+            page.goto(url, wait_until='networkidle', timeout=30000)
             
-            # Ensure all content is loaded by scrolling
+            # Scroll to ensure all content loads
             page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-            page.wait_for_timeout(1000)  # Wait for any animations
+            page.wait_for_timeout(2000)  # Allow time for dynamic content
             
-            # CRITICAL: Use full_page=True for complete capture
+            # CRITICAL: Use full_page=True like original GitHub implementation
+            logger.info("Taking full page screenshot...")
             page.screenshot(path=filepath, full_page=True)
             
-            # Get file info
+            # Verify file was created and get info
+            if not os.path.exists(filepath):
+                raise Exception(f"Screenshot file not created: {filepath}")
+                
             file_size = os.path.getsize(filepath)
-            logger.info(f"PLAYWRIGHT screenshot saved: {filepath} ({file_size:,} bytes)")
+            logger.info(f"✓ PLAYWRIGHT SUCCESS: {filepath} ({file_size:,} bytes)")
             
             browser.close()
             

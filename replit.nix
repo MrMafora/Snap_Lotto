@@ -1,5 +1,10 @@
 {pkgs}: {
   deps = [
+    pkgs.systemd
+    pkgs.alsa-lib
+    pkgs.libxkbcommon
+    pkgs.glib
+    pkgs.nss
     pkgs.chromedriver
     pkgs.jq
     pkgs.tk

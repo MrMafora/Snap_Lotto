@@ -919,11 +919,11 @@ def capture_fresh_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Import the verified screenshot capture system
-        from screenshot_capture import capture_all_lottery_screenshots
+        # Import the PURE PYTHON system (no browser dependencies)
+        from screenshot_capture_pure import capture_all_lottery_screenshots_pure
         
-        # Trigger the capture process
-        results = capture_all_lottery_screenshots()
+        # Trigger the capture process using pure Python method
+        results = capture_all_lottery_screenshots_pure()
         
         # Report results
         if results['total_success'] > 0:
