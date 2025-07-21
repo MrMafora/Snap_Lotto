@@ -73,35 +73,35 @@
                 </div>
                 <div class="card-body py-2">
                     <div class="row g-2">
-                        {% if result.rollover_amount %}
+                        {% if result.rollover_amount and result.rollover_amount != 'R0.00' %}
                         <div class="col-6">
                             <div class="financial-info-card compact">
                                 <div class="financial-label">Rollover Amount</div>
-                                <div class="financial-value">R{{ "{:,.2f}".format(result.rollover_amount|float) if result.rollover_amount else '0.00' }}</div>
+                                <div class="financial-value">{{ result.rollover_amount }}</div>
                             </div>
                         </div>
                         {% endif %}
-                        {% if result.next_jackpot %}
+                        {% if result.next_jackpot and result.next_jackpot != 'R0.00' %}
                         <div class="col-6">
                             <div class="financial-info-card compact">
                                 <div class="financial-label">Next Estimated Jackpot</div>
-                                <div class="financial-value">R{{ "{:,.2f}".format(result.next_jackpot|float) if result.next_jackpot else '0.00' }}</div>
+                                <div class="financial-value">{{ result.next_jackpot }}</div>
                             </div>
                         </div>
                         {% endif %}
-                        {% if result.total_pool_size %}
+                        {% if result.total_pool_size and result.total_pool_size != 'R0.00' %}
                         <div class="col-6">
                             <div class="financial-info-card compact">
                                 <div class="financial-label">Total Prize Pool</div>
-                                <div class="financial-value">R{{ "{:,.2f}".format(result.total_pool_size|float) if result.total_pool_size else '0.00' }}</div>
+                                <div class="financial-value">{{ result.total_pool_size }}</div>
                             </div>
                         </div>
                         {% endif %}
-                        {% if result.total_sales %}
+                        {% if result.total_sales and result.total_sales != 'R0.00' %}
                         <div class="col-6">
                             <div class="financial-info-card compact">
                                 <div class="financial-label">Total Sales</div>
-                                <div class="financial-value">R{{ "{:,.2f}".format(result.total_sales|float) if result.total_sales else '0.00' }}</div>
+                                <div class="financial-value">{{ result.total_sales }}</div>
                             </div>
                         </div>
                         {% endif %}
