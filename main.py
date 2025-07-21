@@ -739,6 +739,12 @@ def scanner_landing():
     """Ticket scanner landing page"""
     return render_template('scanner_landing.html')
 
+# Ticket Scanner Route
+@app.route('/ticket-scanner')
+def ticket_scanner():
+    """Ticket scanner interface"""
+    return render_template('ticket_scanner.html')
+
 # Upload Lottery Image Route
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_lottery():
@@ -920,7 +926,7 @@ def admin_visualizations():
 
 @app.route('/admin/ticket_scanner')
 @login_required
-def ticket_scanner():
+def admin_ticket_scanner():
     """Ticket Scanner Interface"""  
     if not current_user.is_admin:
         return redirect(url_for('index'))
