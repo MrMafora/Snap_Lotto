@@ -28,10 +28,10 @@ key = "PYTHONDONTWRITEBYTECODE"
 value = "1"
 
 [deployment.build]
-run = ["sh", "-c", "pip cache purge || true && pip uninstall pyee -y || true && pip install --no-cache-dir -r requirements.txt && pip install --force-reinstall --no-deps --no-cache-dir pyee==12.1.1"]
+run = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && pip install -r requirements.txt && pip cache purge && pip uninstall pyee -y && pip install --force-reinstall --no-cache-dir pyee==12.1.1 && pip install -r requirements.txt"]
 
 [deployment.run]
-run = ["sh", "-c", "pip cache purge || true && pip uninstall pyee -y || true && pip install --force-reinstall --no-deps --no-cache-dir pyee==12.1.1 && gunicorn --bind 0.0.0.0:$PORT --workers=2 --worker-class=gthread --threads=2 --timeout=0 main:app"]
+run = ["sh", "-c", "pip cache purge && pip uninstall pyee -y && pip install --force-reinstall --no-deps --no-cache-dir pyee==12.1.1 && gunicorn --bind 0.0.0.0:$PORT --workers=2 --worker-class=gthread --threads=2 --timeout=0 main:app"]
 
 [[deployment.ports]]
 localPort = 8080
