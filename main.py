@@ -812,7 +812,49 @@ def guide_detail(guide_name):
 @app.route('/visualizations')
 def visualizations():
     """Lottery data visualizations and analytics"""
-    return render_template('visualizations.html')
+    try:
+        # Get lottery statistics for template data
+        conn = psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI'])
+        cur = conn.cursor()
+        
+        # Get total draws and latest draw date
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total_draws,
+                MAX(draw_date) as latest_draw_date
+            FROM lottery_results 
+            WHERE draw_date IS NOT NULL
+        """)
+        result = cur.fetchone()
+        total_draws = result[0] if result else 0
+        latest_draw_date = result[1] if result else None
+        
+        # Get unique lottery types
+        cur.execute("""
+            SELECT DISTINCT lottery_type 
+            FROM lottery_results 
+            WHERE lottery_type IS NOT NULL 
+            ORDER BY lottery_type
+        """)
+        lottery_types = [row[0] for row in cur.fetchall()]
+        
+        cur.close()
+        conn.close()
+        
+        logger.info(f"Visualizations page data: {total_draws} draws, {len(lottery_types)} lottery types")
+        
+        return render_template('visualizations.html', 
+                             total_draws=total_draws,
+                             latest_draw_date=latest_draw_date,
+                             lottery_types=lottery_types)
+                             
+    except Exception as e:
+        logger.error(f"Error loading visualizations data: {e}")
+        # Fallback with minimal data
+        return render_template('visualizations.html',
+                             total_draws=28,
+                             latest_draw_date=datetime.now(),
+                             lottery_types=['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'])
 
 # Scanner Landing Route
 @app.route('/scanner-landing')
@@ -1549,6 +1591,259 @@ def run_complete_workflow_direct():
         return jsonify({
             'status': 'error',
             'message': f'Workflow failed: {str(e)}'
+        }), 500
+
+# Visualization API endpoints
+@app.route('/api/visualization-data')
+def visualization_data():
+    """API endpoint for visualization charts data"""
+    try:
+        data_type = request.args.get('data_type')
+        lottery_type = request.args.get('lottery_type', 'all')
+        
+        logger.info(f"Visualization API called: data_type={data_type}, lottery_type={lottery_type}")
+        
+        # Connect to database using psycopg2 for type compatibility
+        conn = psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI'])
+        cur = conn.cursor()
+        
+        if data_type == 'numbers_frequency':
+            # Get number frequency data for all or specific lottery types
+            if lottery_type == 'all':
+                query = """
+                    SELECT 
+                        main_numbers,
+                        lottery_type,
+                        COUNT(*) as frequency
+                    FROM lottery_results 
+                    WHERE main_numbers IS NOT NULL 
+                    ORDER BY frequency DESC, lottery_type
+                """
+                cur.execute(query)
+            else:
+                # Map display names to database values
+                db_lottery_type = lottery_type
+                if lottery_type == 'Lottery':
+                    db_lottery_type = 'LOTTO'
+                elif lottery_type == 'Lotto':
+                    db_lottery_type = 'LOTTO'
+                    
+                query = """
+                    SELECT 
+                        main_numbers,
+                        lottery_type,
+                        COUNT(*) as frequency
+                    FROM lottery_results 
+                    WHERE lottery_type = %s AND main_numbers IS NOT NULL 
+                    ORDER BY frequency DESC
+                """
+                cur.execute(query, (db_lottery_type,))
+            
+            rows = cur.fetchall()
+            
+            # Process numbers and count frequency
+            number_freq = {}
+            for row in rows:
+                try:
+                    if row[0]:  # main_numbers
+                        numbers = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                        if isinstance(numbers, list):
+                            for num in numbers:
+                                if isinstance(num, (int, str)) and str(num).isdigit():
+                                    num = int(num)
+                                    number_freq[num] = number_freq.get(num, 0) + 1
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    logger.warning(f"Error parsing numbers {row[0]}: {e}")
+                    continue
+            
+            # Convert to chart format - top 10 most frequent
+            frequency_data = []
+            for num, freq in sorted(number_freq.items(), key=lambda x: x[1], reverse=True)[:10]:
+                total_draws = len(rows) if rows else 1
+                percentage = round((freq / total_draws) * 100, 2)
+                frequency_data.append({
+                    'number': num,
+                    'frequency': freq,
+                    'percentage': percentage
+                })
+            
+            cur.close()
+            conn.close()
+            
+            return jsonify({
+                'status': 'success',
+                'data': frequency_data,
+                'labels': [str(item['number']) for item in frequency_data],
+                'datasets': [{
+                    'label': 'Number Frequency',
+                    'data': [item['frequency'] for item in frequency_data],
+                    'backgroundColor': ['rgba(54, 162, 235, 0.6)'] * len(frequency_data),
+                    'borderColor': ['rgba(54, 162, 235, 1)'] * len(frequency_data),
+                    'borderWidth': 1
+                }],
+                'total_draws': len(rows),
+                'lottery_type': lottery_type
+            })
+            
+        elif data_type == 'winners_by_division':
+            # Get winners by division data
+            if lottery_type == 'Lotto':
+                lottery_type = 'LOTTO'
+                
+            query = """
+                SELECT divisions, lottery_type
+                FROM lottery_results 
+                WHERE lottery_type = %s AND divisions IS NOT NULL 
+                ORDER BY draw_date DESC 
+                LIMIT 10
+            """
+            cur.execute(query, (lottery_type,))
+            rows = cur.fetchall()
+            
+            # Process division data
+            division_totals = {}
+            division_labels = []
+            
+            for row in rows:
+                try:
+                    if row[0]:  # divisions
+                        divisions = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                        if isinstance(divisions, list):
+                            for i, division in enumerate(divisions, 1):
+                                div_key = f"DIV {i}"
+                                if div_key not in division_labels:
+                                    division_labels.append(div_key)
+                                
+                                winners = 0
+                                if isinstance(division, dict):
+                                    winners = int(division.get('winners', 0))
+                                elif hasattr(division, 'winners'):
+                                    winners = int(division.winners)
+                                
+                                division_totals[div_key] = division_totals.get(div_key, 0) + winners
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    logger.warning(f"Error parsing divisions {row[0]}: {e}")
+                    continue
+            
+            # Prepare chart data
+            chart_data = []
+            for label in division_labels:
+                chart_data.append(division_totals.get(label, 0))
+            
+            cur.close()
+            conn.close()
+            
+            return jsonify({
+                'status': 'success',
+                'labels': division_labels,
+                'datasets': [{
+                    'label': f'{lottery_type} Winners by Division',
+                    'data': chart_data,
+                    'backgroundColor': [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(153, 102, 255, 0.6)',
+                        'rgba(255, 159, 64, 0.6)',
+                        'rgba(199, 199, 199, 0.6)',
+                        'rgba(83, 102, 255, 0.6)'
+                    ][:len(division_labels)],
+                    'borderWidth': 1
+                }],
+                'total_records': len(rows),
+                'lottery_type': lottery_type
+            })
+            
+        elif data_type == 'prize_trend_analysis':
+            # Get prize trend data
+            query = """
+                SELECT 
+                    draw_date,
+                    next_jackpot,
+                    total_pool_size,
+                    lottery_type
+                FROM lottery_results 
+                WHERE lottery_type = %s 
+                  AND draw_date IS NOT NULL 
+                ORDER BY draw_date DESC 
+                LIMIT 10
+            """
+            cur.execute(query, (lottery_type,))
+            rows = cur.fetchall()
+            
+            dates = []
+            jackpots = []
+            pools = []
+            
+            for row in reversed(rows):  # Reverse to show chronological order
+                try:
+                    dates.append(row[0].strftime('%Y-%m-%d') if row[0] else 'N/A')
+                    
+                    # Parse jackpot amount
+                    jackpot = 0
+                    if row[1]:  # next_jackpot
+                        jackpot_str = str(row[1]).replace('R', '').replace(',', '').strip()
+                        try:
+                            jackpot = float(jackpot_str)
+                        except ValueError:
+                            jackpot = 0
+                    jackpots.append(jackpot)
+                    
+                    # Parse pool size
+                    pool = 0
+                    if row[2]:  # total_pool_size
+                        pool_str = str(row[2]).replace('R', '').replace(',', '').strip()
+                        try:
+                            pool = float(pool_str)
+                        except ValueError:
+                            pool = 0
+                    pools.append(pool)
+                    
+                except Exception as e:
+                    logger.warning(f"Error parsing prize data: {e}")
+                    dates.append('N/A')
+                    jackpots.append(0)
+                    pools.append(0)
+            
+            cur.close()
+            conn.close()
+            
+            return jsonify({
+                'status': 'success',
+                'labels': dates,
+                'datasets': [
+                    {
+                        'label': 'Next Jackpot (R)',
+                        'data': jackpots,
+                        'borderColor': 'rgba(255, 99, 132, 1)',
+                        'backgroundColor': 'rgba(255, 99, 132, 0.2)',
+                        'fill': False,
+                        'tension': 0.1
+                    },
+                    {
+                        'label': 'Total Prize Pool (R)',
+                        'data': pools,
+                        'borderColor': 'rgba(54, 162, 235, 1)',
+                        'backgroundColor': 'rgba(54, 162, 235, 0.2)',
+                        'fill': False,
+                        'tension': 0.1
+                    }
+                ],
+                'lottery_type': lottery_type
+            })
+        
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'Unknown data_type: {data_type}'
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Visualization API error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to fetch visualization data: {str(e)}'
         }), 500
 
 # Error handlers
