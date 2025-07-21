@@ -517,26 +517,103 @@ def draw_details(lottery_type, draw_number):
         # Handle URL encoding
         lottery_type = unquote(lottery_type)
         
-        logger.info(f"Created result object: lottery_type={lottery_type}, draw_number={draw_number}, draw_date={result.draw_date if 'result' in locals() else 'N/A'}")
+        logger.info(f"DRAW DETAILS: Looking for lottery_type='{lottery_type}', draw_number={draw_number}")
         
-        # Get the specific draw
-        result = db.session.query(LotteryResult).filter(
-            LotteryResult.lottery_type == lottery_type,
-            LotteryResult.draw_number == draw_number
-        ).first()
+        # Use direct psycopg2 connection to avoid SQLAlchemy type issues
+        import psycopg2
+        import os
+        
+        connection_string = os.environ.get('DATABASE_URL')
+        result = None
+        
+        try:
+            with psycopg2.connect(connection_string) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                               rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
+                        FROM lottery_result 
+                        WHERE lottery_type = %s AND draw_number = %s
+                        LIMIT 1
+                    """, (lottery_type, draw_number))
+                    
+                    row = cur.fetchone()
+                    if row:
+                        # Create a fake LotteryResult object with the required methods
+                        result = type('Result', (), {})()
+                        result.lottery_type = row[0]
+                        result.draw_number = row[1]
+                        result.draw_date = row[2]
+                        result.numbers = row[3]
+                        result.bonus_numbers = row[4]
+                        result.divisions = row[5]
+                        result.rollover_amount = row[6]
+                        result.next_jackpot = row[7]
+                        result.total_pool_size = row[8]
+                        result.total_sales = row[9]
+                        result.draw_machine = row[10]
+                        result.next_draw_date = row[11]
+                        
+                        # Add the required methods with proper closure
+                        def make_get_numbers_list(obj):
+                            def get_numbers_list():
+                                if isinstance(obj.numbers, str):
+                                    try:
+                                        return json.loads(obj.numbers)
+                                    except:
+                                        return []
+                                return obj.numbers or []
+                            return get_numbers_list
+                        
+                        def make_get_bonus_numbers_list(obj):
+                            def get_bonus_numbers_list():
+                                if isinstance(obj.bonus_numbers, str):
+                                    try:
+                                        return json.loads(obj.bonus_numbers)
+                                    except:
+                                        return []
+                                return obj.bonus_numbers or []
+                            return get_bonus_numbers_list
+                        
+                        def make_get_parsed_divisions(obj):
+                            def get_parsed_divisions():
+                                if not obj.divisions or obj.divisions == '[]':
+                                    return []
+                                try:
+                                    if isinstance(obj.divisions, str):
+                                        return json.loads(obj.divisions)
+                                    return obj.divisions
+                                except:
+                                    return []
+                            return get_parsed_divisions
+                        
+                        result.get_numbers_list = make_get_numbers_list(result)
+                        result.get_bonus_numbers_list = make_get_bonus_numbers_list(result)
+                        result.get_parsed_divisions = make_get_parsed_divisions(result)
+                        
+                        logger.info(f"DRAW DETAILS: Found draw {draw_number} for {lottery_type}")
+                    
+        except Exception as db_e:
+            logger.error(f"Database connection failed: {db_e}")
+            logger.error(traceback.format_exc())
         
         if not result:
             flash(f"Draw {draw_number} not found for {lottery_type}", 'error')
-            return redirect(url_for('results', lottery_type=lottery_type))
-        
-        # Create wrapper with additional methods
-        draw_result = DrawResult(result)
+            return redirect(url_for('results'))
         
         # Get display name for breadcrumb
+        DISPLAY_NAME_MAPPING = {
+            'LOTTO': 'Lottery',
+            'LOTTO PLUS 1': 'Lottery Plus 1',
+            'LOTTO PLUS 2': 'Lottery Plus 2',
+            'POWERBALL': 'Powerball',
+            'POWERBALL PLUS': 'Powerball Plus',
+            'DAILY LOTTO': 'Daily Lottery'
+        }
         display_name = DISPLAY_NAME_MAPPING.get(lottery_type, lottery_type)
         
         return render_template('draw_details.html', 
-                             result=draw_result,
+                             result=result,
                              display_name=display_name,
                              lottery_type=lottery_type)
         

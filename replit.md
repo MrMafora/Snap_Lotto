@@ -19,6 +19,12 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
+- **COMPLETED: Draw Details Links Fixed (July 21, 2025)**
+  - **CRITICAL ISSUE RESOLVED**: Fixed draw details links that were redirecting back to results page instead of showing individual draw information
+  - **DATABASE CONNECTION FIX**: Replaced failing SQLAlchemy connection with direct psycopg2 connection to avoid PostgreSQL type errors
+  - **CODE BUGS FIXED**: Fixed undefined `result` variable bug in logging statement that was causing crashes
+  - **CONFIRMED WORKING**: `/results/LOTTO/2560` returns HTTP 200 with 32,420 bytes showing complete draw details page
+  - **TEMPLATE RENDERING**: Draw details pages now display winning numbers, prize divisions, and financial information correctly
 - **COMPLETED: Results Page Template Layout Fixed (July 21, 2025)**
   - **CRITICAL FIX**: Fixed results page template to show proper historical results table format
   - **DISPLAY LOGIC CORRECTED**: Main `/results` page shows latest lottery cards, individual lottery type pages show historical table
