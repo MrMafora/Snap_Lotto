@@ -132,9 +132,20 @@ class DrawResult:
         """Get bonus numbers as a sorted list (small to large)"""
         if isinstance(self.bonus_numbers, str):
             try:
+                # Handle PostgreSQL array format like {30} or {15,20}
+                if self.bonus_numbers.startswith('{') and self.bonus_numbers.endswith('}'):
+                    # Remove braces and split by comma
+                    inner = self.bonus_numbers[1:-1].strip()
+                    if not inner:  # Empty like {}
+                        return []
+                    numbers = [int(x.strip()) for x in inner.split(',') if x.strip()]
+                    logging.info(f"BONUS DEBUG {self.lottery_type}: PostgreSQL array '{self.bonus_numbers}' parsed to {sorted(numbers)}")
+                    return sorted(numbers)
+                # Try JSON format as fallback
                 numbers = json.loads(self.bonus_numbers)
                 return sorted(numbers) if numbers else []
-            except:
+            except Exception as e:
+                logging.warning(f"BONUS DEBUG {self.lottery_type}: Failed to parse bonus_numbers '{self.bonus_numbers}': {e}")
                 return []
         numbers = self.bonus_numbers or []
         return sorted(numbers) if numbers else []
@@ -294,6 +305,17 @@ def index():
         top_numbers = frequency.most_common(10)
         
         logger.info(f"Frequency analysis: Found {len(set(all_numbers))} unique numbers, top 10: {top_numbers}")
+        
+        # Debug bonus numbers for template and ensure methods exist
+        for result in unique_results:
+            # Force the methods to exist on the DrawResult objects
+            if not hasattr(result, 'get_bonus_numbers_list'):
+                logging.warning(f"TEMPLATE FIX: Adding missing get_bonus_numbers_list method to {result.lottery_type}")
+                result.get_bonus_numbers_list = result.__class__.get_bonus_numbers_list.__get__(result, result.__class__)
+            
+            if hasattr(result, 'get_bonus_numbers_list'):
+                bonus_list = result.get_bonus_numbers_list()
+                logging.info(f"TEMPLATE DEBUG {result.lottery_type}: bonus='{result.bonus_numbers}' -> parsed={bonus_list}")
         
         return render_template('index.html', 
                              results=unique_results,

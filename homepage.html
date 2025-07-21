@@ -1,18 +1,148 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <!-- Consent Manager removed as requested -->
+    
+    <!-- Extra meta content for page-specific early loading scripts -->
+    
+    
+    <!-- Optimized Google Analytics - Defer loading -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-M4NREF90ZD');
+      
+      // Load GA script after page loads
+      window.addEventListener('load', function() {
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-M4NREF90ZD';
+        document.head.appendChild(script);
+      });
+    </script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Snap Lottery | South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Snap Lottery - South Africa's ONLY Lottery, PowerBall & Daily Lottery ticket scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won.">
+    <meta name="keywords" content="Snap Lottery, Lottery South Africa, PowerBall South Africa, Daily Lottery South Africa, Ithuba official data, Lottery scanner South Africa, PowerBall scanner South Africa, Daily Lottery scanner, Lottery winning numbers, PowerBall winning numbers, Daily Lottery results, official Ithuba results">
+    <meta name="author" content="Snap Lotto">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <meta name="language" content="English">
+    <meta name="geo.region" content="ZA">
+    <meta name="geo.placename" content="South Africa">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="http://localhost:5000/">
+    <meta property="og:title" content="Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App">
+    <meta property="og:description" content="The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!">
+    <meta property="og:image" content="http://localhost:5000/static/img/snap-lotto-social.jpg">
+    <meta property="og:locale" content="en_ZA">
+    <meta property="og:site_name" content="Snap Lotto">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="http://localhost:5000/">
+    <meta property="twitter:title" content="Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App">
+    <meta property="twitter:description" content="The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!">
+    <meta property="twitter:image" content="http://localhost:5000/static/img/snap-lotto-social.jpg">
+    
+    <!-- Canonical URL -->
+    
+    <link rel="canonical" href="http://localhost:5000/">
+    
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/static/css/custom.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/static/css/lottery.css?v=20250608" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
-{% block title %}Snap Lottery | South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App{% endblock %}
+    <link rel="preload" href="/static/css/badge-fix.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/static/css/dropdown-fix.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
-{% block meta_description %}Snap Lottery - South Africa's ONLY Lottery, PowerBall & Daily Lottery ticket scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won.{% endblock %}
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    
+    <!-- Fallback for no-JS -->
+    <noscript>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/static/css/custom.css">
+        <link rel="stylesheet" href="/static/css/lottery.css?v=20250608">
 
-{% block meta_keywords %}Snap Lottery, Lottery South Africa, PowerBall South Africa, Daily Lottery South Africa, Ithuba official data, Lottery scanner South Africa, PowerBall scanner South Africa, Daily Lottery scanner, Lottery winning numbers, PowerBall winning numbers, Daily Lottery results, official Ithuba results{% endblock %}
-
-{% block og_title %}Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App{% endblock %}
-{% block og_description %}The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!{% endblock %}
-
-{% block twitter_title %}Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App{% endblock %}
-{% block twitter_description %}The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!{% endblock %}
-
-{% block head_content %}
+        <link rel="stylesheet" href="/static/css/badge-fix.css">
+        <link rel="stylesheet" href="/static/css/dropdown-fix.css">
+    
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </noscript>
+    
+    <!-- Bootstrap JS - Load immediately for dropdown functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Simple dropdown functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for Bootstrap to initialize
+            setTimeout(function() {
+                const userDropdown = document.getElementById('userDropdown');
+                const dropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
+                
+                if (userDropdown && dropdownMenu) {
+                    // Simple click handler
+                    userDropdown.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Toggle dropdown
+                        if (dropdownMenu.style.display === 'block') {
+                            dropdownMenu.style.display = 'none';
+                            this.setAttribute('aria-expanded', 'false');
+                        } else {
+                            dropdownMenu.style.display = 'block';
+                            this.setAttribute('aria-expanded', 'true');
+                            
+                            // Position the dropdown
+                            const rect = this.getBoundingClientRect();
+                            dropdownMenu.style.position = 'absolute';
+                            dropdownMenu.style.top = (rect.bottom - rect.top) + 'px';
+                            dropdownMenu.style.right = '0';
+                        }
+                    });
+                    
+                    // Close on click outside
+                    document.addEventListener('click', function(e) {
+                        if (!userDropdown.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                            dropdownMenu.style.display = 'none';
+                            userDropdown.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                    
+                    // Close on item click
+                    dropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
+                        item.addEventListener('click', function() {
+                            dropdownMenu.style.display = 'none';
+                            userDropdown.setAttribute('aria-expanded', 'false');
+                        });
+                    });
+                }
+            }, 100);
+        });
+    </script>
+    <!-- Mobile optimization -->
+    <meta name="theme-color" content="#FFE11D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Content Security Policy with needed permissions -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data:;">
+    
+    
+    
+    
+    
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
 {
@@ -69,20 +199,85 @@
   "@context": "https://schema.org",
   "@type": "ItemList",
   "itemListElement": [
-    {% for result in results %}
+    
     {
       "@type": "ListItem",
-      "position": {{ loop.index }},
+      "position": 1,
       "item": {
         "@type": "Game",
-        "name": "{{ result.lottery_type }}",
-        "description": "{{ result.lottery_type }} draw {{ result.draw_number }} on {{ result.draw_date.strftime('%Y-%m-%d') }}",
+        "name": "LOTTO",
+        "description": "LOTTO draw 2560 on 2025-07-19",
         "playMode": "SinglePlayer",
         "applicationCategory": "Game",
         "genre": "Lottery"
       }
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Game",
+        "name": "LOTTO PLUS 1",
+        "description": "LOTTO PLUS 1 draw 2560 on 2025-07-19",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Game",
+        "name": "LOTTO PLUS 2",
+        "description": "LOTTO PLUS 2 draw 2560 on 2025-07-19",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Game",
+        "name": "POWERBALL",
+        "description": "POWERBALL draw 1634 on 2025-07-18",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Game",
+        "name": "POWERBALL PLUS",
+        "description": "POWERBALL PLUS draw 1634 on 2025-07-18",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Game",
+        "name": "DAILY LOTTO",
+        "description": "DAILY LOTTO draw 2319 on 2025-07-20",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    }
+    
   ]
 }
 </script>
@@ -440,9 +635,66 @@
         align-items: center;
     }
 </style>
-{% endblock %}
 
-{% block content %}
+</head>
+<body class="">
+    <nav class="navbar navbar-expand-lg mb-2 sticky-top">
+        <div class="container-fluid px-2">
+            <a class="navbar-brand" href="/">
+                <div class="lottery-logo">
+                    <i class="fas fa-bolt" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i>
+                    <span class="d-none d-sm-inline">SNAP LOTTO</span>
+                    <span class="d-inline d-sm-none">SL</span>
+                </div>
+            </a>
+            <!-- Mobile navigation handled by bottom nav bar, desktop navigation shown directly -->
+            <div class="d-none d-lg-flex w-100 justify-content-between align-items-center" id="navbarNav">
+                <ul class="navbar-nav d-flex flex-row">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/"><i class="fas fa-home me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/results"><i class="fas fa-list-ol me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/guides"><i class="fas fa-book me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Guides</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/visualizations"><i class="fas fa-chart-bar me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Analytics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2 " href="/scanner-landing"><i class="fas fa-ticket-alt me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Scanner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2 " href="/upload"><i class="fas fa-upload me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Upload</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0">
+                    
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-primary px-3 py-1" href="/login">
+                                <i class="fas fa-sign-in-alt me-1"></i> Login
+                            </a>
+                        </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Ad containers for loader and interstitial ads -->
+    <div id="ad-container-loader" style="display: none;"></div>
+    <div id="ad-container-interstitial" style="display: none;"></div>
+    
+    <div class="container px-2 px-sm-3">
+        
+            
+        
+
+        <!-- Breadcrumb navigation with schema.org markup -->
+        
+
+        
 
 
 <div class="row equal-height-row">
@@ -464,129 +716,1047 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for result in results %}
+                            
                             <tr>
                                 <td class="ps-2 py-1">
-                                    {% set display_type = result.lottery_type %}
-                                    {# Always normalize any legacy Lotto references to Lottery for display #}
-                                    {% if 'LOTTO' in display_type %}
-                                        {% set display_type = display_type.replace('LOTTO', 'LOTTERY') %}
-                                    {% endif %}
                                     
-                                    {% if 'POWERBALL' in display_type.upper() %}
-                                        <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
-                                    {% elif 'DAILY' in display_type.upper() %}
-                                        <span class="game-type-badge game-type-daily">{{ display_type }}</span>
-                                    {% else %}
-                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
-                                    {% endif %}
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-lottery">LOTTERY</span>
+                                    
                                 </td>
-                                <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
+                                <td class="py-1"><strong>2560</strong></td>
                                 <td class="py-1 text-nowrap">
-                                    {% if result.draw_date %}
-                                        {{ result.draw_date.strftime('%Y-%m-%d') }}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
+                                    
+                                        2025-07-19
+                                    
                                 </td>
                                 <td class="py-1">
                                     <div class="numbers-container d-flex">
-                                        {% for num in result.get_numbers_list() %}
-                                            {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
+                                        
                                             
-                                            {% if loop.index0 % 4 == 0 %}
-                                                {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                            {% elif loop.index0 % 4 == 1 %}
-                                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                            {% elif loop.index0 % 4 == 2 %}
-                                                {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                            {% else %}
-                                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                            {% endif %}
+                                            
+                                            
+                                                
+                                            
                                             
                                             <div class="lottery-ball-container me-1">
-                                                <span class="{{ ball_class }}">
-                                                    <span class="number">{{ num }}</span>
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">2</span>
                                                 </span>
                                             </div>
-                                        {% endfor %}
-                                        {% if result.bonus_numbers and result.bonus_numbers != '{}' and 'DAILY' not in result.lottery_type.upper() %}
-                                            <div class="mx-1 d-flex align-items-center">+</div>
-                                            {% for num in result.get_bonus_numbers_list() %}
-                                                <div class="lottery-ball-container">
-                                                    <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
-                                                        <span class="number">{{ num }}</span>
-                                                    </span>
-                                                </div>
-                                            {% endfor %}
-                                        {% endif %}
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">8</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">11</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">13</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">36</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">46</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
                                     </div>
                                 </td>
                             </tr>
-                            {% endfor %}
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-lottery">LOTTERY PLUS 1</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>2560</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-19
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">3</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">8</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">20</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">29</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">32</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">52</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-lottery">LOTTERY PLUS 2</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>2560</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-19
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">9</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">16</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">31</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">35</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">36</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">39</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-powerball">POWERBALL</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>1634</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-18
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">10</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">15</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">26</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">31</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">41</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-powerball">POWERBALL PLUS</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>1634</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-18
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">4</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">5</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">9</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">29</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">38</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-daily">DAILY LOTTERY</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>2319</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-20
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">6</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">24</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">28</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">31</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">36</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
                         </tbody>
                     </table>
                 </div>
 
                 <!-- Mobile card view -->
                 <div class="d-md-none mobile-results-container flex-grow-1">
-                    {% for result in results %}
+                    
                     <div class="mobile-result-card mb-1">
                         <div class="mobile-result-header d-flex justify-content-between align-items-center">
                             <div>
-                                {% set display_type = result.lottery_type %}
-                                {# Always normalize any legacy Lotto references to Lottery for display #}
-                                {% if 'LOTTO' in display_type %}
-                                    {% set display_type = display_type.replace('LOTTO', 'LOTTERY') %}
-                                {% endif %}
                                 
-                                {% if 'POWERBALL' in display_type.upper() %}
-                                    <span class="game-type-badge game-type-powerball mobile-badge">{{ display_type }}</span>
-                                {% elif 'DAILY' in display_type.upper() %}
-                                    <span class="game-type-badge game-type-daily mobile-badge">{{ display_type }}</span>
-                                {% else %}
-                                    <span class="game-type-badge game-type-lottery mobile-badge">{{ display_type }}</span>
-                                {% endif %}
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-lottery mobile-badge">LOTTERY</span>
+                                
                             </div>
                             <div class="mobile-draw-info d-flex align-items-center">
-                                <span class="me-2"><strong>{{ result.draw_number }}</strong></span>
-                                {% if result.draw_date %}
-                                    <span class="text-muted">{{ result.draw_date.strftime('%m/%d') }}</span>
-                                {% endif %}
+                                <span class="me-2"><strong>2560</strong></span>
+                                
+                                    <span class="text-muted">07/19</span>
+                                
                             </div>
                         </div>
                         <div class="mobile-numbers-container-grid mt-1">
-                            {% for num in result.get_numbers_list() %}
-                                {% set ball_class = 'lottery-ball lottery-ball-mobile ' %}
+                            
                                 
-                                {% if loop.index0 % 4 == 0 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                {% elif loop.index0 % 4 == 1 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                {% elif loop.index0 % 4 == 2 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                {% else %}
-                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                {% endif %}
                                 
-                                <span class="{{ ball_class }}">
-                                    <span class="number">{{ num }}</span>
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">2</span>
                                 </span>
-                            {% endfor %}
-                            {% if result.bonus_numbers and result.bonus_numbers != '{}' and 'DAILY' not in result.lottery_type.upper() %}
-                                <span class="bonus-separator">+</span>
-                                {% for num in result.get_bonus_numbers_list() %}
-                                    <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow lottery-ball-bonus">
-                                        <span class="number">{{ num }}</span>
-                                    </span>
-                                {% endfor %}
-                            {% endif %}
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">8</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">11</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">13</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">36</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">46</span>
+                                </span>
+                            
+                            
                         </div>
                     </div>
-                    {% endfor %}
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-lottery mobile-badge">LOTTERY PLUS 1</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>2560</strong></span>
+                                
+                                    <span class="text-muted">07/19</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">3</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">8</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">20</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">29</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">32</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">52</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-lottery mobile-badge">LOTTERY PLUS 2</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>2560</strong></span>
+                                
+                                    <span class="text-muted">07/19</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">9</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">16</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">31</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">35</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">36</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">39</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-powerball mobile-badge">POWERBALL</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>1634</strong></span>
+                                
+                                    <span class="text-muted">07/18</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">10</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">15</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">26</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">31</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">41</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-powerball mobile-badge">POWERBALL PLUS</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>1634</strong></span>
+                                
+                                    <span class="text-muted">07/18</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">4</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">5</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">9</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">29</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">38</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-daily mobile-badge">DAILY LOTTERY</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>2319</strong></span>
+                                
+                                    <span class="text-muted">07/20</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">6</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">24</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">28</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">31</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">36</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
                 </div>
                 <div class="text-center py-2 border-top mt-auto">
-                    <a href="{{ url_for('results') }}" class="btn btn-lottery-primary btn-sm">
+                    <a href="/results" class="btn btn-lottery-primary btn-sm">
                         <i class="fas fa-search me-1"></i> View All Results
                     </a>
                 </div>
@@ -737,15 +1907,148 @@
             </div>
         </div>
         <div class="text-center mt-3">
-            <a href="{{ url_for('results') }}" class="btn btn-lottery-primary">
+            <a href="/results" class="btn btn-lottery-primary">
                 <i class="fas fa-chart-bar me-1"></i> View Full Analytics Dashboard
             </a>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+    </div>
+
+    <footer class="footer mt-4 py-3">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Snap Lotto</h5>
+                    <p class="small mb-2">South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play</p>
+                    <p class="small">&copy; 2025 Snap Lotto</p>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Lottery Games</h5>
+                    <ul class="list-unstyled small">
+                        <li><a href="/results?game=Lotto" class="text-decoration-none">SA Lotto Results</a></li>
+                        <li><a href="/results?game=Powerball" class="text-decoration-none">PowerBall Results</a></li>
+                        <li><a href="/results?game=Daily+Lotto" class="text-decoration-none">Daily Lotto Results</a></li>
+                        <li><a href="/visualizations" class="text-decoration-none">Lottery Analysis</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Quick Links</h5>
+                    <ul class="list-unstyled small">
+                        <li><a href="/scanner-landing" class="text-decoration-none">Scan Your Ticket</a></li>
+                        <li><a href="/guides/how-to-play-lotto" class="text-decoration-none">How to Play Lotto</a></li>
+                        <li><a href="/guides/how-to-play-powerball" class="text-decoration-none">How to Play PowerBall</a></li>
+                        <li><a href="/guides/how-to-play-daily-lotto" class="text-decoration-none">How to Play Daily Lotto</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h5 class="h6 mb-2">Connect</h5>
+                    <p class="small mb-2"><a href="https://www.snaplotto.co.za" class="text-decoration-none" target="_blank">www.snaplotto.co.za</a></p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="text-decoration-none" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-decoration-none" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-decoration-none" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Mobile navigation (only on mobile) -->
+    <style>
+    /* Mobile navigation - force fixed positioning */
+    #mobile-nav {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 60px !important;
+        background: white !important;
+        border-top: 1px solid #ddd !important;
+        box-shadow: 0 -2px 4px rgba(0,0,0,0.1) !important;
+        z-index: 9999 !important;
+        display: flex !important;
+    }
+    
+    #mobile-nav a {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #666 !important;
+        text-decoration: none !important;
+        font-size: 10px !important;
+        padding: 4px !important;
+    }
+    
+    #mobile-nav a i {
+        font-size: 16px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    #mobile-nav a.active {
+        color: #dc3545 !important;
+    }
+    
+    /* Add bottom padding to body on mobile */
+    @media (max-width: 991px) {
+        body { 
+            padding-bottom: 70px !important; 
+            margin-bottom: 0 !important;
+        }
+    }
+    
+    /* Hide on desktop */
+    @media (min-width: 992px) {
+        #mobile-nav { 
+            display: none !important; 
+        }
+        body {
+            padding-bottom: 0 !important;
+        }
+    }
+    </style>
+    
+    <!-- Simple Mobile Navigation -->
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #ddd; z-index: 999999; display: flex;" class="d-lg-none">
+        <a href="/" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #dc3545;">
+            <i class="fas fa-home" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Home</small>
+        </a>
+        <a href="/results" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-list-ol" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Results</small>
+        </a>
+        <a href="/guides" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-book" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Guides</small>
+        </a>
+        <a href="/scanner-landing" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-ticket-alt" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Scanner</small>
+        </a>
+        <a href="/visualizations" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-chart-bar" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Analytics</small>
+        </a>
+        
+    </div>
+    
+    <style>
+    @media (max-width: 991px) {
+        body { padding-bottom: 70px; }
+    }
+    </style>
+
+    <!-- Bootstrap JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+
+
+    
 <!-- Add interactive chart functionality -->
 <script>
 // Function to highlight a pie segment by division number
@@ -2013,8 +3316,68 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Load chart renderer after all other scripts -->
-<script src="{{ url_for('static', filename='js/chart-renderer.js') }}" defer></script>
+<script src="/static/js/chart-renderer.js" defer></script>
 
 <!-- Enhanced Chart Visualization Scripts -->
 <!-- Chart scripts only loaded on visualizations page to improve homepage performance -->
-{% endblock %}
+
+    
+    <!-- Ad scripts have been replaced with stubs that maintain compatibility but don't show ads -->
+    <script src="/static/js/ads.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Force light theme on all tables and rows
+            const tables = document.querySelectorAll('.table, .table-lottery');
+            tables.forEach(table => {
+                table.style.backgroundColor = '#fff';
+                table.style.color = '#000';
+                
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    row.style.backgroundColor = '#fff';
+                    row.style.color = '#000';
+                    
+                    const cells = row.querySelectorAll('td, th');
+                    cells.forEach(cell => {
+                        cell.style.color = '#000';
+                    });
+                });
+                
+                // Make even rows light gray
+                const evenRows = table.querySelectorAll('tr:nth-child(even)');
+                evenRows.forEach(row => {
+                    row.style.backgroundColor = '#f9f9f9';
+                });
+            });
+            
+            // Remove the lottery data dashboard section
+            setTimeout(() => {
+                const headings = document.querySelectorAll('h4');
+                for (let heading of headings) {
+                    if (heading.textContent.includes('LOTTERY DATA DASHBOARD')) {
+                        // Find the parent card element and remove it
+                        let element = heading;
+                        // Go up to find the card div (up to 5 parent levels)
+                        for (let i = 0; i < 5; i++) {
+                            if (element.parentElement) {
+                                element = element.parentElement;
+                                if (element.classList.contains('card')) {
+                                    console.log('Found the dashboard card, removing it');
+                                    element.remove();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }, 100);
+        });
+    </script>
+    
+    <!-- Mobile Performance Optimization Scripts -->
+    <script src="/static/js/mobile-optimized.js" defer></script>
+    
+    
+</body>
+</html>
