@@ -201,51 +201,51 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         # Ensure at top
         driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
         
-        # COMPLETE FULL-PAGE CAPTURE - From absolute top to bottom
-        logger.info("Starting complete full-page capture from absolute top")
+        # REBUILT FULL-PAGE CAPTURE - Proper method that works
+        logger.info("Starting REBUILT full-page capture method")
         
-        # Force scroll to absolute top multiple times
-        for i in range(5):
-            driver.execute_script("window.scrollTo(0, 0);")
-            driver.execute_script("document.documentElement.scrollTop = 0;")
-            driver.execute_script("document.body.scrollTop = 0;")
-            human_like_delay(0.5, 1)
+        # STEP 1: Ensure we're at absolute top
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(1)
         
-        # Get total page height for full capture
-        total_height = driver.execute_script("""
-            return Math.max(
-                document.body.scrollHeight,
-                document.body.offsetHeight,
-                document.documentElement.clientHeight,
-                document.documentElement.scrollHeight,
-                document.documentElement.offsetHeight
-            );
+        # STEP 2: Get total document dimensions
+        dimensions = driver.execute_script("""
+            return {
+                scrollHeight: document.documentElement.scrollHeight,
+                scrollWidth: document.documentElement.scrollWidth,
+                clientHeight: document.documentElement.clientHeight,
+                clientWidth: document.documentElement.clientWidth,
+                offsetHeight: document.documentElement.offsetHeight,
+                offsetWidth: document.documentElement.offsetWidth
+            };
         """)
         
-        logger.info(f"Total page height detected: {total_height}px")
+        # Calculate actual page dimensions
+        page_width = max(dimensions['scrollWidth'], dimensions['offsetWidth'], 1920)
+        page_height = max(dimensions['scrollHeight'], dimensions['offsetHeight'], dimensions['clientHeight'])
         
-        # Set window height to capture entire page from top to bottom
-        driver.set_window_size(1920, total_height)
-        human_like_delay(2, 3)
+        logger.info(f"Page dimensions detected: {page_width}x{page_height}")
         
-        # Ensure we're still at the absolute top after resize
+        # STEP 3: Set browser viewport to EXACT page size
+        driver.set_window_size(page_width, page_height)
+        time.sleep(2)  # Allow resize to complete
+        
+        # STEP 4: Ensure still at top after resize
         driver.execute_script("window.scrollTo(0, 0);")
         driver.execute_script("document.documentElement.scrollTop = 0;")
         driver.execute_script("document.body.scrollTop = 0;")
-        human_like_delay(1, 2)
+        time.sleep(1)
         
-        # Take full-page screenshot from top to bottom
+        # STEP 5: Take screenshot
         driver.save_screenshot(filepath)
-        logger.info(f"COMPLETE FULL-PAGE screenshot captured: {filepath} (height: {total_height}px)")
         
         # Get file size for reporting
         file_size = os.path.getsize(filepath)
-        logger.info(f"Full-page screenshot file size: {file_size:,} bytes")
+        logger.info(f"REBUILT screenshot saved: {filepath} ({file_size:,} bytes, {page_width}x{page_height})")
         
-        # Calculate captured dimensions for logging
-        capture_width = 1920
-        capture_height = total_height
-        logger.info(f"FULL-PAGE screenshot captured: {filepath} (window: {capture_width}x{capture_height})")
+        # Store dimensions for logging
+        capture_width = page_width
+        capture_height = page_height
         
         # Save screenshot info to database
         try:
