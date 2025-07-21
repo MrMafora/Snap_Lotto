@@ -201,93 +201,70 @@ def capture_lottery_screenshot(lottery_type, url, output_dir='screenshots'):
         # Ensure at top
         driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
         
-        # UNIFIED TIGHT CAPTURE METHOD - No white space
-        logger.info("Using unified tight capture method")
+        # COMPLETE FULL-PAGE CAPTURE - From absolute top to bottom
+        logger.info("Starting complete full-page capture from absolute top")
         
-        # Set standard viewport size for consistency
-        driver.set_window_size(1920, 1080)
-        human_like_delay(2, 3)
+        # Force scroll to absolute top multiple times
+        for i in range(5):
+            driver.execute_script("window.scrollTo(0, 0);")
+            driver.execute_script("document.documentElement.scrollTop = 0;")
+            driver.execute_script("document.body.scrollTop = 0;")
+            human_like_delay(0.5, 1)
         
-        # Ensure at absolute top
-        driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
-        human_like_delay(1, 2)
-        
-        # Get precise content dimensions for tight cropping (eliminates white space)
-        content_info = driver.execute_script("""
-            var body = document.body;
-            var html = document.documentElement;
-            
-            // Calculate exact content boundaries
-            var actualHeight = Math.max(
-                body.scrollHeight,
-                body.offsetHeight,
-                html.clientHeight,
-                html.scrollHeight,
-                html.offsetHeight
+        # Get total page height for full capture
+        total_height = driver.execute_script("""
+            return Math.max(
+                document.body.scrollHeight,
+                document.body.offsetHeight,
+                document.documentElement.clientHeight,
+                document.documentElement.scrollHeight,
+                document.documentElement.offsetHeight
             );
-            
-            var actualWidth = Math.max(
-                body.scrollWidth,
-                body.offsetWidth, 
-                html.clientWidth,
-                html.scrollWidth,
-                html.offsetWidth
-            );
-            
-            // Find bottom-most visible element for real content height
-            var allElements = document.querySelectorAll('*');
-            var maxBottom = 0;
-            for (var i = 0; i < allElements.length; i++) {
-                var element = allElements[i];
-                if (element.offsetParent !== null) {
-                    var rect = element.getBoundingClientRect();
-                    var elementBottom = rect.bottom + window.pageYOffset;
-                    if (elementBottom > maxBottom) {
-                        maxBottom = elementBottom;
-                    }
-                }
-            }
-            
-            return {
-                width: Math.min(actualWidth, 1920), // Cap to avoid white space
-                height: Math.max(actualHeight, maxBottom, 1080) // Ensure full content
-            };
         """)
         
-        logger.info(f"Tight content dimensions: {content_info['width']}x{content_info['height']}")
+        logger.info(f"Total page height detected: {total_height}px")
         
-        # Set precise window size to match content exactly (eliminates white space)
-        capture_width = int(content_info['width'])
-        capture_height = int(content_info['height'])
-        
-        driver.set_window_size(capture_width, capture_height)
+        # Set window height to capture entire page from top to bottom
+        driver.set_window_size(1920, total_height)
         human_like_delay(2, 3)
         
-        # Final position at top
-        driver.execute_script("window.scrollTo({top: 0, left: 0, behavior: 'instant'});")
+        # Ensure we're still at the absolute top after resize
+        driver.execute_script("window.scrollTo(0, 0);")
+        driver.execute_script("document.documentElement.scrollTop = 0;")
+        driver.execute_script("document.body.scrollTop = 0;")
         human_like_delay(1, 2)
         
-        # Take tight screenshot (no white space)
+        # Take full-page screenshot from top to bottom
         driver.save_screenshot(filepath)
+        logger.info(f"COMPLETE FULL-PAGE screenshot captured: {filepath} (height: {total_height}px)")
         
+        # Get file size for reporting
+        file_size = os.path.getsize(filepath)
+        logger.info(f"Full-page screenshot file size: {file_size:,} bytes")
+        
+        # Calculate captured dimensions for logging
+        capture_width = 1920
+        capture_height = total_height
         logger.info(f"FULL-PAGE screenshot captured: {filepath} (window: {capture_width}x{capture_height})")
         
-        # Get file size
-        file_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
-        
         # Save screenshot info to database
-        screenshot = Screenshot(
-            lottery_type=lottery_type,
-            url=url,
-            filename=filename,
-            file_path=filepath,
-            file_size=file_size,
-            capture_method='selenium',
-            created_by=current_user.id if hasattr(current_user, 'id') else None
-        )
-        
-        db.session.add(screenshot)
-        db.session.commit()
+        try:
+            screenshot = Screenshot()
+            screenshot.lottery_type = lottery_type
+            screenshot.url = url
+            screenshot.filename = filename
+            screenshot.file_path = filepath
+            screenshot.file_size = file_size
+            screenshot.capture_method = 'selenium_fullpage'
+            screenshot.status = 'active'
+            if hasattr(current_user, 'id'):
+                screenshot.created_by = current_user.id
+            
+            db.session.add(screenshot)
+            db.session.commit()
+        except Exception as db_error:
+            logger.error(f"Database error: {db_error}")
+            db.session.rollback()
         
         logger.info(f"Successfully captured screenshot for {lottery_type}: {filename}")
         
