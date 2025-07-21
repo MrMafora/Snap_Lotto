@@ -384,8 +384,19 @@ def results(lottery_type=None):
             
             logger.info(f"Found {len(results)} results")
             
+            # Create latest_results dict and lottery_types list for template compatibility
+            latest_results = {}
+            lottery_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
+            
+            # Group filtered results by lottery type to get the latest for each
+            for result in results:
+                if result.lottery_type not in latest_results:
+                    latest_results[result.lottery_type] = result
+            
             return render_template('results.html', 
                                  results=results, 
+                                 latest_results=latest_results,
+                                 lottery_types=lottery_types,
                                  lottery_type=lottery_type,
                                  display_name=lottery_type)
         else:
