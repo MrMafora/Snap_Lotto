@@ -1,5 +1,11 @@
 {pkgs}: {
   deps = [
+    pkgs.xorg.libxkbfile
+    pkgs.libdrm
+    pkgs.gdk-pixbuf
+    pkgs.pango
+    pkgs.atk
+    pkgs.mesa
     pkgs.firefox
     pkgs.systemd
     pkgs.alsa-lib

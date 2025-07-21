@@ -1005,7 +1005,7 @@ def run_automation_step():
     try:
         if step == 'cleanup':
             # Clean up old screenshots
-            from screenshot_capture_playwright import cleanup_old_screenshots
+            from screenshot_capture_pyppeteer import cleanup_old_screenshots
             result = cleanup_old_screenshots(days_old=7)
             
             if result['success']:
@@ -1015,8 +1015,8 @@ def run_automation_step():
                 
         elif step == 'capture':
             # Capture fresh screenshots from lottery websites
-            from screenshot_capture_playwright import capture_all_lottery_screenshots_playwright
-            results = capture_all_lottery_screenshots_playwright()
+            from screenshot_capture_pyppeteer import capture_all_lottery_screenshots_pyppeteer
+            results = capture_all_lottery_screenshots_pyppeteer()
             
             if results['total_success'] > 0:
                 flash(f'Screenshot capture completed: {results["total_success"]}/{results["total_processed"]} successful', 'success')
