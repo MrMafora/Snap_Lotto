@@ -1608,18 +1608,9 @@ def visualization_data():
         cur = conn.cursor()
         
         if data_type == 'numbers_frequency':
-            # Get number frequency data for all or specific lottery types
+            # Get all lottery results to process numbers
             if lottery_type == 'all':
-                query = """
-                    SELECT 
-                        main_numbers,
-                        lottery_type,
-                        COUNT(*) as frequency
-                    FROM lottery_results 
-                    WHERE main_numbers IS NOT NULL 
-                    ORDER BY frequency DESC, lottery_type
-                """
-                cur.execute(query)
+                cur.execute("SELECT main_numbers FROM lottery_results WHERE main_numbers IS NOT NULL")
             else:
                 # Map display names to database values
                 db_lottery_type = lottery_type
@@ -1628,22 +1619,16 @@ def visualization_data():
                 elif lottery_type == 'Lotto':
                     db_lottery_type = 'LOTTO'
                     
-                query = """
-                    SELECT 
-                        main_numbers,
-                        lottery_type,
-                        COUNT(*) as frequency
-                    FROM lottery_results 
-                    WHERE lottery_type = %s AND main_numbers IS NOT NULL 
-                    ORDER BY frequency DESC
-                """
-                cur.execute(query, (db_lottery_type,))
+                cur.execute("SELECT main_numbers FROM lottery_results WHERE lottery_type = %s AND main_numbers IS NOT NULL", (db_lottery_type,))
             
             rows = cur.fetchall()
             
             # Process numbers and count frequency
             number_freq = {}
+            total_records = 0
+            
             for row in rows:
+                total_records += 1
                 try:
                     if row[0]:  # main_numbers
                         numbers = json.loads(row[0]) if isinstance(row[0], str) else row[0]
@@ -1659,8 +1644,7 @@ def visualization_data():
             # Convert to chart format - top 10 most frequent
             frequency_data = []
             for num, freq in sorted(number_freq.items(), key=lambda x: x[1], reverse=True)[:10]:
-                total_draws = len(rows) if rows else 1
-                percentage = round((freq / total_draws) * 100, 2)
+                percentage = round((freq / total_records) * 100, 2) if total_records > 0 else 0
                 frequency_data.append({
                     'number': num,
                     'frequency': freq,
