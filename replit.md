@@ -19,6 +19,13 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
+- **COMPLETED: Guides Route Fix (July 21, 2025)**
+  - **404 ERROR RESOLVED**: Fixed missing `/guides` route that was causing 404 "Page Not Found" errors
+  - **ROUTE IMPLEMENTATION**: Added proper Flask routes for guides main page and individual guide details
+  - **TEMPLATE INTEGRATION**: Connected existing guides templates (index.html, how_to_play_lotto.html) with functional routes
+  - **VERIFIED WORKING**: `/guides` returns HTTP 200 with 36.9KB response showing complete guides content
+  - **NAVIGATION RESTORED**: Users can now access lottery guides and tutorials through the navigation menu
+  - **INDIVIDUAL GUIDES SUPPORTED**: Route system supports individual guide pages like `/guides/how-to-play-lottery`
 - **COMPLETED: HISTORICAL RESULTS Card Removal (July 21, 2025)**
   - **USER REQUEST FULFILLED**: Removed the entire HISTORICAL RESULTS card section from the results page as requested
   - **TEMPLATE CLEANUP**: Eliminated the large table displaying all historical lottery draws with filter dropdown

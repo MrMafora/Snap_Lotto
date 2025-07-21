@@ -694,6 +694,39 @@ def logout():
     flash('You have been logged out', 'info')
     return redirect(url_for('index'))
 
+# Guides Route
+@app.route('/guides')
+def guides():
+    """Lottery guides and tutorials"""
+    return render_template('guides/index.html')
+
+@app.route('/guides/<guide_name>')
+def guide_detail(guide_name):
+    """Individual guide pages"""
+    # List of available guides
+    available_guides = [
+        'how-to-play-lottery',
+        'how-to-play-powerball', 
+        'how-to-play-daily-lottery',
+        'lottery-strategies',
+        'understanding-odds',
+        'managing-lottery-winnings'
+    ]
+    
+    if guide_name not in available_guides:
+        flash('Guide not found', 'error')
+        return redirect(url_for('guides'))
+    
+    # Convert guide name to template filename
+    template_name = guide_name.replace('-', '_') + '.html'
+    template_path = f'guides/{template_name}'
+    
+    try:
+        return render_template(template_path)
+    except:
+        flash('Guide content not available yet', 'info')
+        return redirect(url_for('guides'))
+
 # Upload Lottery Image Route
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_lottery():
