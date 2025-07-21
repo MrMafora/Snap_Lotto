@@ -727,6 +727,12 @@ def guide_detail(guide_name):
         flash('Guide content not available yet', 'info')
         return redirect(url_for('guides'))
 
+# Visualizations Route
+@app.route('/visualizations')
+def visualizations():
+    """Lottery data visualizations and analytics"""
+    return render_template('visualizations.html')
+
 # Upload Lottery Image Route
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_lottery():
@@ -899,7 +905,7 @@ def settings():
 
 @app.route('/admin/visualizations')
 @login_required  
-def visualizations():
+def admin_visualizations():
     """Data Analytics & Visualizations"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
