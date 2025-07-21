@@ -1,9 +1,26 @@
-# Replit Deployment Configuration
 
-run = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=2 --worker-class=gthread --threads=2 --timeout=60 main:app"]
-entrypoint = "main.py"
+[deployment]
+deploymentTarget = "cloudrun"
+ignorePorts = false
 
-# Environment variables for Cloud Run
-[env]
-FLASK_APP = "main.py"
-FLASK_ENV = "production"
+[[deployment.env]]
+key = "FLASK_APP"
+value = "main.py"
+
+[[deployment.env]]
+key = "FLASK_ENV"
+value = "production"
+
+[[deployment.env]]
+key = "PYTHONUNBUFFERED"
+value = "1"
+
+[deployment.build]
+run = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && pip install --force-reinstall -r requirements.txt"]
+
+[deployment.run]
+run = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=2 --worker-class=gthread --threads=2 --timeout=0 main:app"]
+
+[[deployment.ports]]
+localPort = 8080
+externalPort = 80

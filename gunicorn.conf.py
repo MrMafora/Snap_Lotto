@@ -1,27 +1,15 @@
-"""
-Gunicorn configuration file with optimized settings
-"""
-
-import multiprocessing
 import os
 
-# Server socket - use PORT environment variable for Cloud Run, fallback to 8080
 bind = f"0.0.0.0:{os.environ.get('PORT', 8080)}"
-backlog = 2048
-
-# Worker processes
-workers = min(multiprocessing.cpu_count() * 2 + 1, 4)
+workers = 2
 worker_class = "gthread"
-worker_connections = 1000
 threads = 2
+timeout = 0
+keepalive = 2
 max_requests = 1000
-max_requests_jitter = 50
-
-# Timeouts
-timeout = 30
-keepalive = 5
-graceful_timeout = 30
-
+max_requests_jitter = 100
+preload_app = True
+worker_connections = 1000
 # Logging
 accesslog = "-"
 errorlog = "-"
@@ -35,9 +23,6 @@ proc_name = "lottery_app"
 limit_request_line = 4096
 limit_request_fields = 100
 limit_request_field_size = 8190
-
-# Preload application
-preload_app = True
 
 # Worker restarts
 max_worker_connections = 1000

@@ -1509,8 +1509,18 @@ try:
     from lottery_analysis import bp as lottery_analysis_bp
     app.register_blueprint(lottery_analysis_bp)
     logger.info("Lottery analysis routes registered")
-except ImportError:
-    logger.warning("Lottery analysis module not available")
+except ImportError as e:
+    logger.warning(f"Lottery analysis module not available: {e}")
+
+# Ensure all required modules are available
+try:
+    import psycopg2
+    import google.generativeai
+    import flask_login
+    logger.info("All critical modules loaded successfully")
+except ImportError as e:
+    logger.error(f"Critical module missing: {e}")
+    # Continue anyway for deployment
 
 # Initialize monitoring and health systems
 try:
@@ -1528,4 +1538,6 @@ logger.info("All modules lazy-loaded successfully")
 if __name__ == '__main__':
     # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Disable debug mode in production
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
