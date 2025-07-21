@@ -733,6 +733,12 @@ def visualizations():
     """Lottery data visualizations and analytics"""
     return render_template('visualizations.html')
 
+# Scanner Landing Route
+@app.route('/scanner-landing')
+def scanner_landing():
+    """Ticket scanner landing page"""
+    return render_template('scanner_landing.html')
+
 # Upload Lottery Image Route
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_lottery():
