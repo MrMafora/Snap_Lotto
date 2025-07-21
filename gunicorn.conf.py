@@ -1,7 +1,7 @@
 import os
 
 # Cloud Run provides PORT environment variable
-port = os.environ.get('PORT', '8080')
+port = int(os.environ.get('PORT', 8080))
 bind = f"0.0.0.0:{port}"
 workers = 2
 worker_class = "gthread"
