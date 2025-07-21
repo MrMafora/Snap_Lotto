@@ -130,25 +130,30 @@ class DrawResult:
     
     def get_bonus_numbers_list(self):
         """Get bonus numbers as a sorted list (small to large)"""
-        if isinstance(self.bonus_numbers, str):
-            try:
+        try:
+            if isinstance(self.bonus_numbers, str):
                 # Handle PostgreSQL array format like {30} or {15,20}
                 if self.bonus_numbers.startswith('{') and self.bonus_numbers.endswith('}'):
                     # Remove braces and split by comma
                     inner = self.bonus_numbers[1:-1].strip()
                     if not inner:  # Empty like {}
+                        logging.info(f"BONUS DEBUG {self.lottery_type}: Empty bonus array '{self.bonus_numbers}' -> []")
                         return []
                     numbers = [int(x.strip()) for x in inner.split(',') if x.strip()]
                     logging.info(f"BONUS DEBUG {self.lottery_type}: PostgreSQL array '{self.bonus_numbers}' parsed to {sorted(numbers)}")
                     return sorted(numbers)
                 # Try JSON format as fallback
-                numbers = json.loads(self.bonus_numbers)
-                return sorted(numbers) if numbers else []
-            except Exception as e:
-                logging.warning(f"BONUS DEBUG {self.lottery_type}: Failed to parse bonus_numbers '{self.bonus_numbers}': {e}")
-                return []
-        numbers = self.bonus_numbers or []
-        return sorted(numbers) if numbers else []
+                try:
+                    numbers = json.loads(self.bonus_numbers)
+                    return sorted(numbers) if numbers else []
+                except:
+                    pass
+            # Handle list/array directly
+            numbers = self.bonus_numbers or []
+            return sorted(numbers) if numbers else []
+        except Exception as e:
+            logging.error(f"BONUS DEBUG {self.lottery_type}: Error parsing bonus_numbers '{self.bonus_numbers}': {e}")
+            return []
     
     def get_parsed_divisions(self):
         """Get parsed divisions data"""
@@ -229,20 +234,29 @@ def index():
                         
                         def make_get_bonus_numbers_list(obj):
                             def get_bonus_numbers_list():
-                                logger.debug(f"Getting bonus numbers for {obj.lottery_type}: {obj.bonus_numbers} (type: {type(obj.bonus_numbers)})")
-                                if isinstance(obj.bonus_numbers, str):
-                                    try:
-                                        parsed = json.loads(obj.bonus_numbers)
-                                        sorted_bonus = sorted(parsed) if parsed else []
-                                        logger.debug(f"Parsed and sorted JSON bonus numbers: {sorted_bonus}")
-                                        return sorted_bonus
-                                    except Exception as e:
-                                        logger.debug(f"Failed to parse bonus JSON: {e}")
-                                        return []
-                                numbers = obj.bonus_numbers or []
-                                sorted_bonus = sorted(numbers) if numbers else []
-                                logger.debug(f"Returning sorted bonus numbers directly: {sorted_bonus}")
-                                return sorted_bonus
+                                try:
+                                    if isinstance(obj.bonus_numbers, str):
+                                        # Handle PostgreSQL array format like {30} or {15,20}
+                                        if obj.bonus_numbers.startswith('{') and obj.bonus_numbers.endswith('}'):
+                                            inner = obj.bonus_numbers[1:-1].strip()
+                                            if not inner:  # Empty like {}
+                                                logger.info(f"BONUS DEBUG {obj.lottery_type}: Empty bonus array '{obj.bonus_numbers}' -> []")
+                                                return []
+                                            numbers = [int(x.strip()) for x in inner.split(',') if x.strip()]
+                                            logger.info(f"BONUS DEBUG {obj.lottery_type}: PostgreSQL array '{obj.bonus_numbers}' parsed to {sorted(numbers)}")
+                                            return sorted(numbers)
+                                        # Try JSON format as fallback
+                                        try:
+                                            parsed = json.loads(obj.bonus_numbers)
+                                            return sorted(parsed) if parsed else []
+                                        except:
+                                            pass
+                                    # Handle list/array directly
+                                    numbers = obj.bonus_numbers or []
+                                    return sorted(numbers) if numbers else []
+                                except Exception as e:
+                                    logger.error(f"BONUS DEBUG {obj.lottery_type}: Error parsing bonus_numbers '{obj.bonus_numbers}': {e}")
+                                    return []
                             return get_bonus_numbers_list
                         
                         def make_get_parsed_divisions(obj):
