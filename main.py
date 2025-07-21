@@ -413,9 +413,9 @@ def results(lottery_type=None):
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
                         cur.execute("""
-                            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
                                    rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                            FROM lottery_result 
+                            FROM lottery_results 
                             ORDER BY 
                                 CASE lottery_type
                                     WHEN 'LOTTO' THEN 1
@@ -530,9 +530,9 @@ def draw_details(lottery_type, draw_number):
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                        SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
                                rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                        FROM lottery_result 
+                        FROM lottery_results 
                         WHERE lottery_type = %s AND draw_number = %s
                         LIMIT 1
                     """, (lottery_type, draw_number))
