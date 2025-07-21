@@ -46,17 +46,17 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                     <div class="card h-100">
                         <div class="card-header text-white text-center lottery-header" style="background-color: #333 !important; color: white !important;">
                             {% set display_name = lottery_type %}
-                            {% if 'LOTTO' in lottery_type and 'PLUS' not in lottery_type %}
+                            {% if lottery_type == 'LOTTO' %}
                                 {% set display_name = 'Lottery' %}
-                            {% elif 'LOTTO PLUS 1' in lottery_type %}
+                            {% elif lottery_type == 'LOTTO PLUS 1' %}
                                 {% set display_name = 'Lottery Plus 1' %}
-                            {% elif 'LOTTO PLUS 2' in lottery_type %}
+                            {% elif lottery_type == 'LOTTO PLUS 2' %}
                                 {% set display_name = 'Lottery Plus 2' %}
-                            {% elif 'POWERBALL' in lottery_type and 'PLUS' not in lottery_type %}
+                            {% elif lottery_type == 'POWERBALL' %}
                                 {% set display_name = 'Powerball' %}
-                            {% elif 'POWERBALL PLUS' in lottery_type %}
+                            {% elif lottery_type == 'POWERBALL PLUS' %}
                                 {% set display_name = 'Powerball Plus' %}
-                            {% elif 'DAILY' in lottery_type %}
+                            {% elif lottery_type == 'DAILY LOTTO' %}
                                 {% set display_name = 'Daily Lottery' %}
                             {% endif %}
                             <h5 class="card-title mb-0" style="color: white !important; font-weight: bold;">{{ display_name }}</h5>
