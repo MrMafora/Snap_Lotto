@@ -745,6 +745,12 @@ def ticket_scanner():
     """Ticket scanner interface"""
     return render_template('ticket_scanner.html')
 
+# SEO-friendly Scanner Route
+@app.route('/scan-lottery-ticket-south-africa')
+def scan_lottery_ticket_south_africa():
+    """SEO-friendly lottery ticket scanner route"""
+    return render_template('ticket_scanner.html')
+
 # Upload Lottery Image Route
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_lottery():
