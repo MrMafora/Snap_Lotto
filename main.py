@@ -874,6 +874,64 @@ def scan_lottery_ticket_south_africa():
     """SEO-friendly lottery ticket scanner route"""
     return render_template('ticket_scanner.html')
 
+# Process Ticket Route (for ticket scanner)
+@app.route('/process-ticket', methods=['POST'])
+def process_ticket():
+    """Process lottery ticket uploaded via scanner interface"""
+    try:
+        # Check if file was uploaded
+        if 'ticket_image' not in request.files:
+            return jsonify({'error': 'No file selected'}), 400
+        
+        file = request.files['ticket_image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Validate file type
+        if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            return jsonify({'error': 'Only PNG, JPG, and JPEG files are allowed'}), 400
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_filename = f"{timestamp}_{filename}"
+        
+        upload_folder = 'uploads'
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, unique_filename)
+        file.save(file_path)
+        
+        logger.info(f"Processing ticket scanner image: {file_path}")
+        
+        # Process with AI using manual lottery processor
+        from manual_lottery_processor import ManualLotteryProcessor
+        processor = ManualLotteryProcessor()
+        
+        # Extract data from the image
+        extracted_data = processor.process_image(file_path)
+        
+        if extracted_data and 'success' in extracted_data and extracted_data['success']:
+            # Return the extracted lottery data
+            return jsonify({
+                'success': True,
+                'data': extracted_data,
+                'message': 'Ticket processed successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Could not extract lottery data from ticket image',
+                'message': 'Please ensure the ticket is clearly visible and try again'
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Error processing ticket: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'An error occurred while processing your ticket',
+            'message': 'Please try again or contact support'
+        }), 500
+
 # Upload Lottery Image Route
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_lottery():
