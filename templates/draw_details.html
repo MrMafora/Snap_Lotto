@@ -166,13 +166,13 @@
                 </div>
                 <div class="card-body py-2">
                     <div class="table-responsive">
-                        <table class="table table-lottery table-sm mb-0">
+                        <table class="table table-lottery table-sm mb-0 compact-prize-table">
                             <thead>
                                 <tr>
-                                    <th>DIVISION</th>
-                                    <th>MATCH</th>
-                                    <th>WINNERS</th>
-                                    <th>PRIZE PER WINNER</th>
+                                    <th class="col-narrow">DIVISION</th>
+                                    <th class="col-narrow">MATCH</th>
+                                    <th class="col-narrow">WINNERS</th>
+                                    <th class="col-wide">PRIZE PER WINNER</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -202,4 +202,49 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Compact Prize Table Styling */
+.compact-prize-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.compact-prize-table .col-narrow {
+    width: 18%;
+    padding: 6px 4px !important;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.compact-prize-table .col-wide {
+    width: 46%;
+    padding: 6px 8px !important;
+    text-align: right;
+    font-size: 0.8rem;
+}
+
+.compact-prize-table td {
+    padding: 8px 4px !important;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.compact-prize-table td:last-child {
+    text-align: right;
+    padding: 8px 8px !important;
+    font-weight: 500;
+}
+
+.compact-prize-table th {
+    padding: 6px 4px !important;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.compact-prize-table th:last-child {
+    padding: 6px 8px !important;
+}
+</style>
 {% endblock %}
