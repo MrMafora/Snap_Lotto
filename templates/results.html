@@ -119,7 +119,148 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
 </div>
 {% endif %}
 
-
+<!-- Individual Lottery Type Results -->
+{% if lottery_type and results %}
+<div class="container">
+    <div class="card">
+        <div class="card-header lottery-header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h4 class="mb-2 mb-md-0">{{ lottery_type|upper }} RESULTS</h4>
+                <div class="dropdown">
+                    <button class="btn btn-lottery-primary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ lottery_type }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('results') }}">All Types</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lottery') }}">Lottery</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lottery Plus 1') }}">Lottery Plus 1</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lottery Plus 2') }}">Lottery Plus 2</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball') }}">Powerball</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Daily Lottery') }}">Daily Lottery</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <!-- Standard table for larger screens -->
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-lottery">
+                    <thead>
+                        <tr>
+                            <th>DRAW ID</th>
+                            <th>GAME DATE</th>
+                            <th>WINNING NUMBERS</th>
+                            <th>BONUS NUMBERS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                            <tr>
+                                <td>
+                                    {% if result.draw_number %}
+                                        <a href="{{ url_for('draw_details', lottery_type=result.lottery_type, draw_number=result.draw_number) }}" class="text-decoration-none">
+                                            <strong>Draw {{ result.draw_number }}</strong>
+                                            <span class="ms-1 text-primary"><i class="fa fa-info-circle" title="View prize details"></i></span>
+                                        </a>
+                                    {% else %}
+                                        <strong>Draw Details</strong>
+                                    {% endif %}
+                                </td>
+                                <td>{{ result.draw_date.strftime('%Y-%m-%d') if result.draw_date else 'N/A' }}</td>
+                                <td>
+                                    {% for num in result.get_numbers_list() %}
+                                        {% set ball_class = 'lottery-ball ' %}
+                                        
+                                        {% if loop.index0 % 4 == 0 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                        {% elif loop.index0 % 4 == 1 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                        {% elif loop.index0 % 4 == 2 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                        {% else %}
+                                            {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                        {% endif %}
+                                        
+                                        <span class="{{ ball_class }}">{{ num }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if result.bonus_numbers %}
+                                        {% for num in result.get_bonus_numbers_list() %}
+                                            <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Mobile-optimized cards for small screens -->
+            <div class="d-md-none">
+                {% for result in results %}
+                    <div class="card mb-3 result-card">
+                        <div class="card-header py-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <strong>{{ lottery_type }}</strong>
+                                <span class="small">{{ result.draw_date.strftime('%Y-%m-%d') if result.draw_date else 'N/A' }}</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                {% if result.draw_number %}
+                                    <strong>Draw {{ result.draw_number }}</strong>
+                                    <a href="{{ url_for('draw_details', lottery_type=result.lottery_type, draw_number=result.draw_number) }}" class="btn btn-sm btn-outline-primary">Details <i class="fa fa-info-circle"></i></a>
+                                {% else %}
+                                    <strong>Draw Details</strong>
+                                    <span class="btn btn-sm btn-outline-secondary disabled">No Details</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2">
+                                <div class="small mb-1"><strong>Winning Numbers:</strong></div>
+                                <div class="numbers-container">
+                                    {% for num in result.get_numbers_list() %}
+                                        {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
+                                        
+                                        {% if loop.index0 % 4 == 0 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                        {% elif loop.index0 % 4 == 1 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                        {% elif loop.index0 % 4 == 2 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                        {% else %}
+                                            {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                        {% endif %}
+                                        
+                                        <span class="{{ ball_class }}">{{ num }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            {% if result.bonus_numbers %}
+                                <div>
+                                    <div class="small mb-1"><strong>Bonus Numbers:</strong></div>
+                                    <div class="numbers-container">
+                                        {% for num in result.get_bonus_numbers_list() %}
+                                            <span class="lottery-ball lottery-ball-sm lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Hidden historical results and frequency chart sections -->
 <div class="d-none">
