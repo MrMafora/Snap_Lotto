@@ -107,7 +107,7 @@ class DrawResult:
         self.lottery_type = result.lottery_type
         self.draw_number = result.draw_number
         self.draw_date = result.draw_date
-        self.numbers = result.numbers
+        self.main_numbers = result.main_numbers
         self.bonus_numbers = result.bonus_numbers
         self.divisions = result.divisions
         self.rollover_amount = result.rollover_amount
@@ -119,12 +119,12 @@ class DrawResult:
         
     def get_numbers_list(self):
         """Get main numbers as a list"""
-        if isinstance(self.numbers, str):
+        if isinstance(self.main_numbers, str):
             try:
-                return json.loads(self.numbers)
+                return json.loads(self.main_numbers)
             except:
                 return []
-        return self.numbers or []
+        return self.main_numbers or []
     
     def get_bonus_numbers_list(self):
         """Get bonus numbers as a list"""
@@ -168,10 +168,11 @@ def index():
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                        SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
                                rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                        FROM lottery_result 
+                        FROM lottery_results 
                         WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO')
+                        AND draw_number IS NOT NULL AND main_numbers IS NOT NULL
                         ORDER BY draw_date DESC 
                         LIMIT 50
                     """)
@@ -182,7 +183,7 @@ def index():
                         result_obj.lottery_type = row[0]
                         result_obj.draw_number = row[1]
                         result_obj.draw_date = row[2]
-                        result_obj.numbers = row[3]
+                        result_obj.main_numbers = row[3]
                         result_obj.bonus_numbers = row[4]
                         result_obj.divisions = row[5]
                         result_obj.rollover_amount = row[6]
@@ -195,17 +196,17 @@ def index():
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
-                                logger.info(f"Getting numbers for {obj.lottery_type}: {obj.numbers} (type: {type(obj.numbers)})")
-                                if isinstance(obj.numbers, str):
+                                logger.info(f"Getting numbers for {obj.lottery_type}: {obj.main_numbers} (type: {type(obj.main_numbers)})")
+                                if isinstance(obj.main_numbers, str):
                                     try:
-                                        parsed = json.loads(obj.numbers)
+                                        parsed = json.loads(obj.main_numbers)
                                         logger.info(f"Parsed JSON numbers: {parsed}")
                                         return parsed
                                     except Exception as e:
                                         logger.error(f"Failed to parse JSON: {e}")
                                         return []
-                                logger.info(f"Returning numbers directly: {obj.numbers}")
-                                return obj.numbers or []
+                                logger.info(f"Returning numbers directly: {obj.main_numbers}")
+                                return obj.main_numbers or []
                             return get_numbers_list
                         
                         def make_get_bonus_numbers_list(obj):
@@ -267,12 +268,12 @@ def index():
         # Get frequency analysis for homepage charts
         all_numbers = []
         for result in unique_results:
-            if result.numbers:
+            if result.main_numbers:
                 try:
-                    if isinstance(result.numbers, str):
-                        numbers = json.loads(result.numbers)
+                    if isinstance(result.main_numbers, str):
+                        numbers = json.loads(result.main_numbers)
                     else:
-                        numbers = result.numbers
+                        numbers = result.main_numbers
                     all_numbers.extend(numbers)
                 except:
                     pass
@@ -316,10 +317,10 @@ def results(lottery_type=None):
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
                         cur.execute("""
-                            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
+                            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
                                    rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                            FROM lottery_result 
-                            WHERE lottery_type = ANY(%s)
+                            FROM lottery_results 
+                            WHERE lottery_type = ANY(%s) AND draw_number IS NOT NULL AND main_numbers IS NOT NULL
                             ORDER BY draw_date DESC 
                             LIMIT 20
                         """, (db_types,))
@@ -330,7 +331,7 @@ def results(lottery_type=None):
                             result_obj.lottery_type = row[0]
                             result_obj.draw_number = row[1]
                             result_obj.draw_date = row[2]
-                            result_obj.numbers = row[3]
+                            result_obj.main_numbers = row[3]
                             result_obj.bonus_numbers = row[4]
                             result_obj.divisions = row[5]
                             result_obj.rollover_amount = row[6]
@@ -343,12 +344,12 @@ def results(lottery_type=None):
                             # Add the required methods with proper closure
                             def make_get_numbers_list(obj):
                                 def get_numbers_list():
-                                    if isinstance(obj.numbers, str):
+                                    if isinstance(obj.main_numbers, str):
                                         try:
-                                            return json.loads(obj.numbers)
+                                            return json.loads(obj.main_numbers)
                                         except:
                                             return []
-                                    return obj.numbers or []
+                                    return obj.main_numbers or []
                                 return get_numbers_list
                             
                             def make_get_bonus_numbers_list(obj):
@@ -437,7 +438,7 @@ def results(lottery_type=None):
                             result_obj.lottery_type = row[0]
                             result_obj.draw_number = row[1]
                             result_obj.draw_date = row[2]
-                            result_obj.numbers = row[3]
+                            result_obj.main_numbers = row[3]
                             result_obj.bonus_numbers = row[4]
                             result_obj.divisions = row[5]
                             result_obj.rollover_amount = row[6]
@@ -450,12 +451,12 @@ def results(lottery_type=None):
                             # Add the required methods with proper closure
                             def make_get_numbers_list(obj):
                                 def get_numbers_list():
-                                    if isinstance(obj.numbers, str):
+                                    if isinstance(obj.main_numbers, str):
                                         try:
-                                            return json.loads(obj.numbers)
+                                            return json.loads(obj.main_numbers)
                                         except:
                                             return []
-                                    return obj.numbers or []
+                                    return obj.main_numbers or []
                                 return get_numbers_list
                             
                             def make_get_bonus_numbers_list(obj):
@@ -545,7 +546,7 @@ def draw_details(lottery_type, draw_number):
                         result.lottery_type = row[0]
                         result.draw_number = row[1]
                         result.draw_date = row[2]
-                        result.numbers = row[3]
+                        result.main_numbers = row[3]
                         result.bonus_numbers = row[4]
                         result.divisions = row[5]
                         result.rollover_amount = row[6]
@@ -558,12 +559,12 @@ def draw_details(lottery_type, draw_number):
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
-                                if isinstance(obj.numbers, str):
+                                if isinstance(obj.main_numbers, str):
                                     try:
-                                        return json.loads(obj.numbers)
+                                        return json.loads(obj.main_numbers)
                                     except:
                                         return []
-                                return obj.numbers or []
+                                return obj.main_numbers or []
                             return get_numbers_list
                         
                         def make_get_bonus_numbers_list(obj):
