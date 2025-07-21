@@ -1504,7 +1504,7 @@ def internal_error(error):
 def rate_limit_exceeded(error):
     return jsonify({'error': 'Rate limit exceeded'}), 429
 
-# Initialize optional modules
+# Initialize essential modules only
 try:
     from lottery_analysis import bp as lottery_analysis_bp
     app.register_blueprint(lottery_analysis_bp)
@@ -1512,17 +1512,14 @@ try:
 except ImportError as e:
     logger.warning(f"Lottery analysis module not available: {e}")
 
-# Ensure all required modules are available
+# Ensure all critical modules are available
 try:
     import psycopg2
-    import google.generativeai
-    import flask_login
     logger.info("All critical modules loaded successfully")
 except ImportError as e:
     logger.error(f"Critical module missing: {e}")
-    # Continue anyway for deployment
 
-# Initialize monitoring and health systems
+# Initialize basic cache manager
 try:
     from cache_manager import init_cache_manager
     init_cache_manager(app)
@@ -1530,14 +1527,11 @@ try:
 except ImportError as e:
     logger.warning(f"Cache manager not available: {e}")
 
-# Note: Optional modules health_monitor, monitoring_dashboard, internationalization, 
-# api_integration, and predictive_analytics are not deployed to prevent import errors
-
 logger.info("All modules lazy-loaded successfully")
 
 if __name__ == '__main__':
     # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development
     port = int(os.environ.get('PORT', 5000))
-    # Disable debug mode in production
-    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    # Always disable debug mode in production deployment
+    debug_mode = False
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
