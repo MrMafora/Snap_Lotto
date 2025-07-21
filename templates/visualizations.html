@@ -485,7 +485,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateFrequencyChart(lotteryType = 'all') {
         try {
             console.log(`Fetching frequency data for: ${lotteryType}`);
-            fetch(`/api/lottery-analysis/frequency?days=365`)
+            const apiUrl = lotteryType === 'all' ? 
+                `/api/lottery-analysis/frequency?days=365` : 
+                `/api/lottery-analysis/frequency?days=365&lottery_type=${encodeURIComponent(lotteryType)}`;
+            fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
                     try {
@@ -749,7 +752,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateHeatmapChart(lotteryType = 'Lotto') {
         try {
             // Update heatmap with lottery-specific data
-            fetch(`/api/lottery-analysis/frequency?days=365`)
+            const apiUrl = lotteryType === 'all' ? 
+                `/api/lottery-analysis/frequency?days=365` : 
+                `/api/lottery-analysis/frequency?days=365&lottery_type=${encodeURIComponent(lotteryType)}`;
+            fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
                     try {

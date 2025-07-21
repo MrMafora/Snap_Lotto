@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('lottery_analysis', __name__, url_prefix='/api/lottery-analysis')
 
 @bp.route('/frequency')
-@cached_query(ttl=300)
 def frequency_analysis():
     """Get frequency analysis of lottery numbers"""
     try:
@@ -41,19 +40,27 @@ def frequency_analysis():
         try:
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
-                    # Get all lottery results from the database
-                    cur.execute("""
-                        SELECT lottery_type, numbers, bonus_numbers
-                        FROM lottery_result 
-                        WHERE numbers IS NOT NULL
-                        ORDER BY draw_date DESC
-                    """)
+                    # Get lottery results from the database (filtered by lottery type if specified)
+                    if lottery_type and lottery_type != 'all':
+                        cur.execute("""
+                            SELECT lottery_type, numbers, bonus_numbers
+                            FROM lottery_result 
+                            WHERE numbers IS NOT NULL AND lottery_type = %s
+                            ORDER BY draw_date DESC
+                        """, (lottery_type,))
+                    else:
+                        cur.execute("""
+                            SELECT lottery_type, numbers, bonus_numbers
+                            FROM lottery_result 
+                            WHERE numbers IS NOT NULL
+                            ORDER BY draw_date DESC
+                        """)
                     
                     results = cur.fetchall()
                     
                     for row in results:
-                        lottery_type, numbers, bonus_numbers = row
-                        lottery_types.add(lottery_type)
+                        row_lottery_type, numbers, bonus_numbers = row
+                        lottery_types.add(row_lottery_type)
                         
                         # Add main numbers
                         if numbers:
