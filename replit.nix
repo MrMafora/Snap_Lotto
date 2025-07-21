@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.firefox
     pkgs.systemd
     pkgs.alsa-lib
     pkgs.libxkbcommon

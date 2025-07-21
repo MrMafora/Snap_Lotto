@@ -49,19 +49,35 @@ def capture_lottery_screenshot_playwright(lottery_type, url, output_dir='screens
         logger.info(f"Starting PLAYWRIGHT capture: {lottery_type} from {url}")
         
         with sync_playwright() as p:
-            # Launch browser - use system chromium if available
-            browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-web-security",
-                    "--allow-running-insecure-content",
-                    "--disable-features=VizDisplayCompositor"
-                ]
-            )
+            # Try system chromium first, then fallback to playwright's
+            try:
+                browser = p.chromium.launch(
+                    headless=True,
+                    executable_path="/usr/bin/chromium",
+                    args=[
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage", 
+                        "--disable-blink-features=AutomationControlled",
+                        "--disable-web-security",
+                        "--allow-running-insecure-content",
+                        "--disable-features=VizDisplayCompositor",
+                        "--disable-extensions",
+                        "--remote-debugging-port=9222"
+                    ]
+                )
+                logger.info("Using system chromium browser")
+            except Exception as e:
+                logger.warning(f"System chromium failed, using Playwright's: {e}")
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-blink-features=AutomationControlled"
+                    ]
+                )
             
             # Create context with larger viewport for complete content
             context = browser.new_context(
@@ -200,3 +216,14 @@ def test_playwright_method():
     else:
         logger.error(f"❌ PLAYWRIGHT TEST FAILED: {result.get('error', 'Unknown error')}")
         return False
+
+
+def cleanup_old_screenshots(days_old=7):
+    """Clean up old screenshots - placeholder for compatibility"""
+    logger.info(f"Cleanup requested for files older than {days_old} days")
+    return {
+        'success': True,
+        'deleted_files': 0,
+        'deleted_records': 0,
+        'message': 'Cleanup functionality placeholder'
+    }
