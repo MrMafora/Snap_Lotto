@@ -826,7 +826,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const gameTitle = document.createElement('h6');
             gameTitle.className = 'mb-2 text-primary';
-            gameTitle.textContent = `${gameType} - Draw ${gameData.draw_number} (${gameData.draw_date})`;
+            if (gameData.not_available) {
+                gameTitle.innerHTML = `${gameType} - Draw ${gameData.draw_number} (${gameData.draw_date}) <span class="badge bg-warning text-dark ms-2">Not Available</span>`;
+            } else {
+                gameTitle.textContent = `${gameType} - Draw ${gameData.draw_number} (${gameData.draw_date})`;
+            }
             gameDiv.appendChild(gameTitle);
             
             const numbersContainer = document.createElement('div');
@@ -856,9 +860,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             } else {
-                const noNumbers = document.createElement('span');
-                noNumbers.className = 'text-muted';
-                noNumbers.textContent = 'Winning numbers not available';
+                const noNumbers = document.createElement('div');
+                noNumbers.className = 'text-muted p-2 bg-light rounded';
+                noNumbers.innerHTML = '<i class="fas fa-info-circle me-2"></i>Winning numbers for this draw are not available in our database. Our database contains results from July 2025 onwards.';
                 numbersContainer.appendChild(noNumbers);
             }
             

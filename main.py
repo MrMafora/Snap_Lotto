@@ -932,20 +932,47 @@ def process_ticket():
                         'DAILY LOTTO': 'DAILY LOTTO'
                     }
                     
+                    # Get the ticket's draw date and number for matching
+                    ticket_draw_date = extracted_data.get('draw_date')
+                    ticket_draw_number = extracted_data.get('draw_number')
+                    
                     for game_type in extracted_data['included_games']:
                         if game_type in game_mapping:
                             db_game_type = game_mapping[game_type]
                             
-                            # Get the most recent result for this game type
-                            cur.execute("""
-                                SELECT main_numbers, bonus_numbers, draw_number, draw_date
-                                FROM lottery_results 
-                                WHERE lottery_type = %s 
-                                ORDER BY draw_date DESC, draw_number DESC 
-                                LIMIT 1
-                            """, (db_game_type,))
+                            # Try to find winning numbers for the same draw date/number as the ticket
+                            if ticket_draw_date and ticket_draw_number:
+                                # First try to match by draw number (most accurate)
+                                cur.execute("""
+                                    SELECT main_numbers, bonus_numbers, draw_number, draw_date
+                                    FROM lottery_results 
+                                    WHERE lottery_type = %s AND draw_number = %s
+                                    LIMIT 1
+                                """, (db_game_type, ticket_draw_number))
+                                
+                                latest_result = cur.fetchone()
+                                
+                                # If no exact draw number match, try by date
+                                if not latest_result and ticket_draw_date:
+                                    cur.execute("""
+                                        SELECT main_numbers, bonus_numbers, draw_number, draw_date
+                                        FROM lottery_results 
+                                        WHERE lottery_type = %s AND draw_date = %s
+                                        LIMIT 1
+                                    """, (db_game_type, ticket_draw_date))
+                                    latest_result = cur.fetchone()
+                            else:
+                                # Fallback to most recent if no ticket date info
+                                cur.execute("""
+                                    SELECT main_numbers, bonus_numbers, draw_number, draw_date
+                                    FROM lottery_results 
+                                    WHERE lottery_type = %s 
+                                    ORDER BY draw_date DESC, draw_number DESC 
+                                    LIMIT 1
+                                """, (db_game_type,))
+                                latest_result = cur.fetchone()
                             
-                            latest_result = cur.fetchone()
+                            
                             if latest_result:
                                 # Parse numbers from database format
                                 main_nums = latest_result['main_numbers']
@@ -970,6 +997,15 @@ def process_ticket():
                                     'bonus_numbers': bonus_nums or [],
                                     'draw_number': latest_result['draw_number'],
                                     'draw_date': str(latest_result['draw_date']) if latest_result['draw_date'] else None
+                                }
+                            else:
+                                # No matching winning numbers found for this game type and date
+                                winning_numbers[game_type] = {
+                                    'main_numbers': [],
+                                    'bonus_numbers': [],
+                                    'draw_number': ticket_draw_number,
+                                    'draw_date': ticket_draw_date,
+                                    'not_available': True
                                 }
                     
                     cur.close()
