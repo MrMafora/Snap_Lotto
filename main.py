@@ -911,6 +911,77 @@ def process_ticket():
         extracted_data = processor.process_lottery_image(file_path)
         
         if extracted_data and not extracted_data.get('error'):
+            # If we have valid game types, fetch winning numbers for comparison
+            if 'included_games' in extracted_data and extracted_data['included_games']:
+                winning_numbers = {}
+                
+                try:
+                    import psycopg2
+                    from psycopg2.extras import RealDictCursor
+                    
+                    conn = psycopg2.connect(DATABASE_URL)
+                    cur = conn.cursor(cursor_factory=RealDictCursor)
+                    
+                    # Map display names to database names
+                    game_mapping = {
+                        'LOTTO': 'LOTTO',
+                        'LOTTO PLUS 1': 'LOTTO PLUS 1', 
+                        'LOTTO PLUS 2': 'LOTTO PLUS 2',
+                        'POWERBALL': 'POWERBALL',
+                        'POWERBALL PLUS': 'POWERBALL PLUS',
+                        'DAILY LOTTO': 'DAILY LOTTO'
+                    }
+                    
+                    for game_type in extracted_data['included_games']:
+                        if game_type in game_mapping:
+                            db_game_type = game_mapping[game_type]
+                            
+                            # Get the most recent result for this game type
+                            cur.execute("""
+                                SELECT main_numbers, bonus_numbers, draw_number, draw_date
+                                FROM lottery_results 
+                                WHERE lottery_type = %s 
+                                ORDER BY draw_date DESC, draw_number DESC 
+                                LIMIT 1
+                            """, (db_game_type,))
+                            
+                            latest_result = cur.fetchone()
+                            if latest_result:
+                                # Parse numbers from database format
+                                main_nums = latest_result['main_numbers']
+                                bonus_nums = latest_result['bonus_numbers']
+                                
+                                if isinstance(main_nums, str):
+                                    try:
+                                        import json
+                                        main_nums = json.loads(main_nums)
+                                    except:
+                                        main_nums = []
+                                
+                                if isinstance(bonus_nums, str):
+                                    try:
+                                        import json
+                                        bonus_nums = json.loads(bonus_nums)
+                                    except:
+                                        bonus_nums = []
+                                
+                                winning_numbers[game_type] = {
+                                    'main_numbers': main_nums or [],
+                                    'bonus_numbers': bonus_nums or [],
+                                    'draw_number': latest_result['draw_number'],
+                                    'draw_date': str(latest_result['draw_date']) if latest_result['draw_date'] else None
+                                }
+                    
+                    cur.close()
+                    conn.close()
+                    
+                    # Add winning numbers to result
+                    extracted_data['winning_numbers'] = winning_numbers
+                    
+                except Exception as e:
+                    logger.error(f"Error fetching winning numbers: {e}")
+                    extracted_data['winning_numbers'] = {}
+            
             # Return the extracted lottery data
             return jsonify({
                 'success': True,

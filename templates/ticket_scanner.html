@@ -442,6 +442,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Display the player's ticket numbers first
         displayPlayerTicketNumbers(data);
         
+        // Display winning numbers for the games on the ticket
+        displayWinningNumbersForGames(data);
+        
         // Display comprehensive match analysis results
         displayMatchAnalysis(data);
         
@@ -790,6 +793,87 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Insert at the beginning of success content
         successContent.insertBefore(playerSection, successContent.firstChild);
+    }
+
+    function displayWinningNumbersForGames(data) {
+        // Remove existing winning numbers display
+        const existingWinning = document.getElementById('winning-numbers-for-games');
+        if (existingWinning) {
+            existingWinning.remove();
+        }
+
+        if (!data.winning_numbers || Object.keys(data.winning_numbers).length === 0) {
+            return; // No winning numbers to display
+        }
+
+        const successContent = document.getElementById('success-content');
+        if (!successContent) return;
+
+        const winningSection = document.createElement('div');
+        winningSection.id = 'winning-numbers-for-games';
+        winningSection.className = 'mb-4 p-3 bg-warning bg-opacity-10 border rounded';
+        
+        const title = document.createElement('h5');
+        title.className = 'mb-3 text-warning';
+        title.innerHTML = '<i class="fas fa-trophy text-warning me-2"></i>Winning Numbers for Your Games';
+        winningSection.appendChild(title);
+
+        // Display winning numbers for each game type
+        Object.keys(data.winning_numbers).forEach(gameType => {
+            const gameData = data.winning_numbers[gameType];
+            
+            const gameDiv = document.createElement('div');
+            gameDiv.className = 'mb-3 p-2 border rounded bg-white';
+            
+            const gameTitle = document.createElement('h6');
+            gameTitle.className = 'mb-2 text-primary';
+            gameTitle.textContent = `${gameType} - Draw ${gameData.draw_number} (${gameData.draw_date})`;
+            gameDiv.appendChild(gameTitle);
+            
+            const numbersContainer = document.createElement('div');
+            numbersContainer.className = 'd-flex flex-wrap gap-2 align-items-center';
+            
+            // Display main winning numbers
+            if (gameData.main_numbers && gameData.main_numbers.length > 0) {
+                gameData.main_numbers.forEach((num) => {
+                    const ballElement = document.createElement('div');
+                    ballElement.className = 'lottery-ball lottery-ball-red me-1 mb-1';
+                    ballElement.textContent = num;
+                    numbersContainer.appendChild(ballElement);
+                });
+                
+                // Add bonus numbers if any
+                if (gameData.bonus_numbers && gameData.bonus_numbers.length > 0) {
+                    const plusSign = document.createElement('span');
+                    plusSign.className = 'mx-2 align-self-center fs-5 fw-bold text-muted';
+                    plusSign.textContent = '+';
+                    numbersContainer.appendChild(plusSign);
+                    
+                    gameData.bonus_numbers.forEach((num) => {
+                        const ballElement = document.createElement('div');
+                        ballElement.className = 'lottery-ball lottery-ball-yellow me-1 mb-1';
+                        ballElement.textContent = num;
+                        numbersContainer.appendChild(ballElement);
+                    });
+                }
+            } else {
+                const noNumbers = document.createElement('span');
+                noNumbers.className = 'text-muted';
+                noNumbers.textContent = 'Winning numbers not available';
+                numbersContainer.appendChild(noNumbers);
+            }
+            
+            gameDiv.appendChild(numbersContainer);
+            winningSection.appendChild(gameDiv);
+        });
+
+        // Insert after player numbers section
+        const playerSection = document.getElementById('player-numbers-section');
+        if (playerSection && playerSection.nextSibling) {
+            successContent.insertBefore(winningSection, playerSection.nextSibling);
+        } else {
+            successContent.appendChild(winningSection);
+        }
     }
 
     function displayMatchAnalysis(data) {
