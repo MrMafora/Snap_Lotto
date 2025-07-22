@@ -439,6 +439,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (drawDateEl) drawDateEl.textContent = data.draw_date || 'Not detected';
         if (drawNumberEl) drawNumberEl.textContent = data.draw_number || 'Not detected';
         
+        // Display the player's ticket numbers first
+        displayPlayerTicketNumbers(data);
+        
         // Display comprehensive match analysis results
         displayMatchAnalysis(data);
         
@@ -665,6 +668,83 @@ document.addEventListener('DOMContentLoaded', function() {
         resultsContainer.classList.remove('d-none');
     }
     
+    function displayPlayerTicketNumbers(data) {
+        // Create a section to show the player's selected numbers
+        const existingSection = document.getElementById('player-numbers-section');
+        if (existingSection) {
+            existingSection.remove();
+        }
+
+        const successContent = document.getElementById('success-content');
+        if (!successContent) return;
+
+        const playerSection = document.createElement('div');
+        playerSection.id = 'player-numbers-section';
+        playerSection.className = 'mb-4 p-3 bg-light rounded';
+        
+        const title = document.createElement('h5');
+        title.className = 'mb-3';
+        title.innerHTML = '<i class="fas fa-ticket-alt text-primary me-2"></i>Your Ticket Numbers';
+        playerSection.appendChild(title);
+
+        // Show lottery type and draw info
+        const gameInfo = document.createElement('div');
+        gameInfo.className = 'mb-3';
+        gameInfo.innerHTML = `
+            <strong>Game:</strong> ${data.lottery_type || 'Not detected'}<br>
+            <strong>Draw:</strong> ${data.draw_number || 'Not detected'} (${data.draw_date || 'Not detected'})
+        `;
+        playerSection.appendChild(gameInfo);
+
+        // Show player's numbers
+        if (data.main_numbers && data.main_numbers.length > 0) {
+            const numbersDiv = document.createElement('div');
+            numbersDiv.className = 'mb-3';
+            
+            const numbersLabel = document.createElement('div');
+            numbersLabel.innerHTML = '<strong>Your Selected Numbers:</strong>';
+            numbersLabel.className = 'mb-2';
+            numbersDiv.appendChild(numbersLabel);
+
+            const ballsContainer = document.createElement('div');
+            ballsContainer.className = 'd-flex flex-wrap gap-2';
+
+            data.main_numbers.forEach((num, index) => {
+                const ballElement = document.createElement('div');
+                ballElement.className = 'lottery-ball lottery-ball-blue me-1 mb-1';
+                ballElement.textContent = num;
+                ballsContainer.appendChild(ballElement);
+            });
+
+            // Add bonus numbers if any
+            if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+                const plusSign = document.createElement('span');
+                plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
+                plusSign.textContent = '+';
+                ballsContainer.appendChild(plusSign);
+
+                data.bonus_numbers.forEach((num) => {
+                    const ballElement = document.createElement('div');
+                    ballElement.className = 'lottery-ball lottery-ball-yellow me-1 mb-1';
+                    ballElement.textContent = num;
+                    ballsContainer.appendChild(ballElement);
+                });
+            }
+
+            numbersDiv.appendChild(ballsContainer);
+            playerSection.appendChild(numbersDiv);
+        } else {
+            // Show message if no numbers were detected
+            const noNumbers = document.createElement('div');
+            noNumbers.className = 'alert alert-info';
+            noNumbers.innerHTML = '<i class="fas fa-info-circle me-2"></i>No numbers were detected from your ticket image. Please ensure the ticket is clearly visible and try again.';
+            playerSection.appendChild(noNumbers);
+        }
+
+        // Insert at the beginning of success content
+        successContent.insertBefore(playerSection, successContent.firstChild);
+    }
+
     function displayMatchAnalysis(data) {
         console.log('Displaying match analysis for:', data);
         

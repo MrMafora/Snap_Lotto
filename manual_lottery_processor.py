@@ -32,10 +32,24 @@ class ManualLotteryProcessor:
         if not os.path.exists(image_path):
             return {"error": f"Image file not found: {image_path}"}
         
-        # Enhanced prompt for SA National Lottery result pages
+        # Enhanced prompt for SA National Lottery ticket scanning
         prompt = f"""
-        You are analyzing an official South African National Lottery results page.
-        This image shows complete lottery results with winning numbers, prize divisions, and financial data.
+        You are analyzing a South African National Lottery PLAYER'S TICKET (not results page).
+        This image shows a TICKET that a player purchased with their SELECTED NUMBERS.
+        
+        CRITICAL: You must extract the PLAYER'S CHOSEN NUMBERS from their ticket.
+        Look for:
+        - Numbers that the player selected/marked on their ticket
+        - Lottery game type (LOTTO, POWERBALL, DAILY LOTTO, etc.)  
+        - Draw number and date information
+        - Any marked/selected bonus numbers
+        
+        The PLAYER'S NUMBERS are typically displayed as:
+        - Grid of numbered boxes with some numbers marked/selected
+        - Printed confirmation numbers on the ticket
+        - Quick pick or manual selection numbers
+        
+        IGNORE any winning numbers or results - focus ONLY on what the player selected.
         
         Extract ALL information and return in this EXACT JSON format:
         {{
@@ -70,9 +84,11 @@ class ManualLotteryProcessor:
             "confidence": 98
         }}
 
-        CRITICAL EXTRACTION RULES:
+        CRITICAL EXTRACTION RULES FOR TICKET SCANNING:
         1. lottery_type: Must be one of: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO
-        2. main_numbers: Extract ALL main winning numbers as integers [4, 9, 12, 14, 29, 1]
+        2. main_numbers: Extract the PLAYER'S SELECTED/CHOSEN NUMBERS from their ticket as integers [4, 9, 12, 14, 29, 1]
+        3. IMPORTANT: Look for marked/selected numbers on the player's ticket, NOT winning results
+        4. The player's numbers are what they chose to play with, shown on their purchased ticket
         3. bonus_numbers: Extract bonus/powerball numbers as integers [23] or [7] for PowerBall
         4. prize_divisions: Extract ALL divisions visible (8 for LOTTO, 9 for PowerBall, 4 for Daily Lotto)
         5. Financial amounts: Include currency symbol and commas "R5,753,261.36"
