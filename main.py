@@ -1711,37 +1711,56 @@ def run_complete_workflow_direct():
     try:
         logger.info("=== STARTING COMPLETE WORKFLOW ===")
         
-        # Use the simple working AI processing system
-        from simple_ai_workflow import process_available_screenshots
+        # Use the comprehensive AI processor with full extraction logic
+        from ai_lottery_processor import CompleteLotteryProcessor
         
-        logger.info("Processing available screenshots with Google Gemini AI")
+        logger.info("Processing available screenshots with comprehensive AI extraction")
         
-        # Run the working AI processing workflow
-        workflow_result = process_available_screenshots()
+        # Get available screenshots
+        import glob
+        screenshots = glob.glob('screenshots/*.png')
+        logger.info(f"Found {len(screenshots)} screenshots to process")
         
-        logger.info(f"AI processing result: {workflow_result}")
+        if not screenshots:
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': 'No screenshots found to process'
+            }), 400
         
-        if workflow_result['success']:
+        # Initialize and run the comprehensive AI processor
+        processor = CompleteLotteryProcessor()
+        workflow_result = processor.process_all_screenshots()
+        
+        logger.info(f"Comprehensive AI processing result: {workflow_result}")
+        
+        # Check if processing was successful - comprehensive processor returns dict with results
+        success = workflow_result.get('total_success', 0) > 0 or len(workflow_result.get('database_records', [])) > 0
+        new_results_count = len(workflow_result.get('database_records', []))
+        
+        if success:
             status = 'success'
-            message = workflow_result['message']
-            new_results_count = workflow_result['new_results']
-            logger.info(f"✅ Workflow success: {new_results_count} new results")
+            message = f"Processed {workflow_result.get('total_processed', 0)} screenshots, found {new_results_count} new lottery results with complete prize divisions"
         else:
             status = 'error'
-            message = workflow_result.get('error', 'Workflow failed')
-            new_results_count = 0
+            message = f"Processing completed but no new results found. Processed: {workflow_result.get('total_processed', 0)}, Failed: {workflow_result.get('total_failed', 0)}"
+        
+        if success:
+            logger.info(f"✅ Workflow success: {new_results_count} new results with complete prize data")
+        else:
             logger.error(f"❌ Workflow failed: {message}")
         
         workflow_results = {
-            'success': workflow_result['success'],
+            'success': success,
             'status': status,
-            'steps_completed': ['ai_processing', 'database_update'],
-            'screenshots_captured': 6,  # Fresh screenshots available
-            'files_processed': workflow_result.get('processed', 0),
+            'steps_completed': ['comprehensive_ai_processing', 'database_update', 'prize_divisions_extracted'],
+            'screenshots_captured': len(screenshots),  # Fresh screenshots available
+            'files_processed': workflow_result.get('total_processed', 0),
             'new_results': new_results_count,
             'cleanup_performed': False,  # Using existing screenshots
             'duration': 0,
-            'message': message
+            'message': message,
+            'prize_divisions_included': True
         }
         
         logger.info(f"Returning workflow result: {workflow_results}")

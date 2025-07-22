@@ -180,27 +180,15 @@ class CompleteLotteryProcessor:
             if lottery_data.get('next_draw_date'):
                 next_draw_date = datetime.strptime(lottery_data['next_draw_date'], '%Y-%m-%d').date()
             
-            # Insert lottery result with source_url
+            # Insert lottery result without source_url (column doesn't exist)
             insert_query = """
                 INSERT INTO lottery_results (
                     lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
                     prize_divisions, rollover_amount, next_jackpot, total_pool_size,
-                    total_sales, draw_machine, next_draw_date, source_url, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    total_sales, draw_machine, next_draw_date, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
-            
-            # Generate source URL based on lottery type
-            lottery_urls = {
-                'LOTTO': 'https://www.nationallottery.co.za/results/lotto',
-                'LOTTO PLUS 1': 'https://www.nationallottery.co.za/results/lotto-plus-1-results', 
-                'LOTTO PLUS 2': 'https://www.nationallottery.co.za/results/lotto-plus-2-results',
-                'POWERBALL': 'https://www.nationallottery.co.za/results/powerball',
-                'POWERBALL PLUS': 'https://www.nationallottery.co.za/results/powerball-plus',
-                'DAILY LOTTO': 'https://www.nationallottery.co.za/results/daily-lotto'
-            }
-            
-            source_url = lottery_urls.get(lottery_data['lottery_type'], 'https://www.nationallottery.co.za')
             
             cursor.execute(insert_query, (
                 lottery_data['lottery_type'],
@@ -215,7 +203,6 @@ class CompleteLotteryProcessor:
                 lottery_data.get('total_sales'),
                 lottery_data.get('draw_machine'),
                 next_draw_date,
-                source_url,
                 datetime.now()
             ))
             
