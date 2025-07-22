@@ -297,11 +297,10 @@ document.addEventListener('DOMContentLoaded', function() {
             previewContainer.classList.remove('d-none');
             clearResults();
             
-            // Auto-trigger scan after image is loaded and previewed
-            setTimeout(() => {
-                console.log('Auto-triggering scan after file selection');
-                triggerScan();
-            }, 500);
+            // Enable scan button instead of auto-triggering
+            scanButton.disabled = false;
+            scanButton.textContent = 'Scan This Ticket';
+            console.log('File ready for scanning - waiting for user to click Scan button');
         };
         reader.readAsDataURL(file);
     }

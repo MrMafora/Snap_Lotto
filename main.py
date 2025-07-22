@@ -919,7 +919,7 @@ def process_ticket():
                     import psycopg2
                     from psycopg2.extras import RealDictCursor
                     
-                    conn = psycopg2.connect(DATABASE_URL)
+                    conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
                     cur = conn.cursor(cursor_factory=RealDictCursor)
                     
                     # Map display names to database names
