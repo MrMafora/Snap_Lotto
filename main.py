@@ -605,6 +605,9 @@ def draw_details(lottery_type, draw_number):
                                rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
                         FROM lottery_results 
                         WHERE lottery_type = %s AND draw_number = %s
+                        ORDER BY 
+                            CASE WHEN prize_divisions IS NOT NULL AND prize_divisions != '[]' AND prize_divisions != 'null' THEN 0 ELSE 1 END,
+                            id DESC
                         LIMIT 1
                     """, (lottery_type, draw_number))
                     
