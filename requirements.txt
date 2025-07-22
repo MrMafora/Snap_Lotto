@@ -33,3 +33,8 @@ openpyxl
 pyjwt
 sift-stack-py
 playwright
+flask-dance
+flask-login
+oauthlib
+pyjwt
+pyppeteer
