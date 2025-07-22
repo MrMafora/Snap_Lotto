@@ -47,18 +47,33 @@ def process_available_screenshots():
             with open(screenshot_path, "rb") as f:
                 image_data = f.read()
             
-            # Simple extraction prompt
+            # Comprehensive extraction prompt including prize divisions
             prompt = """
-            Extract lottery information from this South African lottery screenshot. 
-            Return JSON with this format:
+            Extract complete lottery information from this South African lottery screenshot including all prize divisions.
+            Return JSON with this exact format:
             {
                 "lottery_type": "LOTTO",
                 "draw_number": 2560,
                 "draw_date": "2025-07-22",
                 "main_numbers": [1,2,3,4,5,6],
                 "bonus_numbers": [7],
+                "prize_divisions": [
+                    {"match": "6", "winners": 0, "prize_per_winner": "R8,000,000.00"},
+                    {"match": "5+B", "winners": 2, "prize_per_winner": "R100,000.00"},
+                    {"match": "5", "winners": 45, "prize_per_winner": "R5,000.00"},
+                    {"match": "4+B", "winners": 123, "prize_per_winner": "R1,200.00"},
+                    {"match": "4", "winners": 2156, "prize_per_winner": "R200.00"},
+                    {"match": "3+B", "winners": 4567, "prize_per_winner": "R100.00"},
+                    {"match": "3", "winners": 89012, "prize_per_winner": "R50.00"},
+                    {"match": "2+B", "winners": 78901, "prize_per_winner": "R20.00"}
+                ],
+                "rollover_amount": "R5,753,261.36",
+                "next_jackpot": "R12,000,000.00",
+                "total_sales": "R15,670,660.00",
                 "confidence": 95
             }
+            
+            IMPORTANT: Extract ALL prize divisions visible in the screenshot. For Powerball, use PowerBall (PB) instead of bonus (B). For Daily Lotto, there are typically 4 divisions without bonus numbers. Include financial information if visible.
             """
             
             # Call Gemini
@@ -90,12 +105,13 @@ def process_available_screenshots():
             if cur.fetchone():
                 logger.info(f"Result already exists: {data['lottery_type']} Draw {data['draw_number']}")
             else:
-                # Insert new record
+                # Insert new record with complete data
                 cur.execute("""
                     INSERT INTO lottery_results (
                         lottery_type, draw_number, draw_date, main_numbers, 
-                        bonus_numbers, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                        bonus_numbers, prize_divisions, rollover_amount, 
+                        next_jackpot, total_sales, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     data['lottery_type'],
@@ -103,6 +119,10 @@ def process_available_screenshots():
                     data['draw_date'],
                     json.dumps(data['main_numbers']),
                     json.dumps(data.get('bonus_numbers', [])),
+                    json.dumps(data.get('prize_divisions', [])),
+                    data.get('rollover_amount'),
+                    data.get('next_jackpot'),
+                    data.get('total_sales'),
                     datetime.now()
                 ))
                 
