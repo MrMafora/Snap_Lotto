@@ -125,16 +125,16 @@ def process_with_ai(captured_files, logger):
                 
                 result = processor.process_single_image(filepath, lottery_type)
                 
-                if result and 'extracted_data' in result:
-                    data = result['extracted_data']
-                    confidence = result.get('confidence', 0)
+                if result and result.get('success'):
+                    data = result.get('data', {})
+                    confidence = data.get('confidence', 0)
                     
                     logger.info(f"AI extracted {lottery_type} - Draw {data.get('draw_number')} "
                               f"({data.get('draw_date')}) with {confidence}% confidence")
                     
                     # Try to save to database
                     try:
-                        success = processor.save_to_database(data, lottery_type)
+                        success = processor.save_to_database(data)
                         if success:
                             new_results.append({
                                 'lottery_type': lottery_type,
@@ -154,7 +154,7 @@ def process_with_ai(captured_files, logger):
                         logger.error(f"Database save failed for {lottery_type}: {str(db_error)}")
                         
                 else:
-                    logger.warning(f"No data extracted from {lottery_type}")
+                    logger.warning(f"No data extracted from {lottery_type}. Result: {result}")
                     
             except Exception as e:
                 logger.error(f"AI processing failed for {lottery_type}: {str(e)}")

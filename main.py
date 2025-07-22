@@ -1709,18 +1709,16 @@ def run_complete_workflow_direct():
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
-        # Use the enhanced complete automation workflow with proper cleanup
-        from complete_automation_workflow import run_complete_automation
+        # Use the simple working AI processing system
+        from simple_ai_workflow import process_available_screenshots
         
-        logger.info("Starting enhanced complete automation workflow with cleanup")
+        logger.info("Starting AI processing workflow on available screenshots")
         
-        # Run the comprehensive workflow that includes:
-        # 1. Clean old screenshots FIRST
-        # 2. Capture fresh screenshots (exactly 6)
-        # 3. Process with Google Gemini 2.5 Pro AI
-        # 4. Save to database
-        # 5. Clean up processed screenshots
-        workflow_result = run_complete_automation()
+        # Run the working AI processing workflow:
+        # 1. Process available screenshots with Google Gemini 2.5 Pro
+        # 2. Extract lottery data with high confidence
+        # 3. Save new results to database
+        workflow_result = process_available_screenshots()
         
         if workflow_result['success']:
             status = 'success'
@@ -1728,18 +1726,18 @@ def run_complete_workflow_direct():
             new_results_count = workflow_result['new_results']
         else:
             status = 'error'
-            message = workflow_result.get('message', 'Workflow failed')
+            message = workflow_result.get('error', 'Workflow failed')
             new_results_count = 0
         
         workflow_results = {
-            'success': workflow_result['success'],  # Keep original success format for JavaScript compatibility
+            'success': workflow_result['success'],
             'status': status,
-            'steps_completed': ['cleanup_old_files', 'screenshot_capture', 'ai_processing', 'database_update', 'final_cleanup'],
-            'screenshots_captured': workflow_result.get('screenshots_captured', 0),
-            'files_processed': workflow_result.get('files_processed', 0),
+            'steps_completed': ['ai_processing', 'database_update'],
+            'screenshots_captured': 0,  # Using existing screenshots
+            'files_processed': workflow_result.get('processed', 0),
             'new_results': new_results_count,
-            'cleanup_performed': True,  # Always true with new workflow
-            'duration': workflow_result.get('duration', 0),
+            'cleanup_performed': False,  # Using existing screenshots
+            'duration': 0,
             'message': message
         }
         

@@ -24,9 +24,9 @@ class CompleteLotteryProcessor:
     def __init__(self):
         """Initialize processor with Gemini API client"""
         try:
-            api_key = os.environ.get("GEMINI_API_KEY")
+            api_key = os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY")
             if not api_key:
-                raise ValueError("GEMINI_API_KEY environment variable not found")
+                raise ValueError("GOOGLE_API_KEY_SNAP_LOTTERY environment variable not found")
             self.client = genai.Client(api_key=api_key)
             self.db_connection = None
             logger.info("AI Lottery Processor initialized successfully")
@@ -182,9 +182,9 @@ class CompleteLotteryProcessor:
             
             # Insert lottery result with source_url
             insert_query = """
-                INSERT INTO lottery_result (
-                    lottery_type, draw_number, draw_date, numbers, bonus_numbers,
-                    divisions, rollover_amount, next_jackpot, total_pool_size,
+                INSERT INTO lottery_results (
+                    lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
+                    prize_divisions, rollover_amount, next_jackpot, total_pool_size,
                     total_sales, draw_machine, next_draw_date, source_url, created_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
