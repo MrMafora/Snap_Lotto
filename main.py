@@ -601,7 +601,7 @@ def draw_details(lottery_type, draw_number):
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
+                        SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, prize_divisions, 
                                rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
                         FROM lottery_results 
                         WHERE lottery_type = %s AND draw_number = %s
@@ -617,7 +617,7 @@ def draw_details(lottery_type, draw_number):
                         result.draw_date = row[2]
                         result.main_numbers = row[3]
                         result.bonus_numbers = row[4]
-                        result.divisions = row[5]
+                        result.divisions = row[5]  # This is actually prize_divisions column
                         result.rollover_amount = row[6]
                         result.next_jackpot = row[7]
                         result.total_pool_size = row[8]
