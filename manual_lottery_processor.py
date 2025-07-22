@@ -40,7 +40,8 @@ class ManualLotteryProcessor:
         CRITICAL: You must extract the PLAYER'S CHOSEN NUMBERS from their ticket.
         Look for:
         - Numbers that the player selected/marked on their ticket
-        - Lottery game type (LOTTO, POWERBALL, DAILY LOTTO, etc.)  
+        - Base game type: LOTTO, POWERBALL, or DAILY LOTTO
+        - Additional games: Check if player included LOTTO PLUS 1, LOTTO PLUS 2, or POWERBALL PLUS
         - Draw number and date information
         - Any marked/selected bonus numbers
         
@@ -54,9 +55,10 @@ class ManualLotteryProcessor:
         Extract ALL information and return in this EXACT JSON format:
         {{
             "lottery_type": "LOTTO",
+            "included_games": ["LOTTO", "LOTTO PLUS 1", "LOTTO PLUS 2"],
             "draw_number": 2556,
             "draw_date": "2025-07-05",
-            "main_numbers": [4, 9, 12, 14, 29, 1],
+            "main_numbers": [[4, 9, 12, 14, 29, 1], [7, 15, 23, 31, 42, 49]],
             "bonus_numbers": [23],
             "prize_divisions": [
                 {{
@@ -85,10 +87,14 @@ class ManualLotteryProcessor:
         }}
 
         CRITICAL EXTRACTION RULES FOR TICKET SCANNING:
-        1. lottery_type: Must be one of: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO
-        2. main_numbers: Extract the PLAYER'S SELECTED/CHOSEN NUMBERS from their ticket as integers [4, 9, 12, 14, 29, 1]
-        3. IMPORTANT: Look for marked/selected numbers on the player's ticket, NOT winning results
-        4. The player's numbers are what they chose to play with, shown on their purchased ticket
+        1. lottery_type: Base game type - one of: LOTTO, POWERBALL, DAILY LOTTO
+        2. included_games: Array of ALL games the player selected:
+           - For LOTTO tickets: Can include ["LOTTO", "LOTTO PLUS 1", "LOTTO PLUS 2"]  
+           - For POWERBALL tickets: Can include ["POWERBALL", "POWERBALL PLUS"]
+           - For DAILY LOTTO tickets: Only ["DAILY LOTTO"]
+        3. main_numbers: Extract ALL LINES of player's numbers as array of arrays [[line1], [line2], [line3]]
+        4. IMPORTANT: Look for marked/selected numbers on the player's ticket, NOT winning results
+        5. The player's numbers are what they chose to play with, shown on their purchased ticket
         3. bonus_numbers: Extract bonus/powerball numbers as integers [23] or [7] for PowerBall
         4. prize_divisions: Extract ALL divisions visible (8 for LOTTO, 9 for PowerBall, 4 for Daily Lotto)
         5. Financial amounts: Include currency symbol and commas "R5,753,261.36"

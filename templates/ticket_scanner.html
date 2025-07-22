@@ -690,8 +690,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show lottery type and draw info
         const gameInfo = document.createElement('div');
         gameInfo.className = 'mb-3';
+        
+        // Show all included games
+        let gamesText = data.lottery_type || 'Not detected';
+        if (data.included_games && data.included_games.length > 0) {
+            gamesText = data.included_games.join(', ');
+        }
+        
         gameInfo.innerHTML = `
-            <strong>Game:</strong> ${data.lottery_type || 'Not detected'}<br>
+            <strong>Game(s):</strong> ${gamesText}<br>
             <strong>Draw:</strong> ${data.draw_number || 'Not detected'} (${data.draw_date || 'Not detected'})
         `;
         playerSection.appendChild(gameInfo);
@@ -706,32 +713,72 @@ document.addEventListener('DOMContentLoaded', function() {
             numbersLabel.className = 'mb-2';
             numbersDiv.appendChild(numbersLabel);
 
-            const ballsContainer = document.createElement('div');
-            ballsContainer.className = 'd-flex flex-wrap gap-2';
+            // Check if main_numbers is array of arrays (multiple lines) or single array
+            const isMultipleLines = Array.isArray(data.main_numbers[0]);
+            
+            if (isMultipleLines) {
+                // Multiple lines of numbers
+                data.main_numbers.forEach((line, lineIndex) => {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.className = 'mb-2';
+                    
+                    const lineLabel = document.createElement('small');
+                    lineLabel.className = 'text-muted d-block mb-1';
+                    lineLabel.textContent = `Line ${lineIndex + 1}:`;
+                    lineDiv.appendChild(lineLabel);
+                    
+                    const ballsContainer = document.createElement('div');
+                    ballsContainer.className = 'd-flex flex-wrap gap-2';
 
-            data.main_numbers.forEach((num, index) => {
-                const ballElement = document.createElement('div');
-                ballElement.className = 'lottery-ball lottery-ball-blue me-1 mb-1';
-                ballElement.textContent = num;
-                ballsContainer.appendChild(ballElement);
-            });
+                    line.forEach((num) => {
+                        const ballElement = document.createElement('div');
+                        ballElement.className = 'lottery-ball lottery-ball-blue me-1 mb-1';
+                        ballElement.textContent = num;
+                        ballsContainer.appendChild(ballElement);
+                    });
+
+                    lineDiv.appendChild(ballsContainer);
+                    numbersDiv.appendChild(lineDiv);
+                });
+            } else {
+                // Single line of numbers
+                const ballsContainer = document.createElement('div');
+                ballsContainer.className = 'd-flex flex-wrap gap-2';
+
+                data.main_numbers.forEach((num) => {
+                    const ballElement = document.createElement('div');
+                    ballElement.className = 'lottery-ball lottery-ball-blue me-1 mb-1';
+                    ballElement.textContent = num;
+                    ballsContainer.appendChild(ballElement);
+                });
+
+                numbersDiv.appendChild(ballsContainer);
+            }
 
             // Add bonus numbers if any
             if (data.bonus_numbers && data.bonus_numbers.length > 0) {
-                const plusSign = document.createElement('span');
-                plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
-                plusSign.textContent = '+';
-                ballsContainer.appendChild(plusSign);
+                const bonusDiv = document.createElement('div');
+                bonusDiv.className = 'mt-2';
+                
+                const bonusLabel = document.createElement('small');
+                bonusLabel.className = 'text-muted d-block mb-1';
+                bonusLabel.textContent = 'Bonus Numbers:';
+                bonusDiv.appendChild(bonusLabel);
+                
+                const bonusBallsContainer = document.createElement('div');
+                bonusBallsContainer.className = 'd-flex flex-wrap gap-2';
 
                 data.bonus_numbers.forEach((num) => {
                     const ballElement = document.createElement('div');
                     ballElement.className = 'lottery-ball lottery-ball-yellow me-1 mb-1';
                     ballElement.textContent = num;
-                    ballsContainer.appendChild(ballElement);
+                    bonusBallsContainer.appendChild(ballElement);
                 });
+
+                bonusDiv.appendChild(bonusBallsContainer);
+                numbersDiv.appendChild(bonusDiv);
             }
 
-            numbersDiv.appendChild(ballsContainer);
             playerSection.appendChild(numbersDiv);
         } else {
             // Show message if no numbers were detected
