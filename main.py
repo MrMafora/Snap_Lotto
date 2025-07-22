@@ -1732,6 +1732,7 @@ def run_complete_workflow_direct():
             new_results_count = 0
         
         workflow_results = {
+            'success': workflow_result['success'],  # Keep original success format for JavaScript compatibility
             'status': status,
             'steps_completed': ['cleanup_old_files', 'screenshot_capture', 'ai_processing', 'database_update', 'final_cleanup'],
             'screenshots_captured': workflow_result.get('screenshots_captured', 0),

@@ -117,7 +117,8 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i> 
-                        Run the complete daily automation: Clear → Capture → AI Process → Database Update
+                        Run the complete daily automation: Clear → Capture → AI Process → Database Update → Clean Up
+                        <br><small class="text-muted">Note: If website capture fails, you can manually upload screenshots using the Upload section below</small>
                     </div>
                     
                     <div class="row">
@@ -728,19 +729,37 @@ async function runCompleteAutomation() {
             stepDetails.textContent = 'Completed successfully';
         }
         
-        if (result.success) {
-            // Success
+        if (result.status === 'success') {
+            // Complete success
             currentStep.textContent = 'Automation completed successfully!';
-            stepDetails.textContent = 'All lottery data has been updated. Redirecting to homepage...';
+            stepDetails.textContent = `${result.new_results} new lottery results captured! Redirecting to homepage...`;
             progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
             progressBar.classList.add('bg-success');
+            
+            // Show success details
+            if (result.new_results > 0) {
+                stepDetails.textContent = `🎯 ${result.new_results} new lottery results found and saved! Redirecting to homepage...`;
+            } else {
+                stepDetails.textContent = 'All lottery data is current. Redirecting to homepage...';
+            }
             
             // Redirect to homepage to show updated results
             setTimeout(() => {
                 window.location.href = '/';
             }, 2000);
+        } else if (result.status === 'partial_failure') {
+            // Partial success - some issues but data may have been captured
+            currentStep.textContent = 'Automation completed with some issues';
+            stepDetails.textContent = result.message + ' Redirecting to homepage...';
+            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+            progressBar.classList.add('bg-warning');
+            
+            // Still redirect to show any captured data
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
         } else {
-            throw new Error(result.message || 'Workflow completed with errors');
+            throw new Error(result.message || 'Workflow failed');
         }
         
     } catch (error) {
