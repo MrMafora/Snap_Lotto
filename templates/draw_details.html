@@ -157,7 +157,7 @@
             </div>
 
             <!-- Prize Divisions -->
-            {% if result.divisions and result.divisions != '[]' %}
+            {% if result.divisions and result.divisions != '[]' and result.divisions != 'null' %}
                 {% set division_data = result.get_parsed_divisions() %}
                 {% if division_data %}
             <div class="card">
@@ -178,10 +178,10 @@
                             <tbody>
                                 {% for division in division_data %}
                                     <tr>
-                                        <td><strong>DIV {{ loop.index }}</strong></td>
-                                        <td class="match-compact">{{ division.match if division.match else 'N/A' }}</td>
-                                        <td>{{ division.winners if division.winners else '0' }}</td>
-                                        <td>{{ division.prize_per_winner if division.prize_per_winner else 'R0.00' }}</td>
+                                        <td><strong>{{ division.division if division.division else 'DIV ' + loop.index|string }}</strong></td>
+                                        <td class="match-compact">{{ division.description if division.description else 'N/A' }}</td>
+                                        <td>{{ division.winners if division.winners is defined else '0' }}</td>
+                                        <td>{{ division.amount if division.amount else 'R0.00' }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

@@ -660,13 +660,24 @@ def draw_details(lottery_type, draw_number):
                         
                         def make_get_parsed_divisions(obj):
                             def get_parsed_divisions():
-                                if not obj.divisions or obj.divisions == '[]':
+                                logger.info(f"DEBUG: Getting parsed divisions. Raw divisions type: {type(obj.divisions)}")
+                                logger.info(f"DEBUG: Raw divisions sample: {repr(obj.divisions)[:200] if obj.divisions else 'None'}")
+                                if not obj.divisions or obj.divisions == '[]' or obj.divisions == 'null':
+                                    logger.info("DEBUG: Divisions empty or null")
                                     return []
                                 try:
                                     if isinstance(obj.divisions, str):
-                                        return json.loads(obj.divisions)
-                                    return obj.divisions
-                                except:
+                                        parsed = json.loads(obj.divisions)
+                                        logger.info(f"DEBUG: Successfully parsed {len(parsed)} divisions from string")
+                                        return parsed
+                                    elif isinstance(obj.divisions, list):
+                                        logger.info(f"DEBUG: Returning list with {len(obj.divisions)} divisions")
+                                        return obj.divisions
+                                    else:
+                                        logger.info(f"DEBUG: Unknown divisions type: {type(obj.divisions)}")
+                                        return []
+                                except Exception as e:
+                                    logger.error(f"DEBUG: Parse error: {e}")
                                     return []
                             return get_parsed_divisions
                         
