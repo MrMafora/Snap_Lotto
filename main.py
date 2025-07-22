@@ -1704,51 +1704,43 @@ def stop_automation():
 @app.route('/admin/run-complete-workflow-direct')
 @login_required
 def run_complete_workflow_direct():
-    """Run Complete Workflow - Direct GET endpoint for JavaScript"""
+    """Run Complete Workflow - Direct GET endpoint with enhanced progress and cleanup"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
-        # Import the screenshot capture system
-        from screenshot_capture import capture_all_lottery_screenshots
+        # Use the enhanced complete automation workflow with proper cleanup
+        from complete_automation_workflow import run_complete_automation
         
-        logger.info("Starting complete automation workflow")
+        logger.info("Starting enhanced complete automation workflow with cleanup")
         
-        # Step 1: Capture fresh screenshots
-        screenshot_results = capture_all_lottery_screenshots()
+        # Run the comprehensive workflow that includes:
+        # 1. Clean old screenshots FIRST
+        # 2. Capture fresh screenshots (exactly 6)
+        # 3. Process with Google Gemini 2.5 Pro AI
+        # 4. Save to database
+        # 5. Clean up processed screenshots
+        workflow_result = run_complete_automation()
         
-        # Step 2: Process screenshots with AI (Google Gemini 2.5 Pro)
-        from ai_lottery_processor import run_complete_ai_workflow
-        ai_results = run_complete_ai_workflow()
-        
-        # Step 3: Clean up old files if new results found
-        new_results_count = len(ai_results.get('database_records', []))
-        cleanup_performed = False
-        
-        if new_results_count > 0:
-            try:
-                from screenshot_capture import cleanup_old_screenshots
-                cleanup_results = cleanup_old_screenshots(days_old=1)
-                cleanup_performed = cleanup_results['success']
-                logger.info(f"Cleanup after new results: {cleanup_results}")
-            except Exception as cleanup_error:
-                logger.warning(f"Cleanup failed: {cleanup_error}")
+        if workflow_result['success']:
+            status = 'success'
+            message = workflow_result['message']
+            new_results_count = workflow_result['new_results']
+        else:
+            status = 'error'
+            message = workflow_result.get('message', 'Workflow failed')
+            new_results_count = 0
         
         workflow_results = {
-            'status': 'success',
-            'steps_completed': ['screenshot_capture', 'ai_processing', 'cleanup'],
-            'screenshot_results': screenshot_results,
-            'ai_results': ai_results,
+            'status': status,
+            'steps_completed': ['cleanup_old_files', 'screenshot_capture', 'ai_processing', 'database_update', 'final_cleanup'],
+            'screenshots_captured': workflow_result.get('screenshots_captured', 0),
+            'files_processed': workflow_result.get('files_processed', 0),
             'new_results': new_results_count,
-            'cleanup_performed': cleanup_performed,
-            'message': f'Complete workflow finished: {screenshot_results["total_success"]}/6 screenshots captured, {ai_results["total_success"]} processed with AI, {new_results_count} new results found'
+            'cleanup_performed': True,  # Always true with new workflow
+            'duration': workflow_result.get('duration', 0),
+            'message': message
         }
-        
-        if screenshot_results['total_success'] > 0 and ai_results['total_success'] > 0:
-            logger.info(f"Workflow completed successfully: {screenshot_results['total_success']} screenshots captured, {ai_results['total_success']} AI processed, {new_results_count} new results")
-        else:
-            workflow_results['status'] = 'partial_failure'
-            workflow_results['message'] = f'Workflow completed with issues: Screenshots: {screenshot_results["total_success"]}/6, AI: {ai_results["total_success"]}'
         
         return jsonify(workflow_results)
         

@@ -30,7 +30,20 @@ def setup_logging():
 
 def capture_fresh_screenshots(logger):
     """Capture fresh screenshots of all lottery types"""
-    logger.info("Starting fresh screenshot capture...")
+    logger.info("Step 1: Starting fresh screenshot capture...")
+    
+    # STEP 1: Clean up old screenshots FIRST
+    logger.info("Cleaning up old screenshots before capture...")
+    screenshots_dir = 'screenshots'
+    if os.path.exists(screenshots_dir):
+        old_files = glob.glob(os.path.join(screenshots_dir, '*.png'))
+        for old_file in old_files:
+            try:
+                os.remove(old_file)
+                logger.info(f"Removed old screenshot: {os.path.basename(old_file)}")
+            except Exception as e:
+                logger.warning(f"Could not remove {old_file}: {e}")
+        logger.info(f"Cleanup complete: {len(old_files)} old screenshots removed")
     
     # Lottery URLs and types
     lottery_urls = {
@@ -95,7 +108,7 @@ def capture_fresh_screenshots(logger):
 
 def process_with_ai(captured_files, logger):
     """Process screenshots with Google Gemini AI"""
-    logger.info("Starting AI processing...")
+    logger.info("Step 2: Starting AI processing with Google Gemini 2.5 Pro...")
     
     from app import app
     from ai_lottery_processor import CompleteLotteryProcessor
@@ -149,43 +162,44 @@ def process_with_ai(captured_files, logger):
     return new_results, processed_files
 
 def cleanup_old_files(processed_files, new_results, logger):
-    """Clean up old screenshots and files after successful processing"""
-    logger.info("Starting cleanup of old files...")
+    """Clean up screenshots after successful AI processing"""
+    logger.info("Step 3: Starting cleanup of processed screenshots...")
     
-    # Only clean up if we have new results
-    if not new_results:
-        logger.info("No new results found - skipping cleanup")
-        return
-    
+    # Always clean up processed files after AI extraction is complete
     cleanup_count = 0
     
     try:
-        # Clean up old screenshots (keep only today's newest ones)
         screenshot_dir = 'screenshots'
-        today = datetime.now().strftime('%Y%m%d')
         
-        # Get all screenshot files
-        all_screenshots = glob.glob(os.path.join(screenshot_dir, '*.png'))
-        
-        # Group by lottery type and keep only the newest for each type
-        lottery_types = ['lotto', 'lotto_plus_1', 'lotto_plus_2', 'powerball', 'powerball_plus', 'daily_lotto']
-        
-        for lottery_type in lottery_types:
-            # Find all files for this lottery type
-            type_files = [f for f in all_screenshots if lottery_type in os.path.basename(f)]
+        # Remove all screenshots since we've extracted the data
+        if os.path.exists(screenshot_dir):
+            all_screenshots = glob.glob(os.path.join(screenshot_dir, '*.png'))
             
-            if len(type_files) > 1:
-                # Sort by modification time, keep newest
-                type_files.sort(key=os.path.getmtime, reverse=True)
-                
-                # Delete older files (keep only the most recent)
-                for old_file in type_files[1:]:
-                    try:
-                        os.remove(old_file)
+            for screenshot_file in all_screenshots:
+                try:
+                    os.remove(screenshot_file)
+                    cleanup_count += 1
+                    logger.info(f"Cleaned up: {os.path.basename(screenshot_file)}")
+                except Exception as e:
+                    logger.warning(f"Could not remove {screenshot_file}: {e}")
+        
+        # Clean up any temporary upload files
+        upload_dir = 'uploads'
+        if os.path.exists(upload_dir):
+            old_uploads = glob.glob(os.path.join(upload_dir, '*.png'))
+            old_uploads.extend(glob.glob(os.path.join(upload_dir, '*.jpg')))
+            old_uploads.extend(glob.glob(os.path.join(upload_dir, '*.jpeg')))
+            
+            for upload_file in old_uploads:
+                try:
+                    # Only remove files older than 1 hour
+                    file_age = time.time() - os.path.getmtime(upload_file)
+                    if file_age > 3600:  # 1 hour
+                        os.remove(upload_file)
                         cleanup_count += 1
-                        logger.info(f"Cleaned up old screenshot: {os.path.basename(old_file)}")
-                    except Exception as e:
-                        logger.warning(f"Failed to remove {old_file}: {str(e)}")
+                        logger.info(f"Cleaned up old upload: {os.path.basename(upload_file)}")
+                except Exception as e:
+                    logger.warning(f"Could not remove upload {upload_file}: {e}")
         
         # Clean up old log files (keep only last 5)
         log_files = glob.glob('automation_workflow*.log')
