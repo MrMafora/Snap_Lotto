@@ -908,9 +908,9 @@ def process_ticket():
         processor = ManualLotteryProcessor()
         
         # Extract data from the image
-        extracted_data = processor.process_image(file_path)
+        extracted_data = processor.process_lottery_image(file_path)
         
-        if extracted_data and 'success' in extracted_data and extracted_data['success']:
+        if extracted_data and not extracted_data.get('error'):
             # Return the extracted lottery data
             return jsonify({
                 'success': True,
@@ -918,9 +918,10 @@ def process_ticket():
                 'message': 'Ticket processed successfully'
             })
         else:
+            error_msg = extracted_data.get('error', 'Could not extract lottery data from ticket image') if extracted_data else 'Processing failed'
             return jsonify({
                 'success': False,
-                'error': 'Could not extract lottery data from ticket image',
+                'error': error_msg,
                 'message': 'Please ensure the ticket is clearly visible and try again'
             }), 400
             
