@@ -17,7 +17,7 @@ from sqlalchemy import and_, func, desc, asc
 from sqlalchemy.orm import joinedload
 from pathlib import Path
 import uuid
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlparse
 import psycopg2
 
 # Import configuration and models
@@ -50,6 +50,21 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+def is_safe_url(target):
+    """
+    Validate that a redirect URL is safe (internal to the application).
+    Prevents open redirect attacks by ensuring the URL doesn't redirect to external domains.
+    """
+    if not target:
+        return False
+    
+    # Parse the URL
+    parsed = urlparse(target)
+    
+    # Only allow relative URLs with no netloc (domain)
+    # This prevents redirects like //evil.com/malicious-path
+    return not parsed.netloc and parsed.scheme == ''
 
 # Database initialization
 try:
@@ -758,9 +773,9 @@ def login():
             login_user(user)
             flash('Login successful!', 'success')
             
-            # Handle next URL parameter properly
+            # Handle next URL parameter safely to prevent open redirect attacks
             next_page = request.args.get('next')
-            if next_page and next_page.startswith('/'):
+            if next_page and is_safe_url(next_page):
                 return redirect(next_page)
             
             # Redirect admin users to admin dashboard
