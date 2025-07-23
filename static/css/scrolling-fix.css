@@ -1,0 +1,72 @@
+/* Critical scrolling overlap fix for lottery balls and charts */
+
+/* Create proper z-index stacking context for analytics section */
+.data-analytics-preview {
+    position: relative;
+    z-index: 100 !important;
+    isolation: isolate !important;
+    transform: translateZ(0); /* Force hardware acceleration and new stacking context */
+}
+
+/* Ensure chart container stays behind hot/cold numbers during scroll */
+.data-analytics-preview .chart-card,
+.data-analytics-preview .frequency-chart-container,
+.data-analytics-preview .bar-chart-container {
+    position: relative;
+    z-index: 10 !important;
+    isolation: isolate;
+}
+
+/* Hot/cold number sections stay properly contained */
+.hot-cold-container {
+    position: relative;
+    z-index: 5 !important;
+    isolation: isolate !important;
+    contain: layout style paint !important;
+    transform: translateZ(0); /* Force new stacking context */
+}
+
+/* Individual lottery balls contained within their sections */
+.hot-number-item, 
+.cold-number-item, 
+.absent-number-item {
+    position: relative;
+    z-index: 2 !important;
+    contain: layout style !important;
+}
+
+.hot-number-item .lottery-ball,
+.cold-number-item .lottery-ball,
+.absent-number-item .lottery-ball {
+    position: relative;
+    z-index: 1 !important;
+    contain: layout style !important;
+}
+
+/* Section headings stay above their content */
+.hot-numbers h6, 
+.cold-numbers h6, 
+.absent-numbers h6 {
+    position: relative;
+    z-index: 15 !important;
+    background-color: white !important;
+    isolation: isolate !important;
+}
+
+/* Mobile-specific containment */
+@media (max-width: 576px) {
+    .data-analytics-preview {
+        contain: layout style paint !important;
+    }
+    
+    .hot-numbers, .cold-numbers, .absent-numbers {
+        contain: layout style paint !important;
+        isolation: isolate !important;
+    }
+    
+    /* Ensure no overflow issues during scroll */
+    .chart-card {
+        overflow: hidden !important;
+        contain: layout style paint !important;
+    }
+}

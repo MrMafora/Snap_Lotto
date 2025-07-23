@@ -970,6 +970,9 @@
 /* Desktop styles first (default) */
 .data-analytics-preview {
     overflow-x: hidden;
+    position: relative;
+    z-index: 100;
+    isolation: isolate;
 }
 
 /* Updated to use Bootstrap grid for equal width columns */
@@ -999,6 +1002,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 10;
 }
 
 /* Deprecated flex container - now using Bootstrap grid */
@@ -1018,6 +1023,8 @@
     flex: 1;  /* This ensures the container takes up all available space */
     overflow: visible; /* Ensure chart content is not clipped */
     padding: 0; /* No padding to allow full width */
+    position: relative;
+    z-index: 20;
 }
 
 /* Fix chart cutoff by ensuring proper container styling */
@@ -1131,15 +1138,17 @@
     /* Removed transform scale to match main lottery ball sizes */
     transform-origin: top center;
     position: relative;
-    z-index: 1;
+    z-index: 5;
+    contain: layout style;
 }
 
 .hot-numbers, .cold-numbers, .absent-numbers {
     padding: 0;
     margin-bottom: 15px;
     position: relative;
-    z-index: 5;
+    z-index: 3;
     overflow: visible;
+    contain: layout style;
 }
 
 /* Smaller headings for hot/cold sections */
@@ -1180,6 +1189,7 @@
     line-height: 1 !important;
     position: relative;
     z-index: 1;
+    contain: layout style;
 }
 
 /* Force hot/cold ball number text to match main lottery ball numbers - slightly larger for better visibility */
@@ -1261,17 +1271,20 @@
     .hot-numbers, .cold-numbers, .absent-numbers {
         margin-bottom: 20px;
         position: relative;
-        z-index: 5;
+        z-index: 3;
         clear: both;
+        contain: layout style;
+        isolation: isolate;
     }
     
     .hot-numbers h6, .cold-numbers h6, .absent-numbers h6 {
         margin-bottom: 15px !important;
         padding: 10px 0 !important;
         position: relative;
-        z-index: 10;
+        z-index: 15;
         background-color: white;
         clear: both;
+        isolation: isolate;
     }
     
     /* Deprecated flex container styles */
