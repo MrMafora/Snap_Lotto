@@ -198,20 +198,30 @@
                                 <h6><i class="fas fa-list-ol"></i> Your Selected Numbers:</h6>
             `;
 
-            // Display each line with its PowerBall
+            // Display each line with its PowerBall on the same row
             if (data.main_numbers && data.main_numbers.length > 0) {
                 data.main_numbers.forEach((line, index) => {
                     html += `<div class="mb-2 p-2 border rounded bg-light">
                         <strong>Line ${index + 1}:</strong><br>`;
                     
-                    // Main numbers
+                    // Get winning numbers for highlighting matches
+                    const winningNumbers = getWinningNumbersForComparison(data);
+                    
+                    // Main numbers with match highlighting
                     line.forEach(num => {
-                        html += `<span class="badge bg-primary rounded-circle me-1 mb-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px;">${num}</span>`;
+                        const isMatch = checkIfNumberMatches(num, winningNumbers, 'main');
+                        const badgeClass = isMatch ? 'bg-success' : 'bg-primary';
+                        const extraStyle = isMatch ? 'border: 3px solid #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);' : '';
+                        html += `<span class="badge ${badgeClass} rounded-circle me-1 mb-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; ${extraStyle}">${num}</span>`;
                     });
                     
-                    // PowerBall for this specific line (not grouped at bottom)
+                    // PowerBall on the same line after main numbers
                     if (data.bonus_numbers && data.bonus_numbers[index] !== undefined) {
-                        html += `<br><strong>PowerBall:</strong> <span class="badge bg-warning rounded-circle me-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; color: black;">${data.bonus_numbers[index]}</span>`;
+                        const powerballNum = data.bonus_numbers[index];
+                        const isPowerballMatch = checkIfNumberMatches(powerballNum, winningNumbers, 'powerball');
+                        const powerballClass = isPowerballMatch ? 'bg-success' : 'bg-warning';
+                        const powerballStyle = isPowerballMatch ? 'border: 3px solid #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.5); color: white;' : 'color: black;';
+                        html += ` + <span class="badge ${powerballClass} rounded-circle me-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; ${powerballStyle}">${powerballNum}</span>`;
                     }
                     
                     html += `</div>`;
@@ -229,6 +239,39 @@
             
             ticketData.innerHTML = html;
             results.style.display = 'block';
+        }
+        
+        function getWinningNumbersForComparison(data) {
+            // Combine all winning numbers from all game types for match checking
+            let allWinningMain = [];
+            let allWinningBonus = [];
+            
+            if (data.winning_numbers) {
+                Object.values(data.winning_numbers).forEach(gameData => {
+                    if (!gameData.not_available) {
+                        if (gameData.main_numbers) {
+                            allWinningMain = allWinningMain.concat(gameData.main_numbers);
+                        }
+                        if (gameData.bonus_numbers) {
+                            allWinningBonus = allWinningBonus.concat(gameData.bonus_numbers);
+                        }
+                    }
+                });
+            }
+            
+            return {
+                main: allWinningMain,
+                powerball: allWinningBonus
+            };
+        }
+        
+        function checkIfNumberMatches(num, winningNumbers, type) {
+            if (type === 'main') {
+                return winningNumbers.main.includes(num);
+            } else if (type === 'powerball') {
+                return winningNumbers.powerball.includes(num);
+            }
+            return false;
         }
         
         function displayMatchAnalysis(data) {
