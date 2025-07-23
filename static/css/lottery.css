@@ -1130,18 +1130,27 @@
     padding-bottom: 2px;
     /* Removed transform scale to match main lottery ball sizes */
     transform-origin: top center;
+    position: relative;
+    z-index: 1;
 }
 
 .hot-numbers, .cold-numbers, .absent-numbers {
     padding: 0;
-    margin-bottom: 0;
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 5;
+    overflow: visible;
 }
 
 /* Smaller headings for hot/cold sections */
 .hot-numbers h5, .cold-numbers h5, .absent-numbers h5 {
     font-size: 0.88rem;
-    margin: 0 0 0 0;
-    padding: 0;
+    margin: 0 0 10px 0;
+    padding: 5px 0;
+    position: relative;
+    z-index: 10;
+    background-color: transparent;
+    clear: both;
 }
 
 .hot-number-item, .cold-number-item, .absent-number-item {
@@ -1152,6 +1161,8 @@
     padding: 0;
     /* Removed transform scale to match main lottery ball sizes */
     transform-origin: center top;
+    position: relative;
+    z-index: 2;
 }
 
 /* Force hot/cold balls to match main lottery ball sizes */
@@ -1167,6 +1178,8 @@
     font-size: 20px !important;
     font-weight: bold !important;
     line-height: 1 !important;
+    position: relative;
+    z-index: 1;
 }
 
 /* Force hot/cold ball number text to match main lottery ball numbers */
@@ -1176,14 +1189,18 @@
     font-size: 20px !important;
     font-weight: bold !important;
     line-height: 1 !important;
+    position: relative;
+    z-index: 2;
 }
 
 .frequency-label {
     font-size: 0.7rem;
     color: #6c757d;
-    margin-top: 0;
+    margin-top: 2px;
     padding: 0;
     line-height: 0.9;
+    position: relative;
+    z-index: 1;
 }
 
 /* Make section headers more compact */
@@ -1236,6 +1253,25 @@
         font-size: 16px !important;
         font-weight: bold !important;
         line-height: 40px !important;
+        position: relative;
+        z-index: 2;
+    }
+    
+    /* Fix scrolling overlap issue on mobile */
+    .hot-numbers, .cold-numbers, .absent-numbers {
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 5;
+        clear: both;
+    }
+    
+    .hot-numbers h6, .cold-numbers h6, .absent-numbers h6 {
+        margin-bottom: 15px !important;
+        padding: 10px 0 !important;
+        position: relative;
+        z-index: 10;
+        background-color: white;
+        clear: both;
     }
     
     /* Deprecated flex container styles */
