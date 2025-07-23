@@ -182,11 +182,8 @@
                                         <td class="match-compact">
                                             {% if division.description %}
                                                 {% if 'FIVE CORRECT NUMBERS + POWERBALL' in division.description %}5+PB
-                                                {% elif 'FIVE CORRECT NUMBERS' in division.description and 'POWERBALL' not in division.description %}5
                                                 {% elif 'FOUR CORRECT NUMBERS + POWERBALL' in division.description %}4+PB
-                                                {% elif 'FOUR CORRECT NUMBERS' in division.description and 'POWERBALL' not in division.description %}4
                                                 {% elif 'THREE CORRECT NUMBERS + POWERBALL' in division.description %}3+PB
-                                                {% elif 'THREE CORRECT NUMBERS' in division.description and 'POWERBALL' not in division.description %}3
                                                 {% elif 'TWO CORRECT NUMBERS + POWERBALL' in division.description %}2+PB
                                                 {% elif 'ONE CORRECT NUMBERS + POWERBALL' in division.description %}1+PB
                                                 {% elif 'MATCH POWERBALL' in division.description %}PB
@@ -195,6 +192,16 @@
                                                 {% elif 'FOUR CORRECT NUMBERS + BONUS' in division.description %}4+B
                                                 {% elif 'THREE CORRECT NUMBERS + BONUS' in division.description %}3+B
                                                 {% elif 'TWO CORRECT NUMBERS + BONUS' in division.description %}2+B
+                                                {% elif 'BONUS BALL' in division.description %}
+                                                    {% if 'FIVE CORRECT NUMBERS' in division.description %}5+B
+                                                    {% elif 'FOUR CORRECT NUMBERS' in division.description %}4+B
+                                                    {% elif 'THREE CORRECT NUMBERS' in division.description %}3+B
+                                                    {% elif 'TWO CORRECT NUMBERS' in division.description %}2+B
+                                                    {% else %}{{ division.description[:10] }}{% endif %}
+                                                {% elif 'FIVE CORRECT NUMBERS' in division.description %}5
+                                                {% elif 'FOUR CORRECT NUMBERS' in division.description %}4
+                                                {% elif 'THREE CORRECT NUMBERS' in division.description %}3
+                                                {% elif 'TWO CORRECT NUMBERS' in division.description %}2
                                                 {% else %}{{ division.description[:10] }}{% endif %}
                                             {% else %}N/A{% endif %}
                                         </td>
