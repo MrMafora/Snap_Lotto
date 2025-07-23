@@ -201,7 +201,7 @@
             // Display each line with its PowerBall
             if (data.main_numbers && data.main_numbers.length > 0) {
                 data.main_numbers.forEach((line, index) => {
-                    html += `<div class="mb-3 p-2 border rounded">
+                    html += `<div class="mb-2 p-2 border rounded bg-light">
                         <strong>Line ${index + 1}:</strong><br>`;
                     
                     // Main numbers
@@ -209,8 +209,8 @@
                         html += `<span class="badge bg-primary rounded-circle me-1 mb-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px;">${num}</span>`;
                     });
                     
-                    // PowerBall for this line
-                    if (data.bonus_numbers && data.bonus_numbers[index]) {
+                    // PowerBall for this specific line (not grouped at bottom)
+                    if (data.bonus_numbers && data.bonus_numbers[index] !== undefined) {
                         html += `<br><strong>PowerBall:</strong> <span class="badge bg-warning rounded-circle me-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; color: black;">${data.bonus_numbers[index]}</span>`;
                     }
                     
@@ -256,23 +256,23 @@
                 const winningBonusNumbers = winningData.bonus_numbers || [];
                 
                 matchHtml += `<div class="card mb-2">
-                    <div class="card-header">
+                    <div class="card-header py-2">
                         <strong>${gameType} - Draw ${winningData.draw_number}</strong>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body py-2">
                         <div class="mb-2">
-                            <strong>Winning Numbers:</strong><br>`;
+                            <strong>Winning:</strong> `;
                 
-                // Display winning main numbers
+                // Display winning main numbers inline
                 winningMainNumbers.forEach(num => {
-                    matchHtml += `<span class="badge bg-success rounded-circle me-1" style="width: 30px; height: 30px; line-height: 20px; font-size: 12px;">${num}</span>`;
+                    matchHtml += `<span class="badge bg-success rounded-circle me-1" style="width: 25px; height: 25px; line-height: 15px; font-size: 11px;">${num}</span>`;
                 });
                 
-                // Display winning bonus numbers
+                // Display winning bonus numbers inline
                 if (winningBonusNumbers.length > 0) {
-                    matchHtml += `<br><strong>PowerBall:</strong> `;
+                    matchHtml += ` <strong>PB:</strong> `;
                     winningBonusNumbers.forEach(num => {
-                        matchHtml += `<span class="badge bg-warning rounded-circle me-1" style="width: 30px; height: 30px; line-height: 20px; font-size: 12px; color: black;">${num}</span>`;
+                        matchHtml += `<span class="badge bg-warning rounded-circle me-1" style="width: 25px; height: 25px; line-height: 15px; font-size: 11px; color: black;">${num}</span>`;
                     });
                 }
                 
@@ -290,22 +290,26 @@
                         const totalMatches = mainMatches.length + (bonusMatch ? 1 : 0);
                         
                         if (totalMatches > 0) {
-                            matchHtml += `<div class="alert alert-success py-2">
-                                <strong>Line ${lineIndex + 1}:</strong> 
-                                ${mainMatches.length} main number(s) matched`;
-                            
-                            if (bonusMatch) {
-                                matchHtml += ` + PowerBall matched`;
-                            }
+                            matchHtml += `<div class="alert alert-success py-1 mb-2">
+                                <strong>Line ${lineIndex + 1}:</strong> `;
                             
                             if (mainMatches.length > 0) {
-                                matchHtml += ` (${mainMatches.join(', ')})`;
+                                matchHtml += `<span class="badge bg-success me-1">${mainMatches.length} main</span>`;
+                                // Show which specific numbers matched
+                                mainMatches.forEach(num => {
+                                    matchHtml += `<span class="badge bg-success rounded-circle me-1" style="width: 25px; height: 25px; line-height: 15px; font-size: 11px;">${num}</span>`;
+                                });
+                            }
+                            
+                            if (bonusMatch) {
+                                matchHtml += ` <span class="badge bg-warning me-1" style="color: black;">PowerBall</span>`;
+                                matchHtml += `<span class="badge bg-warning rounded-circle me-1" style="width: 25px; height: 25px; line-height: 15px; font-size: 11px; color: black;">${data.bonus_numbers[lineIndex]}</span>`;
                             }
                             
                             matchHtml += `</div>`;
                         } else {
-                            matchHtml += `<div class="alert alert-light py-2">
-                                <strong>Line ${lineIndex + 1}:</strong> No matches
+                            matchHtml += `<div class="alert alert-light py-1 mb-2">
+                                <strong>Line ${lineIndex + 1}:</strong> <span class="badge bg-secondary">No matches</span>
                             </div>`;
                         }
                     });
