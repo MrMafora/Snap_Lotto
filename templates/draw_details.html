@@ -179,7 +179,25 @@
                                 {% for division in division_data %}
                                     <tr>
                                         <td><strong>{{ division.division if division.division else 'DIV ' + loop.index|string }}</strong></td>
-                                        <td class="match-compact">{{ division.description if division.description else 'N/A' }}</td>
+                                        <td class="match-compact">
+                                            {% if division.description %}
+                                                {% if 'FIVE CORRECT NUMBERS + POWERBALL' in division.description %}5+PB
+                                                {% elif 'FIVE CORRECT NUMBERS' in division.description and 'POWERBALL' not in division.description %}5
+                                                {% elif 'FOUR CORRECT NUMBERS + POWERBALL' in division.description %}4+PB
+                                                {% elif 'FOUR CORRECT NUMBERS' in division.description and 'POWERBALL' not in division.description %}4
+                                                {% elif 'THREE CORRECT NUMBERS + POWERBALL' in division.description %}3+PB
+                                                {% elif 'THREE CORRECT NUMBERS' in division.description and 'POWERBALL' not in division.description %}3
+                                                {% elif 'TWO CORRECT NUMBERS + POWERBALL' in division.description %}2+PB
+                                                {% elif 'ONE CORRECT NUMBERS + POWERBALL' in division.description %}1+PB
+                                                {% elif 'MATCH POWERBALL' in division.description %}PB
+                                                {% elif 'SIX CORRECT NUMBERS' in division.description %}6
+                                                {% elif 'FIVE CORRECT NUMBERS + BONUS' in division.description %}5+B
+                                                {% elif 'FOUR CORRECT NUMBERS + BONUS' in division.description %}4+B
+                                                {% elif 'THREE CORRECT NUMBERS + BONUS' in division.description %}3+B
+                                                {% elif 'TWO CORRECT NUMBERS + BONUS' in division.description %}2+B
+                                                {% else %}{{ division.description[:10] }}{% endif %}
+                                            {% else %}N/A{% endif %}
+                                        </td>
                                         <td>{{ division.winners if division.winners is defined else '0' }}</td>
                                         <td>{{ division.amount if division.amount else 'R0.00' }}</td>
                                     </tr>
