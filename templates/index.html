@@ -1092,7 +1092,7 @@ function updateHotColdNumbers(data) {
             const [number, frequency] = topNumbers[i];
             hotNumbersHTML += `
                 <div class="hot-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm ${colors[i]}">
+                    <span class="lottery-ball ${colors[i]}">
                         <span class="number">${number}</span>
                     </span>
                     <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
@@ -1112,7 +1112,7 @@ function updateHotColdNumbers(data) {
             const [number, frequency] = coldNumbers[i];
             coldNumbersHTML += `
                 <div class="cold-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                    <span class="lottery-ball lottery-ball-blue">
                         <span class="number">${number}</span>
                     </span>
                     <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
@@ -1132,7 +1132,7 @@ function updateHotColdNumbers(data) {
             const [number, days] = absentNumbers[i];
             absentNumbersHTML += `
                 <div class="absent-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                    <span class="lottery-ball lottery-ball-green">
                         <span class="number">${number}</span>
                     </span>
                     <small class="frequency-label d-block text-center mt-1">${days} days</small>
