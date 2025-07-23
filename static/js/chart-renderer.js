@@ -23,17 +23,22 @@ function renderExternalFrequencyChart(frequencyData) {
         // Clear previous chart
         barChartContainer.innerHTML = '';
         
-        // Create a container for the number frequency chart with proper spacing to prevent cutoff
+        // Create a container for the number frequency chart with responsive spacing
         const frequencyChart = document.createElement('div');
-        frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-start pb-2';
+        frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-center pb-2';
         frequencyChart.style.height = '200px';
-        frequencyChart.style.gap = '6px'; // Slightly reduced gap for better fit
-        frequencyChart.style.width = '100%'; // Full width without calc
-        frequencyChart.style.padding = '15px 0px'; // No horizontal padding to prevent cutoff
-        frequencyChart.style.maxWidth = '100%'; // Use full available width
-        frequencyChart.style.margin = '0'; // No margin to prevent cutoff
-        frequencyChart.style.boxSizing = 'border-box'; // Include padding in width calculation
-        frequencyChart.style.paddingLeft = '15px'; // Only left padding to ensure left bar is visible
+        
+        // Responsive gap based on screen width
+        const screenWidth = window.innerWidth;
+        const gap = screenWidth < 480 ? '2px' : screenWidth < 768 ? '4px' : '6px';
+        frequencyChart.style.gap = gap;
+        
+        frequencyChart.style.width = '100%';
+        frequencyChart.style.padding = '10px 5px'; // Minimal padding for mobile
+        frequencyChart.style.maxWidth = '100%';
+        frequencyChart.style.margin = '0';
+        frequencyChart.style.boxSizing = 'border-box';
+        frequencyChart.style.overflowX = 'hidden'; // Prevent horizontal scroll
         
         // Sort data by frequency (descending)
         const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
@@ -65,7 +70,10 @@ function renderExternalFrequencyChart(frequencyData) {
             const normalizedFreq = frequency / maxFrequency;
             const heightPercentage = minHeight + (normalizedFreq * heightRange * 0.8);
             
-            // Create column for this number
+            // Calculate responsive bar width first
+            const barWidth = screenWidth < 480 ? '24px' : screenWidth < 768 ? '30px' : '36px';
+            
+            // Create column for this number with responsive width
             const barColumn = document.createElement('div');
             barColumn.className = 'bar-column interactive-bar-column text-center position-relative';
             barColumn.setAttribute('data-number', number);
@@ -73,6 +81,10 @@ function renderExternalFrequencyChart(frequencyData) {
             barColumn.setAttribute('data-bs-title', `Number ${number} appeared ${frequency} times`);
             barColumn.setAttribute('data-bs-toggle', 'tooltip');
             barColumn.setAttribute('data-bs-placement', 'top');
+            
+            // Make sure the column width matches the bar width
+            barColumn.style.minWidth = barWidth;
+            barColumn.style.maxWidth = barWidth;
             
             // Create interactive bar container with proper height and bottom alignment
             const barContainer = document.createElement('div');
@@ -85,7 +97,8 @@ function renderExternalFrequencyChart(frequencyData) {
             const bar = document.createElement('div');
             bar.className = `interactive-bar ${index < 3 ? colorClasses[index] : 'bg-primary'}`;
             bar.style.height = `${heightPercentage}%`;
-            bar.style.width = '36px'; // Larger width to properly fill the available space
+            bar.style.width = barWidth;
+            
             bar.style.borderRadius = '4px';
             bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             bar.style.transition = 'transform 0.2s';

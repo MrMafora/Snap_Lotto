@@ -1493,3 +1493,111 @@
         font-size: 0.875rem;
     }
 }
+
+/* Chart container and frequency chart responsive styles */
+.bar-chart-container {
+    width: 100%;
+    overflow-x: hidden;
+    margin: 0 auto;
+}
+
+.frequency-chart {
+    display: flex !important;
+    align-items: end !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 5px !important;
+    box-sizing: border-box !important;
+}
+
+.bar-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.interactive-bar-container {
+    display: flex !important;
+    align-items: flex-end !important;
+    height: 170px !important;
+}
+
+.interactive-bar {
+    border-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    transition: transform 0.2s !important;
+}
+
+.number-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    margin-top: 4px;
+    white-space: nowrap;
+}
+
+/* Mobile responsive chart adjustments */
+@media (max-width: 768px) {
+    .frequency-chart {
+        gap: 4px !important;
+        padding: 10px 3px !important;
+    }
+    
+    .interactive-bar {
+        width: 30px !important;
+    }
+    
+    .bar-column {
+        min-width: 30px !important;
+        max-width: 30px !important;
+    }
+    
+    .number-label {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .frequency-chart {
+        gap: 2px !important;
+        padding: 10px 2px !important;
+    }
+    
+    .interactive-bar {
+        width: 24px !important;
+    }
+    
+    .bar-column {
+        min-width: 24px !important;
+        max-width: 24px !important;
+    }
+    
+    .number-label {
+        font-size: 10px;
+    }
+    
+    .interactive-bar-container {
+        height: 150px !important;
+    }
+}
+
+/* Ensure legend is responsive */
+.frequency-legend {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center !important;
+}
+
+@media (max-width: 576px) {
+    .frequency-legend {
+        font-size: 0.75rem;
+        gap: 6px;
+    }
+    
+    .frequency-legend .me-3 {
+        margin-right: 0.5rem !important;
+    }
+}
