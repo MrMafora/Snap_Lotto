@@ -1017,7 +1017,23 @@
     margin-bottom: -5px;
     flex: 1;  /* This ensures the container takes up all available space */
     overflow: visible; /* Ensure chart content is not clipped */
-    padding: 0 5px; /* Small padding to prevent edge cutoff */
+    padding: 0; /* No padding to allow full width */
+}
+
+/* Fix chart cutoff by ensuring proper container styling */
+.data-analytics-preview .bar-chart-container {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+.data-analytics-preview .frequency-chart {
+    width: 100% !important;
+    margin: 0 !important;
+    padding-left: 10px !important;
+    padding-right: 0 !important;
+    justify-content: flex-start !important;
 }
 
 .data-analytics-preview .temperature-chart-container {
