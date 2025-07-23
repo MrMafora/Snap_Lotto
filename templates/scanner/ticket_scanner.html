@@ -179,73 +179,126 @@
         }
 
         function displayResults(data) {
-            console.log('=== NEW DISPLAY LOGIC v2.1 - SINGLE LINE POWERBALL ===');
-            console.log('Displaying ticket results:', data);
+            console.log('=== POWERBALL SINGLE LINE DISPLAY v3.0 - FORCE RELOAD ===');
+            console.log('Raw data received:', data);
             
-            let html = `
-                <div class="card border-success mb-3">
-                    <div class="card-header bg-success text-white">
-                        <h5><i class="fas fa-ticket-alt"></i> Ticket Scanner Results</h5>
+            // Clear any existing results
+            ticketData.innerHTML = '';
+            
+            // Build the new single-line format
+            let html = `<div class="card border-success mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-ticket-alt"></i> Ticket Scanner Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6><i class="fas fa-info-circle"></i> Ticket Information</h6>
+                        <p><strong>Games:</strong> ${data.included_games ? data.included_games.join(', ') : data.lottery_type}</p>
+                        <p><strong>Draw:</strong> ${data.draw_number} (${data.draw_date})</p>
+                        <p><strong>AI Confidence:</strong> ${data.confidence}%</p>
                     </div>
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h6><i class="fas fa-info-circle"></i> Ticket Information</h6>
-                                <p><strong>Game(s):</strong> ${data.included_games ? data.included_games.join(', ') : data.lottery_type}</p>
-                                <p><strong>Draw:</strong> ${data.draw_number} (${data.draw_date})</p>
-                                ${data.confidence ? `<p><strong>AI Confidence:</strong> ${data.confidence}%</p>` : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-12">
-                                <h6><i class="fas fa-list-ol"></i> Your Selected Numbers:</h6>
-            `;
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-list-ol"></i> Your Selected Numbers (Single Line Format):</h6>`;
 
-            // Display each line with its PowerBall on the same row
+            // Process each line with PowerBall on same line
             if (data.main_numbers && data.main_numbers.length > 0) {
-                data.main_numbers.forEach((line, index) => {
-                    html += `<div class="mb-2 p-2 border rounded bg-light">
-                        <strong>Line ${index + 1}:</strong><br>`;
+                // Get all winning numbers for comparison
+                let allWinningMain = [];
+                let allWinningPowerball = [];
+                
+                if (data.winning_numbers) {
+                    Object.values(data.winning_numbers).forEach(gameData => {
+                        if (!gameData.not_available) {
+                            if (gameData.main_numbers) allWinningMain = allWinningMain.concat(gameData.main_numbers);
+                            if (gameData.bonus_numbers) allWinningPowerball = allWinningPowerball.concat(gameData.bonus_numbers);
+                        }
+                    });
+                }
+                
+                data.main_numbers.forEach((line, lineIndex) => {
+                    console.log(`Processing Line ${lineIndex + 1}:`, line, 'PowerBall:', data.bonus_numbers[lineIndex]);
                     
-                    // Get winning numbers for highlighting matches
-                    const winningNumbers = getWinningNumbersForComparison(data);
+                    html += `<div class="mb-2 p-2 border rounded" style="background-color: #f8f9fa;">
+                        <strong>Line ${lineIndex + 1}:</strong><br>`;
                     
-                    // Main numbers with match highlighting
+                    // Display main numbers
                     line.forEach(num => {
-                        const isMatch = checkIfNumberMatches(num, winningNumbers, 'main');
-                        const badgeClass = isMatch ? 'bg-success' : 'bg-primary';
-                        const extraStyle = isMatch ? 'border: 3px solid #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);' : '';
-                        html += `<span class="badge ${badgeClass} rounded-circle me-1 mb-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; ${extraStyle}">${num}</span>`;
+                        const isMatch = allWinningMain.includes(num);
+                        const color = isMatch ? 'bg-success' : 'bg-primary';
+                        const glow = isMatch ? 'box-shadow: 0 0 10px rgba(40, 167, 69, 0.8); border: 2px solid #28a745;' : '';
+                        html += `<span class="badge ${color} rounded-circle me-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; ${glow}">${num}</span>`;
                     });
                     
-                    // PowerBall on the same line after main numbers - v2.1 CACHE BUST
-                    if (data.bonus_numbers && data.bonus_numbers[index] !== undefined) {
-                        console.log(`Line ${index + 1}: Adding PowerBall ${data.bonus_numbers[index]} on same line`);
-                        const powerballNum = data.bonus_numbers[index];
-                        const isPowerballMatch = checkIfNumberMatches(powerballNum, winningNumbers, 'powerball');
-                        const powerballClass = isPowerballMatch ? 'bg-success' : 'bg-warning';
-                        const powerballStyle = isPowerballMatch ? 'border: 3px solid #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.5); color: white;' : 'color: black;';
-                        html += ` + <span class="badge ${powerballClass} rounded-circle me-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; ${powerballStyle}">${powerballNum}</span>`;
+                    // Add PowerBall ON THE SAME LINE (key fix)
+                    if (data.bonus_numbers && data.bonus_numbers[lineIndex] !== undefined) {
+                        const powerballNum = data.bonus_numbers[lineIndex];
+                        const isPBMatch = allWinningPowerball.includes(powerballNum);
+                        const pbColor = isPBMatch ? 'bg-success' : 'bg-warning';
+                        const pbGlow = isPBMatch ? 'box-shadow: 0 0 10px rgba(40, 167, 69, 0.8); border: 2px solid #28a745; color: white;' : 'color: black;';
+                        
+                        html += ` <strong>+</strong> <span class="badge ${pbColor} rounded-circle me-1" style="width: 35px; height: 35px; line-height: 25px; font-size: 14px; ${pbGlow}">${powerballNum}</span>`;
+                        console.log(`Added PowerBall ${powerballNum} to Line ${lineIndex + 1} on same line`);
                     }
                     
                     html += `</div>`;
                 });
             }
             
-            // Add match analysis if winning numbers are available
-            html += displayMatchAnalysis(data);
+            // Add match analysis
+            html += showMatchAnalysisV3(data);
+            html += `</div></div>`;
             
-            html += `
-                    </div>
-                </div>
-            </div>
-            `;
-            
+            // Update display
             ticketData.innerHTML = html;
             results.style.display = 'block';
+            console.log('=== DISPLAY UPDATED WITH SINGLE-LINE POWERBALL FORMAT ===');
         }
         
+        function showMatchAnalysisV3(data) {
+            if (!data.winning_numbers || Object.keys(data.winning_numbers).length === 0) {
+                return `<div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i> No winning numbers available for comparison.
+                </div>`;
+            }
+            
+            let matchHtml = `<div class="mt-3">
+                <h6><i class="fas fa-chart-line"></i> Match Analysis</h6>`;
+            
+            for (const [gameType, winningData] of Object.entries(data.winning_numbers)) {
+                if (winningData.not_available) {
+                    matchHtml += `<div class="alert alert-warning mb-2">
+                        <strong>${gameType}:</strong> Winning numbers not available.
+                    </div>`;
+                    continue;
+                }
+                
+                matchHtml += `<div class="card mb-2">
+                    <div class="card-header py-2">
+                        <strong>${gameType} - Draw ${winningData.draw_number}</strong>
+                    </div>
+                    <div class="card-body py-2">
+                        <strong>Winning:</strong> `;
+                
+                // Show winning numbers
+                (winningData.main_numbers || []).forEach(num => {
+                    matchHtml += `<span class="badge bg-success rounded-circle me-1" style="width: 25px; height: 25px; line-height: 15px; font-size: 11px;">${num}</span>`;
+                });
+                
+                if (winningData.bonus_numbers && winningData.bonus_numbers.length > 0) {
+                    matchHtml += ` <strong>PB:</strong> `;
+                    winningData.bonus_numbers.forEach(num => {
+                        matchHtml += `<span class="badge bg-warning rounded-circle me-1" style="width: 25px; height: 25px; line-height: 15px; font-size: 11px; color: black;">${num}</span>`;
+                    });
+                }
+                
+                matchHtml += `</div></div>`;
+            }
+            
+            matchHtml += `</div>`;
+            return matchHtml;
+        }
+
         function getWinningNumbersForComparison(data) {
             // Combine all winning numbers from all game types for match checking
             let allWinningMain = [];
