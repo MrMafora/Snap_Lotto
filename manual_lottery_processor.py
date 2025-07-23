@@ -20,7 +20,7 @@ class ManualLotteryProcessor:
     """Process user-uploaded lottery ticket images with AI"""
     
     def __init__(self):
-        self.api_key = os.environ.get("GEMINI_API_KEY")
+        self.api_key = os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY")
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
         
     def process_lottery_image(self, image_path, expected_lottery_type=None):
