@@ -23,15 +23,15 @@ function renderExternalFrequencyChart(frequencyData) {
         // Clear previous chart
         barChartContainer.innerHTML = '';
         
-        // Create a container for the number frequency chart with symmetric spacing
+        // Create a container for the number frequency chart with proper spacing to prevent cutoff
         const frequencyChart = document.createElement('div');
         frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-center pb-2';
         frequencyChart.style.height = '200px';
-        frequencyChart.style.gap = '8px'; // Optimal spacing for proper box fill
-        frequencyChart.style.width = '100%';
-        frequencyChart.style.padding = '15px 20px'; // Balanced padding for proper fill
+        frequencyChart.style.gap = '6px'; // Slightly reduced gap for better fit
+        frequencyChart.style.width = 'calc(100% - 10px)'; // Account for margin to prevent cutoff
+        frequencyChart.style.padding = '15px 10px'; // Reduced horizontal padding to prevent left cutoff
         frequencyChart.style.maxWidth = '100%'; // Use full available width
-        frequencyChart.style.margin = '0 auto'; // Center the entire chart
+        frequencyChart.style.margin = '0 5px'; // Small margin to prevent edge cutoff
         frequencyChart.style.boxSizing = 'border-box'; // Include padding in width calculation
         
         // Sort data by frequency (descending)

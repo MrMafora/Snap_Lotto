@@ -1016,6 +1016,8 @@
     margin-top: -15px;
     margin-bottom: -5px;
     flex: 1;  /* This ensures the container takes up all available space */
+    overflow: visible; /* Ensure chart content is not clipped */
+    padding: 0 5px; /* Small padding to prevent edge cutoff */
 }
 
 .data-analytics-preview .temperature-chart-container {
