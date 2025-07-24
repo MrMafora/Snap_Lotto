@@ -56,17 +56,20 @@
 /* Mobile-specific containment */
 @media (max-width: 576px) {
     .data-analytics-preview {
-        contain: layout style paint !important;
+        contain: layout style !important;
     }
     
     .hot-numbers, .cold-numbers, .absent-numbers {
-        contain: layout style paint !important;
+        contain: layout style !important;
         isolation: isolate !important;
+        min-height: 60px !important;
+        overflow: visible !important;
     }
     
-    /* Ensure no overflow issues during scroll */
+    /* Ensure no overflow issues during scroll but allow hot/cold numbers to show */
     .chart-card {
-        overflow: hidden !important;
-        contain: layout style paint !important;
+        overflow: visible !important;
+        contain: layout style !important;
+        min-height: 420px !important;
     }
 }
