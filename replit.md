@@ -19,6 +19,21 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
+- **COMPLETED: PowerBall Ticket Scanner Display Fix - Inline Bonus Ball Layout Restored (July 24, 2025)**
+  - **USER ISSUE RESOLVED**: Fixed PowerBall numbers appearing in separate row at bottom instead of inline with their respective main numbers
+  - **TEMPLATE LOGIC ENHANCED**: Updated ticket scanner to display PowerBall numbers inline with each line of main numbers using + separator
+  - **MULTIPLE LINE SUPPORT**: For multi-line PowerBall tickets, each line now shows [main numbers] + [PowerBall] format correctly
+  - **SINGLE LINE SUPPORT**: For single line PowerBall tickets, PowerBall number displays inline with main numbers  
+  - **BONUS SECTION LOGIC**: Modified bonus numbers section to only show for non-PowerBall games (LOTTO, Daily Lotto) to prevent duplicate display
+  - **VISUAL CONSISTENCY**: PowerBall numbers maintain red color with gold border styling for proper identification
+  - **VERIFIED WORKING**: PowerBall and PowerBall Plus tickets now display numbers correctly with inline bonus balls instead of separate bottom row
+- **COMPLETED: Data Analytics Ball Size Optimization - All Three Rows Visible (July 24, 2025)**
+  - **USER REQUEST FULFILLED**: Reduced hot/cold/absent number ball sizes from 58px to 40px for better space utilization
+  - **FONT SIZE OPTIMIZATION**: Updated ball fonts from 21px to 16px and frequency labels from 0.7rem to 0.65rem
+  - **SECTION SPACING COMPRESSED**: Reduced margins to 15px between sections and 8px for headers with 0.9rem header font size
+  - **CSS CLASS CLEANUP**: Removed lottery-ball-xs class usage to apply standard lottery ball styling with custom size overrides
+  - **VISUAL IMPROVEMENT**: All three rows (Hot Numbers, Cold Numbers, Numbers Not Drawn Recently) now fully visible within Data Analytics box height
+  - **SPACE EFFICIENCY**: Achieved maximum content visibility while maintaining readable text and proper ball styling
 - **COMPLETED: Automation Workflow Critical Fix - Screenshot Timeout Issues Resolved (July 24, 2025)**
   - **ROOT CAUSE IDENTIFIED**: Previous workflows failing due to `wait_until='networkidle'` causing 30-second timeouts on SA lottery website
   - **SOLUTION IMPLEMENTED**: Created `robust_automation_workflow.py` based on working `screenshot_capture.py` approach

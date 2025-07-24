@@ -739,6 +739,22 @@ document.addEventListener('DOMContentLoaded', function() {
                         ballsContainer.appendChild(ballElement);
                     });
 
+                    // Add PowerBall number for this line if it's a PowerBall game
+                    if (data.lottery_type && data.lottery_type.toLowerCase().includes('powerball') && data.all_powerball && data.all_powerball.length > lineIndex) {
+                        // Add + sign separator
+                        const plusSign = document.createElement('span');
+                        plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
+                        plusSign.textContent = '+';
+                        ballsContainer.appendChild(plusSign);
+                        
+                        // Add PowerBall number for this line
+                        const powerballElement = document.createElement('div');
+                        powerballElement.className = 'lottery-ball lottery-ball-red me-1 mb-1';
+                        powerballElement.style.border = '3px solid #ffd700';
+                        powerballElement.textContent = data.all_powerball[lineIndex];
+                        ballsContainer.appendChild(powerballElement);
+                    }
+
                     lineDiv.appendChild(ballsContainer);
                     numbersDiv.appendChild(lineDiv);
                 });
@@ -757,28 +773,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 numbersDiv.appendChild(ballsContainer);
             }
 
-            // Add bonus numbers if any
-            if (data.bonus_numbers && data.bonus_numbers.length > 0) {
-                const bonusDiv = document.createElement('div');
-                bonusDiv.className = 'mt-2';
-                
-                const bonusLabel = document.createElement('small');
-                bonusLabel.className = 'text-muted d-block mb-1';
-                bonusLabel.textContent = 'Bonus Numbers:';
-                bonusDiv.appendChild(bonusLabel);
-                
-                const bonusBallsContainer = document.createElement('div');
-                bonusBallsContainer.className = 'd-flex flex-wrap gap-2';
+            // Add PowerBall numbers inline for PowerBall games
+            if (data.lottery_type && data.lottery_type.toLowerCase().includes('powerball')) {
+                // For PowerBall games, show PowerBall numbers with each line of main numbers
+                if (isMultipleLines && data.all_powerball && data.all_powerball.length > 0) {
+                    // Already handled in the multiple lines display above - no separate section needed
+                } else if (!isMultipleLines && data.all_powerball && data.all_powerball.length > 0) {
+                    // Single line PowerBall - add PowerBall to the existing ballsContainer
+                    const lastBallsContainer = numbersDiv.querySelector('.d-flex.flex-wrap.gap-2');
+                    if (lastBallsContainer) {
+                        // Add + sign separator
+                        const plusSign = document.createElement('span');
+                        plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
+                        plusSign.textContent = '+';
+                        lastBallsContainer.appendChild(plusSign);
+                        
+                        // Add PowerBall number
+                        const powerballElement = document.createElement('div');
+                        powerballElement.className = 'lottery-ball lottery-ball-red me-1 mb-1';
+                        powerballElement.style.border = '3px solid #ffd700';
+                        powerballElement.textContent = data.all_powerball[0];
+                        lastBallsContainer.appendChild(powerballElement);
+                    }
+                }
+            } else {
+                // For non-PowerBall games, show bonus numbers if any
+                if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+                    const bonusDiv = document.createElement('div');
+                    bonusDiv.className = 'mt-2';
+                    
+                    const bonusLabel = document.createElement('small');
+                    bonusLabel.className = 'text-muted d-block mb-1';
+                    bonusLabel.textContent = 'Bonus Numbers:';
+                    bonusDiv.appendChild(bonusLabel);
+                    
+                    const bonusBallsContainer = document.createElement('div');
+                    bonusBallsContainer.className = 'd-flex flex-wrap gap-2';
 
-                data.bonus_numbers.forEach((num) => {
-                    const ballElement = document.createElement('div');
-                    ballElement.className = 'lottery-ball lottery-ball-yellow me-1 mb-1';
-                    ballElement.textContent = num;
-                    bonusBallsContainer.appendChild(ballElement);
-                });
+                    data.bonus_numbers.forEach((num) => {
+                        const ballElement = document.createElement('div');
+                        ballElement.className = 'lottery-ball lottery-ball-yellow me-1 mb-1';
+                        ballElement.textContent = num;
+                        bonusBallsContainer.appendChild(ballElement);
+                    });
 
-                bonusDiv.appendChild(bonusBallsContainer);
-                numbersDiv.appendChild(bonusDiv);
+                    bonusDiv.appendChild(bonusBallsContainer);
+                    numbersDiv.appendChild(bonusDiv);
+                }
             }
 
             playerSection.appendChild(numbersDiv);
