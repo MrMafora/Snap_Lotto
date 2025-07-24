@@ -1350,7 +1350,8 @@
     /* Ensure hot/cold balls maintain same size as lottery balls on mobile - consistent */
     .hot-number-item .lottery-ball, 
     .cold-number-item .lottery-ball, 
-    .absent-number-item .lottery-ball {
+    .absent-number-item .lottery-ball,
+    .lottery-ball-xs {
         width: 35px !important;
         height: 35px !important;
         min-width: 35px !important;
@@ -1364,17 +1365,24 @@
         align-items: center !important;
         justify-content: center !important;
         margin: 0 3px 8px 0 !important;
+        border-radius: 50% !important;
+        text-align: center !important;
     }
     
     /* Force hot/cold ball number text to match main lottery ball numbers on mobile - consistent */
     .hot-number-item .lottery-ball .number,
     .cold-number-item .lottery-ball .number,
-    .absent-number-item .lottery-ball .number {
+    .absent-number-item .lottery-ball .number,
+    .lottery-ball-xs .number {
         font-size: 14px !important;
         font-weight: bold !important;
         line-height: 35px !important;
         position: relative;
         z-index: 2;
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        text-align: center !important;
     }
     
     /* Fix scrolling overlap issue on mobile */
@@ -1417,12 +1425,21 @@
         top: 0 !important;
     }
     
-    /* Ensure frequency labels are visible */
+    /* Ensure frequency labels are visible on mobile */
     .frequency-label {
         font-size: 0.6rem !important;
         margin-top: 3px !important;
         line-height: 1 !important;
         display: block !important;
+        color: #6c757d !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
+    
+    /* Ensure hot/cold containers have enough space for labels */
+    .hot-number-item, .cold-number-item, .absent-number-item {
+        min-height: 60px !important;
+        padding-bottom: 5px !important;
     }
         contain: layout style;
         isolation: isolate;
