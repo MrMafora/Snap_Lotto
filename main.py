@@ -485,11 +485,20 @@ def results(lottery_type=None):
             try:
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
+                        # Get latest result for each lottery type
                         cur.execute("""
-                            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
+                            WITH latest_per_type AS (
+                                SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, prize_divisions, 
+                                       rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date,
+                                       ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, id DESC) as rn
+                                FROM lottery_results 
+                                WHERE draw_number IS NOT NULL AND main_numbers IS NOT NULL
+                                  AND lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO')
+                            )
+                            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, prize_divisions, 
                                    rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                            FROM lottery_results 
-                            WHERE draw_number IS NOT NULL AND main_numbers IS NOT NULL
+                            FROM latest_per_type 
+                            WHERE rn = 1
                             ORDER BY 
                                 CASE lottery_type
                                     WHEN 'LOTTO' THEN 1
@@ -499,9 +508,7 @@ def results(lottery_type=None):
                                     WHEN 'POWERBALL PLUS' THEN 5
                                     WHEN 'DAILY LOTTO' THEN 6
                                     ELSE 7
-                                END,
-                                draw_date DESC 
-                            LIMIT 50
+                                END
                         """)
                         
                         for row in cur.fetchall():
