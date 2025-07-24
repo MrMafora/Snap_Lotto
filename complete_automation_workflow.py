@@ -32,18 +32,15 @@ def capture_fresh_screenshots(logger):
     """Capture fresh screenshots of all lottery types"""
     logger.info("Step 1: Starting fresh screenshot capture...")
     
-    # STEP 1: Clean up old screenshots FIRST
-    logger.info("Cleaning up old screenshots before capture...")
+    # Check if we have existing screenshots first
     screenshots_dir = 'screenshots'
+    existing_files = []
     if os.path.exists(screenshots_dir):
-        old_files = glob.glob(os.path.join(screenshots_dir, '*.png'))
-        for old_file in old_files:
-            try:
-                os.remove(old_file)
-                logger.info(f"Removed old screenshot: {os.path.basename(old_file)}")
-            except Exception as e:
-                logger.warning(f"Could not remove {old_file}: {e}")
-        logger.info(f"Cleanup complete: {len(old_files)} old screenshots removed")
+        existing_files = glob.glob(os.path.join(screenshots_dir, '*.png'))
+        logger.info(f"Found {len(existing_files)} existing screenshots")
+    
+    # Only clean up old screenshots AFTER we confirm new ones can be captured
+    # This prevents data loss when network issues occur
     
     # Lottery URLs and types
     lottery_urls = {
