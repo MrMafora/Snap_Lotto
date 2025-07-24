@@ -252,6 +252,8 @@ function renderExternalFrequencyChart(frequencyData) {
 
 // Function to render Hot & Cold Numbers section
 window.renderHotColdNumbers = function(frequencyData) {
+    console.log('CHART RENDERER: renderHotColdNumbers called with:', frequencyData);
+    
     if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
         console.warn('No frequency data available for hot/cold numbers');
         return;
@@ -269,6 +271,8 @@ window.renderHotColdNumbers = function(frequencyData) {
         
         // Update Hot Numbers section
         const hotNumbersContainer = document.getElementById('hotNumbersContainer');
+        console.log('CHART RENDERER: Found hotNumbersContainer:', !!hotNumbersContainer, 'Hot numbers:', hotNumbers.length);
+        
         if (hotNumbersContainer && hotNumbers.length > 0) {
             const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
             let hotHTML = '';
@@ -276,14 +280,15 @@ window.renderHotColdNumbers = function(frequencyData) {
             hotNumbers.forEach((item, index) => {
                 hotHTML += `
                     <div class="hot-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-xs ${colors[index]}">
+                        <span class="lottery-ball ${colors[index]}">
                             <span class="number">${item.number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${item.frequency}x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
                     </div>
                 `;
             });
             
+            console.log('CHART RENDERER: Setting hotNumbersContainer innerHTML to:', hotHTML.substring(0, 200) + '...');
             hotNumbersContainer.innerHTML = hotHTML;
             
             // Add click event listeners to hot numbers
@@ -305,20 +310,23 @@ window.renderHotColdNumbers = function(frequencyData) {
         
         // Update Cold Numbers section
         const coldNumbersContainer = document.getElementById('coldNumbersContainer');
+        console.log('CHART RENDERER: Found coldNumbersContainer:', !!coldNumbersContainer, 'Cold numbers:', coldNumbers.length);
+        
         if (coldNumbersContainer && coldNumbers.length > 0) {
             let coldHTML = '';
             
             coldNumbers.forEach((item, index) => {
                 coldHTML += `
                     <div class="cold-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-xs lottery-ball-blue">
+                        <span class="lottery-ball lottery-ball-blue">
                             <span class="number">${item.number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${item.frequency}x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
                     </div>
                 `;
             });
             
+            console.log('CHART RENDERER: Setting coldNumbersContainer innerHTML');
             coldNumbersContainer.innerHTML = coldHTML;
             
             // Add click event listeners to cold numbers
@@ -340,6 +348,8 @@ window.renderHotColdNumbers = function(frequencyData) {
         
         // Update Numbers Not Drawn Recently section
         const absentNumbersContainer = document.getElementById('absentNumbersContainer');
+        console.log('CHART RENDERER: Found absentNumbersContainer:', !!absentNumbersContainer);
+        
         if (absentNumbersContainer && coldNumbers.length > 0) {
             let absentHTML = '';
             
@@ -348,14 +358,15 @@ window.renderHotColdNumbers = function(frequencyData) {
             absentNumbers.forEach((item, index) => {
                 absentHTML += `
                     <div class="absent-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-xs lottery-ball-red">
+                        <span class="lottery-ball lottery-ball-green">
                             <span class="number">${item.number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${item.frequency}x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
                     </div>
                 `;
             });
             
+            console.log('CHART RENDERER: Setting absentNumbersContainer innerHTML');
             absentNumbersContainer.innerHTML = absentHTML;
             
             // Add click event listeners to absent numbers
