@@ -1034,7 +1034,8 @@
 
 /* Match the Data Analytics box height to Latest Lottery Results box */
 .data-analytics-preview {
-    min-height: 600px; /* Match the height of the lottery results card */
+    height: 570px; /* Match the natural height of the lottery results card */
+    overflow: hidden;
 }
 
 .chart-card {
