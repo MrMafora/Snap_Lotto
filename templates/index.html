@@ -948,11 +948,11 @@ function updateHotColdNumbers(data) {
                 const frequency = frequencyItem ? frequencyItem.frequency : 0;
                 
                 hotHTML += `
-                    <div class="hot-number-item interactive-number me-2 mb-2" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-sm ${colors[index]}">
+                    <div class="hot-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-xs ${colors[index]}">
                             <span class="number">${number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${frequency}x</small>
                     </div>
                 `;
             });
@@ -973,11 +973,11 @@ function updateHotColdNumbers(data) {
                 const frequency = frequencyItem ? frequencyItem.frequency : 0;
                 
                 coldHTML += `
-                    <div class="cold-number-item interactive-number me-2 mb-2" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                    <div class="cold-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-xs lottery-ball-blue">
                             <span class="number">${number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${frequency}x</small>
                     </div>
                 `;
             });
@@ -994,11 +994,11 @@ function updateHotColdNumbers(data) {
             
             absentNumbers.slice(0, 5).forEach((number, index) => {
                 absentHTML += `
-                    <div class="absent-number-item me-2 mb-2">
-                        <span class="lottery-ball lottery-ball-sm lottery-ball-gray">
+                    <div class="absent-number-item me-1 mb-1">
+                        <span class="lottery-ball lottery-ball-xs lottery-ball-gray">
                             <span class="number">${number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1">0x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">0x</small>
                     </div>
                 `;
             });
@@ -1091,11 +1091,11 @@ function updateHotColdNumbers(data) {
         for (let i = 0; i < Math.min(5, topNumbers.length); i++) {
             const [number, frequency] = topNumbers[i];
             hotNumbersHTML += `
-                <div class="hot-number-item me-2 mb-2">
-                    <span class="lottery-ball ${colors[i]}">
+                <div class="hot-number-item me-1 mb-1">
+                    <span class="lottery-ball lottery-ball-xs ${colors[i]}">
                         <span class="number">${number}</span>
                     </span>
-                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                    <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${frequency}x</small>
                 </div>
             `;
         }
@@ -1111,11 +1111,11 @@ function updateHotColdNumbers(data) {
         for (let i = 0; i < Math.min(5, coldNumbers.length); i++) {
             const [number, frequency] = coldNumbers[i];
             coldNumbersHTML += `
-                <div class="cold-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-blue">
+                <div class="cold-number-item me-1 mb-1">
+                    <span class="lottery-ball lottery-ball-xs lottery-ball-blue">
                         <span class="number">${number}</span>
                     </span>
-                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                    <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${frequency}x</small>
                 </div>
             `;
         }
@@ -1131,11 +1131,11 @@ function updateHotColdNumbers(data) {
         for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
             const [number, days] = absentNumbers[i];
             absentNumbersHTML += `
-                <div class="absent-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-green">
+                <div class="absent-number-item me-1 mb-1">
+                    <span class="lottery-ball lottery-ball-xs lottery-ball-green">
                         <span class="number">${number}</span>
                     </span>
-                    <small class="frequency-label d-block text-center mt-1">${days} days</small>
+                    <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${days} days</small>
                 </div>
             `;
         }
