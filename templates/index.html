@@ -983,6 +983,25 @@ function updateHotColdNumbers(data) {
             });
             
             coldNumbersContainer.innerHTML = coldHTML;
+            
+            // Add click event listeners to cold numbers
+            setTimeout(() => {
+                coldNumbersContainer.querySelectorAll('.interactive-number').forEach(element => {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const number = parseInt(this.getAttribute('data-number'));
+                        const frequency = parseInt(this.getAttribute('data-frequency'));
+                        console.log('Cold number clicked:', number, frequency);
+                        if (typeof window.highlightNumber === 'function') {
+                            window.highlightNumber(number, frequency);
+                        }
+                        if (typeof window.showNumberDetails === 'function') {
+                            window.showNumberDetails(number);
+                        }
+                    });
+                });
+            }, 100);
         } else {
             document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
         }
@@ -993,17 +1012,40 @@ function updateHotColdNumbers(data) {
             let absentHTML = '';
             
             absentNumbers.slice(0, 5).forEach((number, index) => {
+                // Find frequency for this number from frequency_data
+                const frequencyItem = data.frequency_data.find(item => item.number === number);
+                const frequency = frequencyItem ? frequencyItem.frequency : 0;
+                
                 absentHTML += `
-                    <div class="absent-number-item me-1 mb-1">
-                        <span class="lottery-ball lottery-ball-gray">
+                    <div class="absent-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-red">
                             <span class="number">${number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">0x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${frequency}x</small>
                     </div>
                 `;
             });
             
             absentNumbersContainer.innerHTML = absentHTML;
+            
+            // Add click event listeners to absent numbers
+            setTimeout(() => {
+                absentNumbersContainer.querySelectorAll('.interactive-number').forEach(element => {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const number = parseInt(this.getAttribute('data-number'));
+                        const frequency = parseInt(this.getAttribute('data-frequency'));
+                        console.log('Absent number clicked:', number, frequency);
+                        if (typeof window.highlightNumber === 'function') {
+                            window.highlightNumber(number, frequency);
+                        }
+                        if (typeof window.showNumberDetails === 'function') {
+                            window.showNumberDetails(number);
+                        }
+                    });
+                });
+            }, 100);
         } else {
             document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
         }
@@ -1131,8 +1173,8 @@ function updateHotColdNumbers(data) {
         for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
             const [number, days] = absentNumbers[i];
             absentNumbersHTML += `
-                <div class="absent-number-item me-1 mb-1">
-                    <span class="lottery-ball lottery-ball-xs lottery-ball-green">
+                <div class="absent-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="0" style="cursor: pointer;">
+                    <span class="lottery-ball lottery-ball-red">
                         <span class="number">${number}</span>
                     </span>
                     <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${days} days</small>
@@ -1140,6 +1182,28 @@ function updateHotColdNumbers(data) {
             `;
         }
         document.getElementById('absentNumbersContainer').innerHTML = absentNumbersHTML;
+        
+        // Add click event listeners to absent numbers
+        setTimeout(() => {
+            const absentContainer = document.getElementById('absentNumbersContainer');
+            if (absentContainer) {
+                absentContainer.querySelectorAll('.interactive-number').forEach(element => {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const number = parseInt(this.getAttribute('data-number'));
+                        const frequency = parseInt(this.getAttribute('data-frequency'));
+                        console.log('Absent number clicked:', number, frequency);
+                        if (typeof window.highlightNumber === 'function') {
+                            window.highlightNumber(number, frequency);
+                        }
+                        if (typeof window.showNumberDetails === 'function') {
+                            window.showNumberDetails(number);
+                        }
+                    });
+                });
+            }
+        }, 100);
     } else {
         document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available</div>';
     }
