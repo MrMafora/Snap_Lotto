@@ -152,7 +152,9 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                             <th>DRAW ID</th>
                             <th>GAME DATE</th>
                             <th>WINNING NUMBERS</th>
+                            {% if lottery_type != 'Daily Lottery' %}
                             <th>BONUS NUMBERS</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -186,6 +188,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                         <span class="{{ ball_class }}">{{ num }}</span>
                                     {% endfor %}
                                 </td>
+                                {% if lottery_type != 'Daily Lottery' %}
                                 <td>
                                     {% if result.bonus_numbers %}
                                         {% for num in result.get_bonus_numbers_list() %}
@@ -195,6 +198,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                         <span class="text-muted">None</span>
                                     {% endif %}
                                 </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>
