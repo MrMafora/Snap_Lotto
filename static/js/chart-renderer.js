@@ -279,8 +279,8 @@ window.renderHotColdNumbers = function(frequencyData) {
             
             hotNumbers.forEach((item, index) => {
                 hotHTML += `
-                    <div class="hot-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball ${colors[index]}">
+                    <div class="hot-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer; display: inline-block !important;">
+                        <span class="lottery-ball ${colors[index]}" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: white !important;">
                             <span class="number">${item.number}</span>
                         </span>
                         <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
@@ -290,6 +290,7 @@ window.renderHotColdNumbers = function(frequencyData) {
             
             console.log('CHART RENDERER: Setting hotNumbersContainer innerHTML to:', hotHTML.substring(0, 200) + '...');
             hotNumbersContainer.innerHTML = hotHTML;
+            console.log('CHART RENDERER: After setting HTML, container children count:', hotNumbersContainer.children.length);
             
             // Add click event listeners to hot numbers
             setTimeout(() => {
@@ -317,8 +318,8 @@ window.renderHotColdNumbers = function(frequencyData) {
             
             coldNumbers.forEach((item, index) => {
                 coldHTML += `
-                    <div class="cold-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-blue">
+                    <div class="cold-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer; display: inline-block !important;">
+                        <span class="lottery-ball lottery-ball-blue" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: white !important; background-color: var(--lottery-blue) !important;">
                             <span class="number">${item.number}</span>
                         </span>
                         <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
@@ -328,6 +329,7 @@ window.renderHotColdNumbers = function(frequencyData) {
             
             console.log('CHART RENDERER: Setting coldNumbersContainer innerHTML');
             coldNumbersContainer.innerHTML = coldHTML;
+            console.log('CHART RENDERER: After setting HTML, cold container children count:', coldNumbersContainer.children.length);
             
             // Add click event listeners to cold numbers
             setTimeout(() => {
@@ -357,8 +359,8 @@ window.renderHotColdNumbers = function(frequencyData) {
             const absentNumbers = coldNumbers.slice(0, 5);
             absentNumbers.forEach((item, index) => {
                 absentHTML += `
-                    <div class="absent-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-green">
+                    <div class="absent-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer; display: inline-block !important;">
+                        <span class="lottery-ball lottery-ball-green" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: white !important; background-color: var(--lottery-green) !important;">
                             <span class="number">${item.number}</span>
                         </span>
                         <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
@@ -368,6 +370,7 @@ window.renderHotColdNumbers = function(frequencyData) {
             
             console.log('CHART RENDERER: Setting absentNumbersContainer innerHTML');
             absentNumbersContainer.innerHTML = absentHTML;
+            console.log('CHART RENDERER: After setting HTML, absent container children count:', absentNumbersContainer.children.length);
             
             // Add click event listeners to absent numbers
             setTimeout(() => {
