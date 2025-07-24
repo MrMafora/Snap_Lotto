@@ -49,7 +49,7 @@
 .absent-numbers h6 {
     position: relative;
     z-index: 15 !important;
-    background-color: white !important;
+    background-color: transparent !important;
     isolation: isolate !important;
 }
 
@@ -62,14 +62,12 @@
     .hot-numbers, .cold-numbers, .absent-numbers {
         contain: layout style !important;
         isolation: isolate !important;
-        min-height: 60px !important;
         overflow: visible !important;
     }
     
-    /* Ensure no overflow issues during scroll but allow hot/cold numbers to show */
+    /* Ensure chart card shows hot/cold sections on mobile */
     .chart-card {
         overflow: visible !important;
         contain: layout style !important;
-        min-height: 420px !important;
     }
 }

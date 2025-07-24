@@ -1333,113 +1333,48 @@
 /* Mobile styles for small screens only */
 @media (max-width: 576px) {
     .data-analytics-preview .chart-card {
-        height: auto;
-        min-height: 320px;
-    }
-    
-    .hot-cold-container {
-        max-height: none;
-        padding-bottom: 10px;
-    }
-    
-    .hot-number-item, .cold-number-item, .absent-number-item {
-        margin-right: 6px;
-        margin-bottom: 6px;
-    }
-    
-    /* Ensure hot/cold balls maintain same size as lottery balls on mobile - consistent */
-    .hot-number-item .lottery-ball, 
-    .cold-number-item .lottery-ball, 
-    .absent-number-item .lottery-ball,
-    .lottery-ball-xs {
-        width: 35px !important;
-        height: 35px !important;
-        min-width: 35px !important;
-        min-height: 35px !important;
-        max-width: 35px !important;
-        max-height: 35px !important;
-        font-size: 14px !important;
-        line-height: 35px !important;
-        font-weight: bold !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 3px 8px 0 !important;
-        border-radius: 50% !important;
-        text-align: center !important;
-    }
-    
-    /* Force hot/cold ball number text to match main lottery ball numbers on mobile - consistent */
-    .hot-number-item .lottery-ball .number,
-    .cold-number-item .lottery-ball .number,
-    .absent-number-item .lottery-ball .number,
-    .lottery-ball-xs .number {
-        font-size: 14px !important;
-        font-weight: bold !important;
-        line-height: 35px !important;
-        position: relative;
-        z-index: 2;
-        display: block !important;
-        width: 100% !important;
-        height: 100% !important;
-        text-align: center !important;
-    }
-    
-    /* Fix scrolling overlap issue on mobile */
-    .hot-numbers, .cold-numbers, .absent-numbers {
-        margin-bottom: 15px !important;
-        position: relative;
-        z-index: 3;
-        clear: both;
-        display: block !important;
-        overflow: visible !important;
-    }
-    
-    /* Ensure hot/cold containers are visible on mobile */
-    .hot-cold-container {
-        display: block !important;
         height: auto !important;
-        overflow: visible !important;
+        min-height: 420px !important;
+    }
+    
+    .hot-cold-container {
         max-height: none !important;
-        min-height: 200px !important;
-        padding-bottom: 20px !important;
-    }
-    
-    /* Fix chart card height to accommodate hot/cold sections */
-    .data-analytics-preview .chart-card {
-        height: auto !important;
-        min-height: 450px !important;
+        min-height: 150px !important;
+        padding-bottom: 15px !important;
         overflow: visible !important;
     }
     
-    /* Make sure sections show on mobile */
     .hot-number-item, .cold-number-item, .absent-number-item {
         display: inline-flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        margin-right: 6px !important;
-        margin-bottom: 15px !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: relative !important;
-        top: 0 !important;
+        margin-right: 4px !important;
+        margin-bottom: 8px !important;
     }
     
-    /* Ensure frequency labels are visible on mobile */
-    .frequency-label {
-        font-size: 0.6rem !important;
-        margin-top: 3px !important;
+    /* Mobile hot/cold balls - smaller but visible */
+    .hot-number-item .lottery-ball, 
+    .cold-number-item .lottery-ball, 
+    .absent-number-item .lottery-ball {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 13px !important;
+        line-height: 32px !important;
+        margin: 0 2px 4px 0 !important;
+    }
+    
+    /* Mobile frequency labels */
+    .hot-number-item .frequency-label,
+    .cold-number-item .frequency-label,
+    .absent-number-item .frequency-label {
+        font-size: 0.55rem !important;
+        margin-top: 2px !important;
         line-height: 1 !important;
-        display: block !important;
-        color: #6c757d !important;
-        text-align: center !important;
-        white-space: nowrap !important;
     }
     
-    /* Ensure hot/cold containers have enough space for labels */
-    .hot-number-item, .cold-number-item, .absent-number-item {
-        min-height: 60px !important;
-        padding-bottom: 5px !important;
+    /* Hot/cold sections spacing */
+    .hot-numbers, .cold-numbers, .absent-numbers {
+        margin-bottom: 12px !important;
     }
         contain: layout style;
         isolation: isolate;
