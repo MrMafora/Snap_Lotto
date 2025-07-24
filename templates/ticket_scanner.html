@@ -671,6 +671,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function displayPlayerTicketNumbers(data) {
+        // Debug: Log the data structure to understand what we're working with
+        console.log('DEBUG: displayPlayerTicketNumbers received data:', data);
+        console.log('DEBUG: bonus_numbers:', data.bonus_numbers);
+        console.log('DEBUG: all_powerball:', data.all_powerball);
+        console.log('DEBUG: main_numbers:', data.main_numbers);
+        
         // Create a section to show the player's selected numbers
         const existingSection = document.getElementById('player-numbers-section');
         if (existingSection) {
@@ -740,19 +746,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     // Add PowerBall number for this line if it's a PowerBall game
-                    if (data.lottery_type && data.lottery_type.toLowerCase().includes('powerball') && data.all_powerball && data.all_powerball.length > lineIndex) {
-                        // Add + sign separator
-                        const plusSign = document.createElement('span');
-                        plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
-                        plusSign.textContent = '+';
-                        ballsContainer.appendChild(plusSign);
+                    if (data.lottery_type && data.lottery_type.toLowerCase().includes('powerball')) {
+                        let powerballForLine = null;
                         
-                        // Add PowerBall number for this line
-                        const powerballElement = document.createElement('div');
-                        powerballElement.className = 'lottery-ball lottery-ball-red me-1 mb-1';
-                        powerballElement.style.border = '3px solid #ffd700';
-                        powerballElement.textContent = data.all_powerball[lineIndex];
-                        ballsContainer.appendChild(powerballElement);
+                        // Try multiple sources for PowerBall numbers
+                        if (data.all_powerball && data.all_powerball.length > lineIndex) {
+                            powerballForLine = data.all_powerball[lineIndex];
+                        } else if (data.bonus_numbers && data.bonus_numbers.length > lineIndex) {
+                            powerballForLine = data.bonus_numbers[lineIndex];
+                        } else if (data.ticket_data && data.ticket_data.all_powerball && data.ticket_data.all_powerball.length > lineIndex) {
+                            powerballForLine = data.ticket_data.all_powerball[lineIndex];
+                        }
+                        
+                        if (powerballForLine && powerballForLine !== '' && powerballForLine !== 'Not detected') {
+                            // Add + sign separator
+                            const plusSign = document.createElement('span');
+                            plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
+                            plusSign.textContent = '+';
+                            ballsContainer.appendChild(plusSign);
+                            
+                            // Add PowerBall number for this line
+                            const powerballElement = document.createElement('div');
+                            powerballElement.className = 'lottery-ball lottery-ball-red me-1 mb-1';
+                            powerballElement.style.border = '3px solid #ffd700';
+                            powerballElement.textContent = powerballForLine;
+                            ballsContainer.appendChild(powerballElement);
+                        }
                     }
 
                     lineDiv.appendChild(ballsContainer);
@@ -776,24 +795,37 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add PowerBall numbers inline for PowerBall games
             if (data.lottery_type && data.lottery_type.toLowerCase().includes('powerball')) {
                 // For PowerBall games, show PowerBall numbers with each line of main numbers
-                if (isMultipleLines && data.all_powerball && data.all_powerball.length > 0) {
+                if (isMultipleLines) {
                     // Already handled in the multiple lines display above - no separate section needed
-                } else if (!isMultipleLines && data.all_powerball && data.all_powerball.length > 0) {
+                } else if (!isMultipleLines) {
                     // Single line PowerBall - add PowerBall to the existing ballsContainer
                     const lastBallsContainer = numbersDiv.querySelector('.d-flex.flex-wrap.gap-2');
                     if (lastBallsContainer) {
-                        // Add + sign separator
-                        const plusSign = document.createElement('span');
-                        plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
-                        plusSign.textContent = '+';
-                        lastBallsContainer.appendChild(plusSign);
+                        let singlePowerball = null;
                         
-                        // Add PowerBall number
-                        const powerballElement = document.createElement('div');
-                        powerballElement.className = 'lottery-ball lottery-ball-red me-1 mb-1';
-                        powerballElement.style.border = '3px solid #ffd700';
-                        powerballElement.textContent = data.all_powerball[0];
-                        lastBallsContainer.appendChild(powerballElement);
+                        // Try multiple sources for PowerBall number
+                        if (data.all_powerball && data.all_powerball.length > 0) {
+                            singlePowerball = data.all_powerball[0];
+                        } else if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+                            singlePowerball = data.bonus_numbers[0];
+                        } else if (data.ticket_data && data.ticket_data.all_powerball && data.ticket_data.all_powerball.length > 0) {
+                            singlePowerball = data.ticket_data.all_powerball[0];
+                        }
+                        
+                        if (singlePowerball && singlePowerball !== '' && singlePowerball !== 'Not detected') {
+                            // Add + sign separator
+                            const plusSign = document.createElement('span');
+                            plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
+                            plusSign.textContent = '+';
+                            lastBallsContainer.appendChild(plusSign);
+                            
+                            // Add PowerBall number
+                            const powerballElement = document.createElement('div');
+                            powerballElement.className = 'lottery-ball lottery-ball-red me-1 mb-1';
+                            powerballElement.style.border = '3px solid #ffd700';
+                            powerballElement.textContent = singlePowerball;
+                            lastBallsContainer.appendChild(powerballElement);
+                        }
                     }
                 }
             } else {
