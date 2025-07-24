@@ -1742,12 +1742,32 @@ def run_complete_workflow_direct():
         screenshots = glob.glob('screenshots/*.png')
         logger.info(f"Found {len(screenshots)} screenshots to process")
         
+        # If no screenshots in directory, try to capture fresh ones first
         if not screenshots:
-            return jsonify({
-                'success': False,
-                'status': 'error',
-                'message': 'No screenshots found to process'
-            }), 400
+            logger.info("No screenshots found, capturing fresh screenshots first...")
+            try:
+                from screenshot_capture import capture_all_lottery_screenshots
+                capture_results = capture_all_lottery_screenshots()
+                logger.info(f"Screenshot capture results: {capture_results}")
+                
+                # Check again for screenshots after capture
+                screenshots = glob.glob('screenshots/*.png')
+                logger.info(f"After capture: Found {len(screenshots)} screenshots")
+                
+                if not screenshots:
+                    return jsonify({
+                        'success': False,
+                        'status': 'error',
+                        'message': 'No screenshots available and capture failed'
+                    }), 400
+                    
+            except Exception as capture_error:
+                logger.error(f"Screenshot capture failed: {capture_error}")
+                return jsonify({
+                    'success': False,
+                    'status': 'error',
+                    'message': f'Screenshot capture failed: {capture_error}'
+                }), 400
         
         # Initialize and run the comprehensive AI processor
         processor = CompleteLotteryProcessor()
