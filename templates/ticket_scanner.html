@@ -671,12 +671,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function displayPlayerTicketNumbers(data) {
-        // Debug: Log the data structure to understand what we're working with
-        console.log('DEBUG: displayPlayerTicketNumbers received data:', data);
-        console.log('DEBUG: bonus_numbers:', data.bonus_numbers);
-        console.log('DEBUG: all_powerball:', data.all_powerball);
-        console.log('DEBUG: main_numbers:', data.main_numbers);
-        
         // Create a section to show the player's selected numbers
         const existingSection = document.getElementById('player-numbers-section');
         if (existingSection) {
@@ -688,7 +682,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const playerSection = document.createElement('div');
         playerSection.id = 'player-numbers-section';
-        playerSection.className = 'mb-4 p-3 bg-light rounded';
+        playerSection.className = 'mb-4 p-3 bg-light rounded ticket-scanner';
         
         const title = document.createElement('h5');
         title.className = 'mb-3';
