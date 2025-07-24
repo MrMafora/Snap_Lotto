@@ -1220,39 +1220,39 @@
     z-index: 2;
 }
 
-/* Force hot/cold balls to match main lottery ball sizes - larger for better use of space */
+/* Smaller hot/cold balls to fit all three rows in the analytics box */
 .hot-number-item .lottery-ball, 
 .cold-number-item .lottery-ball, 
 .absent-number-item .lottery-ball {
-    width: 58px !important;
-    height: 58px !important;
-    min-width: 58px !important;
-    min-height: 58px !important;
-    max-width: 58px !important;
-    max-height: 58px !important;
-    font-size: 21px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    font-size: 16px !important;
     font-weight: bold !important;
-    line-height: 1 !important;
+    line-height: 40px !important;
     position: relative;
     z-index: 1;
     contain: layout style;
 }
 
-/* Force hot/cold ball number text to match main lottery ball numbers - slightly larger for better visibility */
+/* Smaller hot/cold ball number text to fit in smaller balls */
 .hot-number-item .lottery-ball .number,
 .cold-number-item .lottery-ball .number,
 .absent-number-item .lottery-ball .number {
-    font-size: 21px !important;
+    font-size: 16px !important;
     font-weight: bold !important;
-    line-height: 1 !important;
+    line-height: 40px !important;
     position: relative;
     z-index: 2;
 }
 
 .frequency-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #6c757d;
-    margin-top: 2px;
+    margin-top: 1px;
     padding: 0;
     line-height: 0.9;
     position: relative;
@@ -1268,6 +1268,16 @@
 /* Make the chart title more compact */
 .data-analytics-preview .chart-card h5 {
     margin-bottom: 2px;
+}
+
+/* Reduce spacing between hot/cold/absent sections to fit all three rows */
+.hot-numbers, .cold-numbers, .absent-numbers {
+    margin-bottom: 15px !important;
+}
+
+.hot-numbers h6, .cold-numbers h6, .absent-numbers h6 {
+    margin-bottom: 8px !important;
+    font-size: 0.9rem;
 }
 
 /* Mobile styles for small screens only */

@@ -949,10 +949,10 @@ function updateHotColdNumbers(data) {
                 
                 hotHTML += `
                     <div class="hot-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-xs ${colors[index]}">
+                        <span class="lottery-ball ${colors[index]}">
                             <span class="number">${number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${frequency}x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${frequency}x</small>
                     </div>
                 `;
             });
@@ -974,10 +974,10 @@ function updateHotColdNumbers(data) {
                 
                 coldHTML += `
                     <div class="cold-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-xs lottery-ball-blue">
+                        <span class="lottery-ball lottery-ball-blue">
                             <span class="number">${number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${frequency}x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${frequency}x</small>
                     </div>
                 `;
             });
@@ -995,10 +995,10 @@ function updateHotColdNumbers(data) {
             absentNumbers.slice(0, 5).forEach((number, index) => {
                 absentHTML += `
                     <div class="absent-number-item me-1 mb-1">
-                        <span class="lottery-ball lottery-ball-xs lottery-ball-gray">
+                        <span class="lottery-ball lottery-ball-gray">
                             <span class="number">${number}</span>
                         </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">0x</small>
+                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">0x</small>
                     </div>
                 `;
             });
