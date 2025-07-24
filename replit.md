@@ -18,8 +18,7 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - Complete lottery result display with all prize divisions and financial details
 - All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
-## Recent Changes
-- **COMPLETED: Complete Automation Workflow 4-Step Process FIXED (July 24, 2025)**
+
   - **USER REQUIREMENT IMPLEMENTED**: Fixed automation workflow to always follow complete 4-step cycle
   - **STEP 1**: Delete any existing images from screenshots folder (complete cleanup)
   - **STEP 2**: Capture 6 fresh screenshots from all SA lottery websites using Playwright + Chromium
@@ -110,6 +109,19 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
   - **USER EXPERIENCE**: Workflow now provides accurate status updates and file counts throughout the process
 
 ## Recent Changes
+- **COMPLETED: Duplicate Prevention System Implemented (July 24, 2025)**
+  - **MAJOR DATABASE CLEANUP**: Removed 19 duplicate lottery records, keeping only the most recent entry per draw
+  - **SMART DUPLICATE PREVENTION**: Enhanced AI processor to check for existing records before insertion
+  - **INTELLIGENT UPDATE LOGIC**: System now compares data quality and updates records when new extraction has better information
+  - **THREE-WAY LOGIC**: Insert new records, update incomplete records, or skip if data already exists
+  - **ENHANCED LOGGING**: Detailed tracking of insert/update/skip decisions for transparency
+  - **DATABASE INTEGRITY**: All draws now have unique lottery_type + draw_number + draw_date combinations
+  - **AUTOMATION READY**: Future extractions will maintain clean database without duplicates
+- **COMPLETED: Daily Lottery Bonus Numbers Column Removed (July 24, 2025)**
+  - **USER REQUEST FULFILLED**: Removed "BONUS NUMBERS" column from Daily Lottery results display
+  - **CONDITIONAL LOGIC**: Added template logic to show bonus columns only for lottery types that have bonus numbers
+  - **CLEAN DISPLAY**: Daily Lottery now shows only relevant columns (Draw ID, Game Date, Winning Numbers)
+  - **PRESERVED FUNCTIONALITY**: Other lottery types still display bonus numbers as expected
 - **COMPLETED: AI Processing Pipeline Completely Fixed and Operational (July 22, 2025)**
   - **BREAKTHROUGH SUCCESS**: Google Gemini 2.5 Pro AI extraction working perfectly with 95% confidence
   - **DATABASE INTEGRATION VERIFIED**: Successfully extracted and saved LOTTO Draw 2544 and Daily Lotto Draw 2260

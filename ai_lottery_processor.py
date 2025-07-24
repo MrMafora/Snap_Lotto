@@ -169,7 +169,7 @@ class CompleteLotteryProcessor:
     
     def save_to_database(self, lottery_data: Dict[str, Any]) -> int:
         """
-        Save extracted lottery data to PostgreSQL database
+        Save extracted lottery data to PostgreSQL database with duplicate prevention
         """
         try:
             cursor = self.db_connection.cursor(cursor_factory=DictCursor)
@@ -180,7 +180,88 @@ class CompleteLotteryProcessor:
             if lottery_data.get('next_draw_date'):
                 next_draw_date = datetime.strptime(lottery_data['next_draw_date'], '%Y-%m-%d').date()
             
-            # Insert lottery result without source_url (column doesn't exist)
+            # Check if this draw already exists (prevent duplicates)
+            check_query = """
+                SELECT id, main_numbers, prize_divisions 
+                FROM lottery_results 
+                WHERE lottery_type = %s AND draw_number = %s AND draw_date = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """
+            
+            cursor.execute(check_query, (
+                lottery_data['lottery_type'],
+                lottery_data['draw_id'],
+                draw_date
+            ))
+            
+            existing_record = cursor.fetchone()
+            
+            if existing_record:
+                # Record exists - check if we should update it
+                existing_id = existing_record[0]
+                existing_numbers = existing_record[1]
+                existing_divisions = existing_record[2]
+                
+                new_numbers = json.dumps(lottery_data['winning_numbers'])
+                new_divisions = json.dumps(lottery_data['prize_divisions'])
+                
+                # Compare if the new data has more complete information
+                should_update = False
+                update_reasons = []
+                
+                # Check if new extraction has better prize division data
+                if existing_divisions is None or existing_divisions == '[]':
+                    if lottery_data.get('prize_divisions') and len(lottery_data['prize_divisions']) > 0:
+                        should_update = True
+                        update_reasons.append("adding prize divisions")
+                
+                # Check if numbers are different (might be a correction)
+                if existing_numbers != new_numbers:
+                    should_update = True
+                    update_reasons.append("updating numbers")
+                
+                if should_update:
+                    logger.info(f"Updating existing record ID {existing_id}: {', '.join(update_reasons)}")
+                    
+                    update_query = """
+                        UPDATE lottery_results SET
+                            main_numbers = %s,
+                            bonus_numbers = %s,
+                            prize_divisions = %s,
+                            rollover_amount = %s,
+                            next_jackpot = %s,
+                            total_pool_size = %s,
+                            total_sales = %s,
+                            draw_machine = %s,
+                            next_draw_date = %s,
+                            updated_at = %s
+                        WHERE id = %s
+                        RETURNING id
+                    """
+                    
+                    cursor.execute(update_query, (
+                        new_numbers,
+                        json.dumps(lottery_data['bonus_numbers']) if lottery_data.get('bonus_numbers') else None,
+                        new_divisions,
+                        lottery_data.get('rollover_amount'),
+                        lottery_data.get('next_jackpot'),
+                        lottery_data.get('total_pool_size'),
+                        lottery_data.get('total_sales'),
+                        lottery_data.get('draw_machine'),
+                        next_draw_date,
+                        datetime.now(),
+                        existing_id
+                    ))
+                    
+                    self.db_connection.commit()
+                    logger.info(f"Successfully updated record ID: {existing_id}")
+                    return existing_id
+                else:
+                    logger.info(f"Duplicate found but no update needed for {lottery_data['lottery_type']} Draw {lottery_data['draw_id']} - skipping")
+                    return existing_id
+            
+            # No existing record found - insert new one
             insert_query = """
                 INSERT INTO lottery_results (
                     lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
@@ -209,7 +290,7 @@ class CompleteLotteryProcessor:
             record_id = cursor.fetchone()[0]
             self.db_connection.commit()
             
-            logger.info(f"Successfully saved to database with ID: {record_id}")
+            logger.info(f"Successfully saved new record to database with ID: {record_id}")
             return record_id
             
         except Exception as e:
