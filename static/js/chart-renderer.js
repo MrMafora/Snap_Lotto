@@ -343,12 +343,12 @@ function renderHotColdNumbers(frequencyData) {
         if (absentNumbersContainer && coldNumbers.length > 0) {
             let absentHTML = '';
             
-            // Show the 3 least frequent numbers as "not drawn recently"
-            const absentNumbers = coldNumbers.slice(0, 3);
+            // Show the 5 least frequent numbers as "not drawn recently"
+            const absentNumbers = coldNumbers.slice(0, 5);
             absentNumbers.forEach((item, index) => {
                 absentHTML += `
-                    <div class="absent-number-item me-1 mb-1">
-                        <span class="lottery-ball lottery-ball-xs lottery-ball-gray">
+                    <div class="absent-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-xs lottery-ball-red">
                             <span class="number">${item.number}</span>
                         </span>
                         <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${item.frequency}x</small>
@@ -357,6 +357,22 @@ function renderHotColdNumbers(frequencyData) {
             });
             
             absentNumbersContainer.innerHTML = absentHTML;
+            
+            // Add click event listeners to absent numbers
+            setTimeout(() => {
+                absentNumbersContainer.querySelectorAll('.interactive-number').forEach(element => {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const number = parseInt(this.getAttribute('data-number'));
+                        const frequency = parseInt(this.getAttribute('data-frequency'));
+                        console.log('Absent number clicked:', number, frequency);
+                        if (typeof window.highlightNumber === 'function') {
+                            window.highlightNumber(number, frequency);
+                        }
+                    });
+                });
+            }, 100);
         }
         
     } catch (error) {
