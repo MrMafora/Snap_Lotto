@@ -1023,19 +1023,18 @@
 
 /* Updated to use Bootstrap grid for equal width columns */
 .data-analytics-preview .chart-card {
-    height: 400px; /* Increased height to match other cards */
+    height: 350px; /* Optimized height to fit content without overflow */
     margin-bottom: 20px;
     background-color: #fff;
-    padding: 15px;
+    padding: 10px;
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     overflow: hidden; /* Hide overflow content instead of scrolling */
 }
 
-/* Match hot-cold card height with chart card - increased height to fit all content */
-.data-analytics-preview .card:not(.chart-card) {
-    height: 400px;
-    overflow: hidden;
+/* Match the Data Analytics box height to Latest Lottery Results box */
+.data-analytics-preview {
+    min-height: 600px; /* Match the height of the lottery results card */
 }
 
 .chart-card {
@@ -1044,7 +1043,7 @@
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-bottom: 20px;
-    height: 400px; /* Increased height to match both sides */
+    height: 350px; /* Optimized height to match both sides */
     overflow: hidden;
     display: flex;
     flex-direction: column;
