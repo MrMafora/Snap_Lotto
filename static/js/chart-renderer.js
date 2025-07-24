@@ -251,7 +251,7 @@ function renderExternalFrequencyChart(frequencyData) {
 }
 
 // Function to render Hot & Cold Numbers section
-function renderHotColdNumbers(frequencyData) {
+window.renderHotColdNumbers = function(frequencyData) {
     if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
         console.warn('No frequency data available for hot/cold numbers');
         return;
@@ -378,7 +378,7 @@ function renderHotColdNumbers(frequencyData) {
     } catch (error) {
         console.error('Error rendering hot/cold numbers:', error);
     }
-}
+};
 
 // Function to render division statistics chart
 function renderDivisionChart(divisionData) {

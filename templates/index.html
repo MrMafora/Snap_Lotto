@@ -905,8 +905,14 @@ function updateCharts(data) {
     // Update frequency chart
     updateFrequencyChart(data);
     
-    // Update hot and cold numbers section
-    updateHotColdNumbers(data);
+    // Update hot and cold numbers section using chart renderer
+    if (typeof window.renderHotColdNumbers === 'function') {
+        console.log('Calling renderHotColdNumbers with frequency data:', data.frequency_data);
+        window.renderHotColdNumbers(data.frequency_data);
+    } else {
+        console.error('renderHotColdNumbers function not available - falling back to updateHotColdNumbers');
+        updateHotColdNumbers(data);
+    }
     
     // Update division statistics chart
     updateDivisionChart(data);
