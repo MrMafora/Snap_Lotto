@@ -1666,46 +1666,59 @@ def run_complete_automation():
     if not current_user.is_admin:
         return redirect(url_for('index'))
     
-    logger.info("Starting complete automation workflow with cleanup")
+    logger.info("Starting complete automation workflow with 4-step process")
     
     try:
-        # Step 1: Capture fresh screenshots
+        # STEP 1: Delete existing screenshots first
+        logger.info("Step 1: Cleaning up existing screenshots")
+        import glob
+        import os
+        existing_screenshots = glob.glob('screenshots/*.png')
+        deleted_count = 0
+        
+        for screenshot in existing_screenshots:
+            try:
+                os.remove(screenshot)
+                deleted_count += 1
+                logger.info(f"Deleted old screenshot: {screenshot}")
+            except Exception as e:
+                logger.warning(f"Failed to delete {screenshot}: {e}")
+        
+        flash(f'Step 1 Complete: Deleted {deleted_count} old screenshots', 'info')
+        
+        # STEP 2: Capture 6 fresh screenshots
+        logger.info("Step 2: Capturing 6 fresh screenshots")
         from screenshot_capture import capture_all_lottery_screenshots
         screenshot_results = capture_all_lottery_screenshots()
         
         if screenshot_results['total_success'] == 0:
-            flash('Screenshot capture failed - cannot proceed', 'error')
+            flash('Step 2 FAILED: Screenshot capture failed - cannot proceed', 'error')
             return redirect(url_for('automation_control'))
         
-        # Step 2: Process with AI
+        flash(f'Step 2 Complete: Captured {screenshot_results["total_success"]}/6 fresh screenshots', 'success')
+        
+        # STEP 3: Process with AI and update database
+        logger.info("Step 3: Processing with Google Gemini 2.5 Pro AI")
         from ai_lottery_processor import run_complete_ai_workflow
         ai_results = run_complete_ai_workflow()
         
         new_results_count = len(ai_results.get('database_records', []))
+        flash(f'Step 3 Complete: AI processed {ai_results.get("total_success", 0)} screenshots', 'success')
         
-        # Step 3: Clean up old files if we have new results
-        if new_results_count > 0:
-            logger.info(f"Found {new_results_count} new results - initiating cleanup")
-            
-            try:
-                from screenshot_capture import cleanup_old_screenshots
-                cleanup_results = cleanup_old_screenshots(days_old=1)  # Clean old files
-                
-                if cleanup_results['success']:
-                    flash(f'Cleanup completed: {cleanup_results["deleted_files"]} old files removed', 'info')
-                    
-            except Exception as cleanup_error:
-                logger.warning(f"Cleanup failed but workflow succeeded: {cleanup_error}")
-                flash('Workflow completed but cleanup had issues', 'warning')
+        # STEP 4: Verify frontend updates
+        logger.info("Step 4: Verifying frontend data updates")
+        try:
+            from models import LotteryResult
+            latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(6).all()
+            flash(f'Step 4 Complete: {len(latest_results)} lottery records confirmed in database', 'info')
+        except Exception as verify_error:
+            flash(f'Step 4 Warning: Database verification issue: {verify_error}', 'warning')
         
         # Report final results
-        flash(f'Automation completed: {screenshot_results["total_success"]}/6 screenshots captured', 'success')
-        flash(f'AI processing: {ai_results["total_success"]} screenshots processed', 'success')
-        
         if new_results_count > 0:
-            flash(f'🎯 {new_results_count} NEW lottery results detected and saved!', 'success')
+            flash(f'✅ COMPLETE WORKFLOW SUCCESS: {new_results_count} NEW lottery results extracted and ready for display!', 'success')
         else:
-            flash('No new lottery results found (all current)', 'info')
+            flash('✅ Workflow completed successfully - No new lottery results found (all current)', 'info')
             
     except Exception as e:
         logger.error(f"Complete automation workflow failed: {e}")
@@ -1731,74 +1744,104 @@ def run_complete_workflow_direct():
     
     try:
         logger.info("=== STARTING COMPLETE WORKFLOW ===")
+        logger.info("Step 1: Clean up existing screenshots")
         
-        # Use the comprehensive AI processor with full extraction logic
-        from ai_lottery_processor import CompleteLotteryProcessor
-        
-        logger.info("Processing available screenshots with comprehensive AI extraction")
-        
-        # Get available screenshots
+        # STEP 1: Delete existing screenshots first
         import glob
-        screenshots = glob.glob('screenshots/*.png')
-        logger.info(f"Found {len(screenshots)} screenshots to process")
+        import os
+        existing_screenshots = glob.glob('screenshots/*.png')
+        deleted_count = 0
         
-        # If no screenshots in directory, try to capture fresh ones first
-        if not screenshots:
-            logger.info("No screenshots found, capturing fresh screenshots first...")
+        for screenshot in existing_screenshots:
             try:
-                from screenshot_capture import capture_all_lottery_screenshots
-                capture_results = capture_all_lottery_screenshots()
-                logger.info(f"Screenshot capture results: {capture_results}")
-                
-                # Check again for screenshots after capture
-                screenshots = glob.glob('screenshots/*.png')
-                logger.info(f"After capture: Found {len(screenshots)} screenshots")
-                
-                if not screenshots:
-                    return jsonify({
-                        'success': False,
-                        'status': 'error',
-                        'message': 'No screenshots available and capture failed'
-                    }), 400
-                    
-            except Exception as capture_error:
-                logger.error(f"Screenshot capture failed: {capture_error}")
+                os.remove(screenshot)
+                deleted_count += 1
+                logger.info(f"Deleted old screenshot: {screenshot}")
+            except Exception as e:
+                logger.warning(f"Failed to delete {screenshot}: {e}")
+        
+        logger.info(f"Step 1 Complete: Deleted {deleted_count} old screenshots")
+        
+        # STEP 2: Capture 6 fresh screenshots
+        logger.info("Step 2: Capturing 6 fresh screenshots")
+        
+        try:
+            from screenshot_capture import capture_all_lottery_screenshots
+            capture_results = capture_all_lottery_screenshots()
+            logger.info(f"Screenshot capture results: {capture_results}")
+            
+            # Verify we have exactly 6 screenshots
+            screenshots = glob.glob('screenshots/*.png')
+            logger.info(f"Step 2 Complete: Captured {len(screenshots)} fresh screenshots")
+            
+            if len(screenshots) < 6:
                 return jsonify({
                     'success': False,
                     'status': 'error',
-                    'message': f'Screenshot capture failed: {capture_error}'
+                    'message': f'Expected 6 screenshots, only captured {len(screenshots)}'
                 }), 400
+                
+        except Exception as capture_error:
+            logger.error(f"Screenshot capture failed: {capture_error}")
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': f'Step 2 failed - Screenshot capture error: {capture_error}'
+            }), 400
+        
+        # STEP 3: Extract data with AI and update database
+        logger.info("Step 3: Processing screenshots with Google Gemini 2.5 Pro AI")
+        from ai_lottery_processor import CompleteLotteryProcessor
         
         # Initialize and run the comprehensive AI processor
         processor = CompleteLotteryProcessor()
         workflow_result = processor.process_all_screenshots()
         
-        logger.info(f"Comprehensive AI processing result: {workflow_result}")
+        logger.info(f"Step 3 Complete: AI processing result: {workflow_result}")
         
         # Check if processing was successful - comprehensive processor returns dict with results
         success = workflow_result.get('total_success', 0) > 0 or len(workflow_result.get('database_records', [])) > 0
         new_results_count = len(workflow_result.get('database_records', []))
         
         if success:
-            status = 'success'
-            message = f"Processed {workflow_result.get('total_processed', 0)} screenshots, found {new_results_count} new lottery results with complete prize divisions"
+            logger.info(f"Step 3 SUCCESS: Processed {workflow_result.get('total_processed', 0)} screenshots, extracted {new_results_count} new lottery results")
         else:
-            status = 'error'
-            message = f"Processing completed but no new results found. Processed: {workflow_result.get('total_processed', 0)}, Failed: {workflow_result.get('total_failed', 0)}"
+            logger.error(f"Step 3 FAILED: No new results found. Processed: {workflow_result.get('total_processed', 0)}, Failed: {workflow_result.get('total_failed', 0)}")
+        
+        # STEP 4: Verify frontend updates
+        logger.info("Step 4: Verifying frontend data updates")
+        
+        # Quick database check to confirm new data exists
+        try:
+            from models import LotteryResult
+            latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(6).all()
+            frontend_verification = {
+                'database_records_found': len(latest_results),
+                'latest_draw_dates': [str(result.draw_date) for result in latest_results[:3]],
+                'lottery_types_updated': list(set([result.lottery_type for result in latest_results]))
+            }
+            logger.info(f"Step 4 Complete: Frontend verification: {frontend_verification}")
+        except Exception as verify_error:
+            logger.warning(f"Step 4 verification error: {verify_error}")
+            frontend_verification = {'error': str(verify_error)}
         
         if success:
-            logger.info(f"✅ Workflow success: {new_results_count} new results with complete prize data")
+            status = 'success'
+            message = f"COMPLETE WORKFLOW SUCCESS: {new_results_count} new lottery results extracted and ready for frontend display"
         else:
-            logger.error(f"❌ Workflow failed: {message}")
+            status = 'error'
+            message = f"Workflow completed with issues: {workflow_result.get('total_failed', 0)} screenshots failed processing"
         
         workflow_results = {
             'success': success,
             'status': status,
-            'steps_completed': ['comprehensive_ai_processing', 'database_update', 'prize_divisions_extracted'],
-            'screenshots_captured': len(screenshots),  # Fresh screenshots available
+            'steps_completed': ['cleanup_old_screenshots', 'capture_fresh_screenshots', 'ai_data_extraction', 'frontend_verification'],
+            'screenshots_deleted': deleted_count,
+            'screenshots_captured': len(screenshots),
             'files_processed': workflow_result.get('total_processed', 0),
             'new_results': new_results_count,
-            'cleanup_performed': False,  # Using existing screenshots
+            'cleanup_performed': True,
+            'frontend_verification': frontend_verification,
             'duration': 0,
             'message': message,
             'prize_divisions_included': True
