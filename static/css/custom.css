@@ -301,15 +301,15 @@ tbody, td, th {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile lottery ball optimization - readable sizing */
+/* Mobile lottery ball optimization - consistent with analytics */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 36px !important;
-        height: 36px !important;
-        font-size: 16px !important;
+        width: 35px !important;
+        height: 35px !important;
+        font-size: 14px !important;
         margin: 0 2px !important;
         border: 1px solid #fff !important;
-        line-height: 36px !important;
+        line-height: 35px !important;
         font-weight: bold !important;
     }
     
@@ -326,15 +326,15 @@ tbody, td, th {
     .hot-number-item .lottery-ball,
     .cold-number-item .lottery-ball,
     .absent-number-item .lottery-ball {
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        min-height: 36px !important;
-        max-width: 36px !important;
-        max-height: 36px !important;
-        font-size: 16px !important;
+        width: 35px !important;
+        height: 35px !important;
+        min-width: 35px !important;
+        min-height: 35px !important;
+        max-width: 35px !important;
+        max-height: 35px !important;
+        font-size: 14px !important;
         margin: 0 2px !important;
-        line-height: 36px !important;
+        line-height: 35px !important;
         font-weight: bold !important;
     }
     
@@ -342,20 +342,20 @@ tbody, td, th {
     .hot-number-item .lottery-ball .number,
     .cold-number-item .lottery-ball .number,
     .absent-number-item .lottery-ball .number {
-        font-size: 16px !important;
+        font-size: 14px !important;
         font-weight: bold !important;
-        line-height: 36px !important;
+        line-height: 35px !important;
     }
 }
 
 /* Extra small mobile screens - maintain readability */
 @media (max-width: 400px) {
     .lottery-ball {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 14px !important;
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 12px !important;
         margin: 0 1px !important;
-        line-height: 32px !important;
+        line-height: 30px !important;
         font-weight: bold !important;
     }
     
@@ -380,15 +380,15 @@ tbody, td, th {
     .hot-number-item .lottery-ball,
     .cold-number-item .lottery-ball,
     .absent-number-item .lottery-ball {
-        width: 32px !important;
-        height: 32px !important;
-        min-width: 32px !important;
-        min-height: 32px !important;
-        max-width: 32px !important;
-        max-height: 32px !important;
-        font-size: 14px !important;
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        min-height: 30px !important;
+        max-width: 30px !important;
+        max-height: 30px !important;
+        font-size: 12px !important;
         margin: 0 1px !important;
-        line-height: 32px !important;
+        line-height: 30px !important;
         font-weight: bold !important;
     }
     
