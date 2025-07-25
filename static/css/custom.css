@@ -309,15 +309,8 @@ tbody, td, th {
         font-size: 14px !important;
         margin: 0 2px !important;
         border: 1px solid #fff !important;
-        line-height: 1 !important;
+        line-height: 35px !important;
         font-weight: bold !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border-radius: 50% !important;
-        color: white !important;
-        visibility: visible !important;
-        opacity: 1 !important;
     }
     
     .lottery-ball-mobile {
@@ -347,7 +340,6 @@ tbody, td, th {
         align-items: center !important;
         justify-content: center !important;
         border-radius: 50% !important;
-        color: white !important;
         visibility: visible !important;
         opacity: 1 !important;
     }

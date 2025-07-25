@@ -278,9 +278,11 @@ window.renderHotColdNumbers = function(frequencyData) {
             let hotHTML = '';
             
             hotNumbers.forEach((item, index) => {
+                const ballColor = colors[index];
+                const textColor = (ballColor === 'lottery-ball-yellow' || ballColor === 'lottery-ball-blue') ? '#333' : 'white';
                 hotHTML += `
                     <div class="hot-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer; display: inline-block !important;">
-                        <span class="lottery-ball ${colors[index]}" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: white !important;">
+                        <span class="lottery-ball ${ballColor}" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: ${textColor} !important;">
                             <span class="number">${item.number}</span>
                         </span>
                         <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
@@ -319,7 +321,7 @@ window.renderHotColdNumbers = function(frequencyData) {
             coldNumbers.forEach((item, index) => {
                 coldHTML += `
                     <div class="cold-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer; display: inline-block !important;">
-                        <span class="lottery-ball lottery-ball-blue" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: white !important; background-color: var(--lottery-blue) !important;">
+                        <span class="lottery-ball lottery-ball-blue" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: #333 !important; background-color: var(--lottery-blue) !important;">
                             <span class="number">${item.number}</span>
                         </span>
                         <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
