@@ -309,8 +309,15 @@ tbody, td, th {
         font-size: 14px !important;
         margin: 0 2px !important;
         border: 1px solid #fff !important;
-        line-height: 35px !important;
+        line-height: 1 !important;
         font-weight: bold !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+        color: white !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
     .lottery-ball-mobile {
@@ -334,8 +341,15 @@ tbody, td, th {
         max-height: 35px !important;
         font-size: 14px !important;
         margin: 0 2px !important;
-        line-height: 35px !important;
+        line-height: 1 !important;
         font-weight: bold !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+        color: white !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
     /* Force hot/cold ball number text to match main lottery ball numbers */
@@ -388,8 +402,15 @@ tbody, td, th {
         max-height: 30px !important;
         font-size: 12px !important;
         margin: 0 1px !important;
-        line-height: 30px !important;
+        line-height: 1 !important;
         font-weight: bold !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+        color: white !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
     /* Force hot/cold ball number text to match main lottery ball numbers */
