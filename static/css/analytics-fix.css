@@ -1,0 +1,96 @@
+/* Analytics Display Fix - Override all containment and visibility issues */
+
+/* Force visibility for all hot/cold analytics sections */
+.hot-cold-container,
+.hot-numbers,
+.cold-numbers, 
+.absent-numbers {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    contain: none !important;
+    isolation: auto !important;
+    transform: none !important;
+}
+
+/* Force visibility for all hot/cold number items */
+.hot-number-item,
+.cold-number-item,
+.absent-number-item {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 10 !important;
+    contain: none !important;
+    isolation: auto !important;
+    transform: none !important;
+}
+
+/* Force visibility for lottery balls inside analytics */
+.hot-number-item .lottery-ball,
+.cold-number-item .lottery-ball,
+.absent-number-item .lottery-ball {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 10 !important;
+    contain: none !important;
+    isolation: auto !important;
+    transform: none !important;
+}
+
+/* Ensure containers are visible */
+#hotNumbersContainer,
+#coldNumbersContainer,
+#absentNumbersContainer {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    contain: none !important;
+    isolation: auto !important;
+    transform: none !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+/* Override any mobile hiding rules */
+@media (max-width: 576px) {
+    .hot-cold-container,
+    .hot-numbers,
+    .cold-numbers, 
+    .absent-numbers,
+    .hot-number-item,
+    .cold-number-item,
+    .absent-number-item,
+    #hotNumbersContainer,
+    #coldNumbersContainer,
+    #absentNumbersContainer {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+        contain: none !important;
+        isolation: auto !important;
+        transform: none !important;
+    }
+    
+    .hot-number-item,
+    .cold-number-item,
+    .absent-number-item {
+        display: inline-flex !important;
+    }
+    
+    #hotNumbersContainer,
+    #coldNumbersContainer,
+    #absentNumbersContainer {
+        display: flex !important;
+        flex-wrap: wrap !important;
+    }
+}
