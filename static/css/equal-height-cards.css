@@ -39,12 +39,14 @@
 
 /* Data Analytics card - optimized for its content */
 .data-analytics-preview {
+    height: auto !important;
     min-height: 520px !important;
-    max-height: 520px !important;
+    max-height: none !important;
 }
 
 .data-analytics-preview .card-body {
-    max-height: 470px !important;
+    height: auto !important;
+    max-height: none !important;
     overflow: visible !important;
     padding: 12px !important;
 }
