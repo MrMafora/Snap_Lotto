@@ -1165,7 +1165,89 @@ def admin():
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
     
-    return render_template('admin/dashboard.html')
+    # Get ticket processing statistics
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get total processed tickets
+        cur.execute("SELECT COUNT(*) as total_tickets FROM extraction_review")
+        total_result = cur.fetchone()
+        total_tickets = total_result['total_tickets'] if total_result else 0
+        
+        # Get tickets processed today
+        cur.execute("""
+            SELECT COUNT(*) as today_tickets 
+            FROM extraction_review 
+            WHERE DATE(created_at) = CURRENT_DATE
+        """)
+        today_result = cur.fetchone()
+        today_tickets = today_result['today_tickets'] if today_result else 0
+        
+        # Get tickets processed this week
+        cur.execute("""
+            SELECT COUNT(*) as week_tickets 
+            FROM extraction_review 
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+        """)
+        week_result = cur.fetchone()
+        week_tickets = week_result['week_tickets'] if week_result else 0
+        
+        # Get tickets by status
+        cur.execute("""
+            SELECT status, COUNT(*) as count 
+            FROM extraction_review 
+            GROUP BY status
+        """)
+        status_results = cur.fetchall()
+        status_stats = {row['status']: row['count'] for row in status_results}
+        
+        # Get average confidence score
+        cur.execute("""
+            SELECT AVG(confidence_score) as avg_confidence 
+            FROM extraction_review 
+            WHERE confidence_score > 0
+        """)
+        confidence_result = cur.fetchone()
+        avg_confidence = confidence_result['avg_confidence'] if confidence_result and confidence_result['avg_confidence'] else 0
+        
+        # Get most recent ticket processed
+        cur.execute("""
+            SELECT created_at 
+            FROM extraction_review 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        recent_result = cur.fetchone()
+        last_processed = recent_result['created_at'] if recent_result else None
+        
+        cur.close()
+        conn.close()
+        
+        ticket_stats = {
+            'total_tickets': total_tickets,
+            'today_tickets': today_tickets,
+            'week_tickets': week_tickets,
+            'status_stats': status_stats,
+            'avg_confidence': round(float(avg_confidence), 2) if avg_confidence else 0,
+            'last_processed': last_processed
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting ticket statistics: {e}")
+        ticket_stats = {
+            'total_tickets': 0,
+            'today_tickets': 0,
+            'week_tickets': 0,
+            'status_stats': {},
+            'avg_confidence': 0,
+            'last_processed': None
+        }
+    
+    return render_template('admin/dashboard.html', ticket_stats=ticket_stats)
 
 # Admin feature routes - restore the advanced features you built
 @app.route('/admin/data_preview')

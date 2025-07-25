@@ -30,7 +30,69 @@
     </div>
 </div>
 
-
+<!-- Ticket Processing Statistics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">TICKET PROCESSING STATISTICS</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-primary mb-1">{{ ticket_stats.total_tickets }}</h3>
+                            <p class="mb-0 text-muted">Total Tickets Processed</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-success mb-1">{{ ticket_stats.today_tickets }}</h3>
+                            <p class="mb-0 text-muted">Processed Today</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-info mb-1">{{ ticket_stats.week_tickets }}</h3>
+                            <p class="mb-0 text-muted">This Week</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="text-center">
+                            <h3 class="text-warning mb-1">{{ ticket_stats.avg_confidence }}%</h3>
+                            <p class="mb-0 text-muted">Avg Confidence Score</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>Status Breakdown:</h6>
+                        <div class="d-flex flex-wrap">
+                            {% for status, count in ticket_stats.status_stats.items() %}
+                            <span class="badge 
+                                {% if status == 'approved' %}bg-success{% elif status == 'pending' %}bg-warning{% else %}bg-danger{% endif %} 
+                                me-2 mb-1">
+                                {{ status.title() }}: {{ count }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Last Processed:</h6>
+                        <p class="text-muted mb-0">
+                            {% if ticket_stats.last_processed %}
+                                {{ ticket_stats.last_processed.strftime('%Y-%m-%d %H:%M:%S') }}
+                            {% else %}
+                                No tickets processed yet
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="row">
     <div class="col-md-4 mb-4">
