@@ -43,16 +43,16 @@ def frequency_analysis():
                     # Get lottery results from the database (filtered by lottery type if specified)
                     if lottery_type and lottery_type != 'all':
                         cur.execute("""
-                            SELECT lottery_type, numbers, bonus_numbers
-                            FROM lottery_result 
-                            WHERE numbers IS NOT NULL AND lottery_type = %s
+                            SELECT lottery_type, main_numbers, bonus_numbers
+                            FROM lottery_results 
+                            WHERE main_numbers IS NOT NULL AND lottery_type = %s
                             ORDER BY draw_date DESC
                         """, (lottery_type,))
                     else:
                         cur.execute("""
-                            SELECT lottery_type, numbers, bonus_numbers
-                            FROM lottery_result 
-                            WHERE numbers IS NOT NULL
+                            SELECT lottery_type, main_numbers, bonus_numbers
+                            FROM lottery_results 
+                            WHERE main_numbers IS NOT NULL
                             ORDER BY draw_date DESC
                         """)
                     
@@ -64,25 +64,49 @@ def frequency_analysis():
                         
                         # Add main numbers
                         if numbers:
+                            parsed_numbers = []
+                            
                             if isinstance(numbers, str):
                                 try:
-                                    numbers = json.loads(numbers)
+                                    # Handle PostgreSQL array format {1,2,3} or JSON format [1,2,3]
+                                    if numbers.startswith('{') and numbers.endswith('}'):
+                                        # PostgreSQL array format
+                                        numbers_str = numbers.strip('{}')
+                                        if numbers_str:
+                                            parsed_numbers = [int(x.strip()) for x in numbers_str.split(',')]
+                                    else:
+                                        # JSON format
+                                        parsed_numbers = json.loads(numbers)
                                 except:
                                     continue
-                            if isinstance(numbers, list):
-                                all_numbers.extend(numbers)
+                            elif isinstance(numbers, list):
+                                parsed_numbers = numbers
+                            
+                            all_numbers.extend(parsed_numbers)
                         
                         # Add bonus numbers  
                         if bonus_numbers:
+                            parsed_bonus = []
+                            
                             if isinstance(bonus_numbers, str):
                                 try:
-                                    bonus_numbers = json.loads(bonus_numbers)
+                                    # Handle PostgreSQL array format {1} or JSON format [1]
+                                    if bonus_numbers.startswith('{') and bonus_numbers.endswith('}'):
+                                        # PostgreSQL array format
+                                        bonus_str = bonus_numbers.strip('{}')
+                                        if bonus_str:
+                                            parsed_bonus = [int(x.strip()) for x in bonus_str.split(',')]
+                                    else:
+                                        # JSON format
+                                        parsed_bonus = json.loads(bonus_numbers)
                                 except:
                                     continue
-                            if isinstance(bonus_numbers, list):
-                                all_numbers.extend(bonus_numbers)
+                            elif isinstance(bonus_numbers, list):
+                                parsed_bonus = bonus_numbers
                             elif isinstance(bonus_numbers, (int, float)):
-                                all_numbers.append(int(bonus_numbers))
+                                parsed_bonus = [int(bonus_numbers)]
+                            
+                            all_numbers.extend(parsed_bonus)
                         
         except Exception as e:
             logger.error(f"Database error in frequency analysis: {e}")
@@ -135,27 +159,46 @@ def frequency_analysis():
 @bp.route('/stats')
 @cached_query(ttl=600)
 def lottery_stats():
-    """Get general lottery statistics"""
+    """Get general lottery statistics from authentic database"""
     try:
-        # Get total draws per lottery type
-        stats = db.session.query(
-            LotteryResult.lottery_type,
-            db.func.count(LotteryResult.id).label('total_draws'),
-            db.func.max(LotteryResult.draw_date).label('latest_draw')
-        ).group_by(LotteryResult.lottery_type).all()
+        import psycopg2
+        import os
+        
+        connection_string = os.environ.get('DATABASE_URL')
+        
+        with psycopg2.connect(connection_string) as conn:
+            with conn.cursor() as cur:
+                # Get statistics per lottery type using real database
+                cur.execute("""
+                    SELECT lottery_type, 
+                           COUNT(*) as total_draws,
+                           MAX(draw_date) as latest_draw
+                    FROM lottery_results 
+                    GROUP BY lottery_type
+                    ORDER BY lottery_type
+                """)
+                
+                stats = cur.fetchall()
+                
+                lottery_types = []
+                total_draws = 0
+                
+                for stat in stats:
+                    lottery_type, draws_count, latest_draw = stat
+                    lottery_types.append({
+                        'type': lottery_type,
+                        'total_draws': draws_count,
+                        'latest_draw': latest_draw.isoformat() if latest_draw else None
+                    })
+                    total_draws += draws_count
         
         response = {
-            'lottery_types': [
-                {
-                    'type': stat.lottery_type,
-                    'total_draws': stat.total_draws,
-                    'latest_draw': stat.latest_draw.isoformat() if stat.latest_draw else None
-                }
-                for stat in stats
-            ],
-            'total_draws': sum(stat.total_draws for stat in stats)
+            'lottery_types': lottery_types,
+            'total_draws': total_draws,
+            'message': 'Statistics from authentic lottery database'
         }
         
+        logger.info(f"Returning stats for {len(lottery_types)} lottery types, {total_draws} total draws")
         return jsonify(response)
         
     except Exception as e:
@@ -165,20 +208,86 @@ def lottery_stats():
 @bp.route('/patterns')
 @cached_query(ttl=900)
 def pattern_analysis():
-    """Analyze number patterns"""
+    """Analyze number patterns from authentic lottery data"""
     try:
-        # Get recent results
-        results = db.session.query(LotteryResult).filter(
-            LotteryResult.draw_date >= datetime.now().date() - timedelta(days=90)
-        ).all()
+        import psycopg2
+        import os
+        from datetime import datetime, timedelta
+        
+        connection_string = os.environ.get('DATABASE_URL')
+        all_numbers = []
+        consecutive_pairs = []
+        even_count = 0
+        odd_count = 0
+        
+        with psycopg2.connect(connection_string) as conn:
+            with conn.cursor() as cur:
+                # Get recent results (last 90 days) with proper type handling
+                ninety_days_ago = (datetime.now() - timedelta(days=90)).date()
+                
+                cur.execute("""
+                    SELECT main_numbers::text, bonus_numbers::text 
+                    FROM lottery_results 
+                    WHERE draw_date >= %s AND main_numbers IS NOT NULL
+                    ORDER BY draw_date DESC
+                """, (ninety_days_ago,))
+                
+                results = cur.fetchall()
+                
+                for row in results:
+                    main_numbers, bonus_numbers = row
+                    
+                    # Parse main numbers
+                    if main_numbers:
+                        parsed_numbers = []
+                        if isinstance(main_numbers, str):
+                            if main_numbers.startswith('[') and main_numbers.endswith(']'):
+                                parsed_numbers = json.loads(main_numbers)
+                            elif main_numbers.startswith('{') and main_numbers.endswith('}'):
+                                numbers_str = main_numbers.strip('{}')
+                                if numbers_str:
+                                    parsed_numbers = [int(x.strip()) for x in numbers_str.split(',')]
+                        elif isinstance(main_numbers, list):
+                            parsed_numbers = main_numbers
+                        
+                        all_numbers.extend(parsed_numbers)
+                        
+                        # Check for consecutive pairs
+                        sorted_nums = sorted(parsed_numbers)
+                        for i in range(len(sorted_nums) - 1):
+                            if sorted_nums[i+1] - sorted_nums[i] == 1:
+                                consecutive_pairs.append((sorted_nums[i], sorted_nums[i+1]))
+                        
+                        # Count even/odd
+                        for num in parsed_numbers:
+                            if num % 2 == 0:
+                                even_count += 1
+                            else:
+                                odd_count += 1
+        
+        # Calculate patterns
+        total_numbers = len(all_numbers)
+        frequency = Counter(all_numbers)
         
         patterns = {
-            'consecutive_pairs': [],
-            'even_odd_ratio': {},
-            'sum_ranges': {},
-            'hot_numbers': [],
-            'cold_numbers': []
+            'consecutive_pairs': list(set(consecutive_pairs))[:10],
+            'even_odd_ratio': {
+                'even': round((even_count / total_numbers) * 100, 1) if total_numbers > 0 else 0,
+                'odd': round((odd_count / total_numbers) * 100, 1) if total_numbers > 0 else 0
+            },
+            'hot_numbers': [num for num, freq in frequency.most_common(10)],
+            'cold_numbers': [num for num, freq in frequency.most_common()[-10:]],
+            'total_draws_analyzed': len(results),
+            'total_numbers_analyzed': total_numbers,
+            'message': 'Pattern analysis from authentic lottery database'
         }
+        
+        logger.info(f"Pattern analysis complete: {patterns['total_draws_analyzed']} draws, {patterns['total_numbers_analyzed']} numbers")
+        return jsonify(patterns)
+        
+    except Exception as e:
+        logger.error(f"Pattern analysis error: {e}")
+        return jsonify({'error': str(e)}), 500
         
         # Analyze patterns (simplified)
         all_numbers = []
