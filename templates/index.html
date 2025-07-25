@@ -194,7 +194,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin: 0 2px 0 0;
+        margin: 0 1px 0 0;
     }
     
     /* Mobile card layout */
@@ -458,10 +458,10 @@
                     <table class="table table-lottery table-striped mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-2 py-1">GAME TYPE</th>
-                                <th class="py-1">DRAW</th>
-                                <th class="py-1">DATE</th>
-                                <th class="py-1">NUMBERS</th>
+                                <th class="ps-2 py-1" style="width: 22%;">GAME TYPE</th>
+                                <th class="py-1" style="width: 12%;">DRAW</th>
+                                <th class="py-1" style="width: 18%;">DATE</th>
+                                <th class="py-1" style="width: 48%;">NUMBERS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -512,7 +512,7 @@
                                             </div>
                                         {% endfor %}
                                         {% if result.bonus_numbers and result.bonus_numbers != '{}' and 'DAILY' not in result.lottery_type.upper() %}
-                                            <div class="mx-2 d-flex align-items-center">+</div>
+                                            <div class="mx-1 d-flex align-items-center" style="font-size: 14px;">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
                                                 <div class="lottery-ball-container">
                                                     <span class="lottery-ball lottery-ball-yellow lottery-ball-bonus">
