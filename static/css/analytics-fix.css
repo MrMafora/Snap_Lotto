@@ -16,6 +16,22 @@
     transform: none !important;
 }
 
+/* Fix the Data Analytics card height to show all three sections */
+.data-analytics-preview {
+    height: auto !important;
+    min-height: 400px !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.data-analytics-preview .chart-card {
+    height: auto !important;
+    min-height: 380px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 20px !important;
+}
+
 /* Ensure absent numbers container specifically shows */
 #absentNumbersContainer {
     display: flex !important;
