@@ -19,9 +19,9 @@
 /* Fix the Data Analytics card height to match Latest Lottery Results */
 .data-analytics-preview {
     height: auto !important;
-    min-height: 350px !important;
-    max-height: 350px !important;
-    overflow: hidden !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
 }
 
 .data-analytics-preview .chart-card {

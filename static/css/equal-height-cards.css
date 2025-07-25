@@ -1,0 +1,77 @@
+/* Equal Height Cards for Latest Lottery Results and Data Analytics Preview */
+
+/* Force equal height for both cards in the row */
+.equal-height-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.equal-height-row > .col-lg-6 {
+    display: flex;
+    flex-direction: column;
+}
+
+.equal-height-row .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.equal-height-row .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Specific height matching for lottery results and analytics */
+@media (min-width: 992px) {
+    .equal-height-row .col-lg-6:first-child .card,
+    .equal-height-row .col-lg-6:last-child .card {
+        min-height: 400px;
+        max-height: 400px;
+    }
+    
+    .equal-height-row .card-body.results-body,
+    .data-analytics-preview .card-body {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+}
+
+/* Ensure the Data Analytics card matches the results card height exactly */
+.data-analytics-preview {
+    min-height: 400px !important;
+    max-height: 400px !important;
+}
+
+.data-analytics-preview .card-body {
+    max-height: 350px !important;
+    overflow-y: auto !important;
+    padding: 15px !important;
+}
+
+/* Adjust chart containers to fit within the constrained height */
+.data-analytics-preview .chart-card {
+    height: 280px !important;
+    min-height: 280px !important;
+    max-height: 280px !important;
+    overflow: hidden !important;
+}
+
+.data-analytics-preview .hot-cold-container {
+    height: 220px !important;
+    min-height: 220px !important;
+    max-height: 220px !important;
+    overflow: hidden !important;
+}
+
+.data-analytics-preview .bar-chart-container {
+    height: 200px !important;
+    max-height: 200px !important;
+}
+
+.data-analytics-preview .bar-chart-container svg {
+    height: 180px !important;
+    max-height: 180px !important;
+}
