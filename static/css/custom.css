@@ -489,20 +489,22 @@ tbody, td, th {
 
 .lottery-ball-red {
     background-color: var(--sa-lottery-red);
-    color: white;
+    color: white !important;
 }
 
 .lottery-ball-yellow {
     background-color: var(--sa-lottery-yellow);
+    color: black !important;
 }
 
 .lottery-ball-green {
     background-color: var(--sa-lottery-green);
-    color: white;
+    color: white !important;
 }
 
 .lottery-ball-blue {
     background-color: var(--sa-lottery-blue);
+    color: black !important;
 }
 
 .lottery-ball-bonus {

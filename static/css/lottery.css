@@ -161,6 +161,27 @@
     line-height: 1;
 }
 
+/* Color-specific text contrast for better readability */
+.lottery-ball-red {
+    background-color: var(--lottery-red);
+    color: white !important;
+}
+
+.lottery-ball-yellow {
+    background-color: var(--lottery-yellow);
+    color: black !important;
+}
+
+.lottery-ball-green {
+    background-color: var(--lottery-green);
+    color: white !important;
+}
+
+.lottery-ball-blue {
+    background-color: var(--lottery-blue);
+    color: black !important;
+}
+
 /* Ticket Scanner Balls - smaller size to match analytics */
 .ticket-scanner .lottery-ball {
     width: 40px;
