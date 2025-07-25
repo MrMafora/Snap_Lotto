@@ -1286,7 +1286,7 @@ def scheduler_status():
     
     # Get scheduler status
     try:
-        from daily_scheduler import get_scheduler_status
+        from simple_daily_scheduler import get_scheduler_status
         scheduler_data = get_scheduler_status()
         
         # Get recent automation logs
@@ -1455,11 +1455,11 @@ def start_scheduler():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     try:
-        from daily_scheduler import start_scheduler as start_sched
+        from simple_daily_scheduler import start_scheduler as start_sched
         success = start_sched()
         
         if success:
-            logger.info("Daily scheduler started via admin interface")
+            logger.info("Simple daily scheduler started via admin interface")
             return jsonify({
                 'success': True,
                 'message': 'Daily automation scheduler started successfully! Runs at 10:30 PM South African time.'
@@ -1482,11 +1482,11 @@ def stop_scheduler():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     try:
-        from daily_scheduler import stop_scheduler as stop_sched
+        from simple_daily_scheduler import stop_scheduler as stop_sched
         success = stop_sched()
         
         if success:
-            logger.info("Daily scheduler stopped via admin interface")
+            logger.info("Simple daily scheduler stopped via admin interface")
             return jsonify({
                 'success': True,
                 'message': 'Daily automation scheduler stopped successfully.'
@@ -1509,7 +1509,7 @@ def run_automation_now():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     try:
-        from daily_scheduler import run_automation_now as run_now
+        from simple_daily_scheduler import run_automation_now as run_now
         success = run_now()
         
         if success:
@@ -2350,15 +2350,15 @@ except ImportError as e:
 
 logger.info("All modules lazy-loaded successfully")
 
-# Initialize daily scheduler on startup
+# Initialize simple daily scheduler on startup
 try:
-    from daily_scheduler import start_scheduler
+    from simple_daily_scheduler import start_scheduler
     if start_scheduler():
-        logger.info("✅ Daily automation scheduler started on application startup")
+        logger.info("✅ Simple daily automation scheduler started on application startup")
     else:
         logger.warning("⚠️ Scheduler was already running or failed to start")
 except Exception as e:
-    logger.error(f"❌ Failed to start scheduler on startup: {e}")
+    logger.error(f"❌ Failed to start simple scheduler on startup: {e}")
 
 if __name__ == '__main__':
     # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development
