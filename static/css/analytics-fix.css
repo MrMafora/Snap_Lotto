@@ -25,11 +25,39 @@
 }
 
 .data-analytics-preview .chart-card {
-    height: auto !important;
-    min-height: 380px !important;
-    max-height: none !important;
+    height: 260px !important;
+    min-height: 260px !important;
+    max-height: 260px !important;
     overflow: visible !important;
     padding-bottom: 20px !important;
+}
+
+/* Make Hot & Cold Numbers section match chart height */
+.hot-cold-container {
+    height: 200px !important;
+    min-height: 200px !important;
+    max-height: 200px !important;
+    overflow-y: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+}
+
+/* Ensure equal spacing for the three sections */
+.hot-numbers, .cold-numbers, .absent-numbers {
+    flex: 1 !important;
+    margin-bottom: 8px !important;
+    min-height: 60px !important;
+}
+
+/* Compact sections to fit better */
+.hot-numbers h6, .cold-numbers h6, .absent-numbers h6 {
+    font-size: 0.9rem !important;
+    margin-bottom: 8px !important;
+}
+
+.hot-numbers h6 small, .cold-numbers h6 small, .absent-numbers h6 small {
+    font-size: 0.7rem !important;
 }
 
 /* Ensure absent numbers container specifically shows */
@@ -97,6 +125,19 @@
 
 /* Override any mobile hiding rules */
 @media (max-width: 576px) {
+    .hot-cold-container {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        flex-direction: column !important;
+    }
+    
+    .hot-numbers, .cold-numbers, .absent-numbers {
+        flex: none !important;
+        min-height: auto !important;
+        margin-bottom: 15px !important;
+    }
+    
     .hot-cold-container,
     .hot-numbers,
     .cold-numbers, 
