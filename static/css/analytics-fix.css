@@ -16,48 +16,48 @@
     transform: none !important;
 }
 
-/* Fix the Data Analytics card height to show all three sections */
+/* Fix the Data Analytics card height to match Latest Lottery Results */
 .data-analytics-preview {
     height: auto !important;
-    min-height: 400px !important;
-    max-height: none !important;
-    overflow: visible !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
+    overflow: hidden !important;
 }
 
 .data-analytics-preview .chart-card {
-    height: 260px !important;
-    min-height: 260px !important;
-    max-height: 260px !important;
+    height: 300px !important;
+    min-height: 300px !important;
+    max-height: 300px !important;
     overflow: hidden !important;
-    padding: 10px !important;
-    padding-bottom: 15px !important;
+    padding: 8px !important;
+    padding-bottom: 10px !important;
 }
 
 /* Ensure bar chart fits properly */
 .bar-chart-container {
-    height: 180px !important;
-    max-height: 180px !important;
+    height: 240px !important;
+    max-height: 240px !important;
     overflow: hidden !important;
 }
 
 /* Make Hot & Cold Numbers section match chart height with proper content fitting */
 .hot-cold-container {
-    height: 200px !important;
-    min-height: 200px !important;
-    max-height: 200px !important;
+    height: 240px !important;
+    min-height: 240px !important;
+    max-height: 240px !important;
     overflow-y: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-evenly !important;
-    padding: 2px !important;
+    padding: 4px !important;
 }
 
 /* Ultra compact spacing for the three sections */
 .hot-numbers, .cold-numbers, .absent-numbers {
     flex: 1 !important;
-    margin-bottom: 2px !important;
-    min-height: 45px !important;
-    max-height: 55px !important;
+    margin-bottom: 4px !important;
+    min-height: 60px !important;
+    max-height: 75px !important;
     overflow: hidden !important;
 }
 
@@ -75,7 +75,7 @@
 
 /* Ultra compact lottery ball containers */
 #hotNumbersContainer, #coldNumbersContainer, #absentNumbersContainer {
-    max-height: 30px !important;
+    max-height: 40px !important;
     overflow: hidden !important;
 }
 

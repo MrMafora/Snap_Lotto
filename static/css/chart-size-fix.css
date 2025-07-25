@@ -2,8 +2,8 @@
 
 /* Reduce bar chart height and bar dimensions */
 .data-analytics-preview .bar-chart-container svg {
-    height: 160px !important;
-    max-height: 160px !important;
+    height: 220px !important;
+    max-height: 220px !important;
 }
 
 /* Smaller bar widths and spacing */
