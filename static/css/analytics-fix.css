@@ -28,36 +28,54 @@
     height: 260px !important;
     min-height: 260px !important;
     max-height: 260px !important;
-    overflow: visible !important;
-    padding-bottom: 20px !important;
+    overflow: hidden !important;
+    padding: 10px !important;
+    padding-bottom: 15px !important;
 }
 
-/* Make Hot & Cold Numbers section match chart height */
+/* Ensure bar chart fits properly */
+.bar-chart-container {
+    height: 200px !important;
+    max-height: 200px !important;
+    overflow: hidden !important;
+}
+
+/* Make Hot & Cold Numbers section match chart height with proper content fitting */
 .hot-cold-container {
     height: 200px !important;
     min-height: 200px !important;
     max-height: 200px !important;
-    overflow-y: visible !important;
+    overflow-y: auto !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
+    padding: 5px !important;
 }
 
-/* Ensure equal spacing for the three sections */
+/* Ensure compact spacing for the three sections */
 .hot-numbers, .cold-numbers, .absent-numbers {
-    flex: 1 !important;
-    margin-bottom: 8px !important;
-    min-height: 60px !important;
+    flex: none !important;
+    margin-bottom: 6px !important;
+    min-height: 50px !important;
+    max-height: 60px !important;
 }
 
-/* Compact sections to fit better */
+/* Very compact sections to fit all content */
 .hot-numbers h6, .cold-numbers h6, .absent-numbers h6 {
-    font-size: 0.9rem !important;
-    margin-bottom: 8px !important;
+    font-size: 0.85rem !important;
+    margin-bottom: 4px !important;
+    line-height: 1.2 !important;
 }
 
 .hot-numbers h6 small, .cold-numbers h6 small, .absent-numbers h6 small {
-    font-size: 0.7rem !important;
+    font-size: 0.65rem !important;
+    display: block !important;
+}
+
+/* Compact lottery ball containers */
+#hotNumbersContainer, #coldNumbersContainer, #absentNumbersContainer {
+    max-height: 35px !important;
+    overflow: hidden !important;
 }
 
 /* Ensure absent numbers container specifically shows */

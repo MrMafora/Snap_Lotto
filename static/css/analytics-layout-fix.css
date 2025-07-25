@@ -1,0 +1,91 @@
+/* Analytics Layout Optimization - Ensure perfect content fitting */
+
+/* Data Analytics balls sizing for compact display */
+.data-analytics-preview .lottery-ball {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    font-size: 14px !important;
+    margin: 0 3px 3px 0 !important;
+    line-height: 1 !important;
+}
+
+/* Frequency text under balls */
+.data-analytics-preview .lottery-ball .frequency {
+    font-size: 8px !important;
+    bottom: 5% !important;
+}
+
+/* Interactive number items spacing */
+.hot-number-item, .cold-number-item, .absent-number-item {
+    margin: 0 2px 2px 0 !important;
+    display: inline-block !important;
+}
+
+/* Chart card title spacing */
+.chart-card h6 {
+    font-size: 0.9rem !important;
+    margin-bottom: 8px !important;
+    font-weight: 600 !important;
+}
+
+/* Analytics sections proper spacing */
+.data-analytics-preview .row {
+    margin: 0 !important;
+}
+
+.data-analytics-preview .col-md-6 {
+    padding: 5px !important;
+}
+
+/* Ensure proper content distribution */
+.hot-cold-container > div {
+    padding: 2px 0 !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .data-analytics-preview .lottery-ball {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        max-width: 28px !important;
+        max-height: 28px !important;
+        font-size: 12px !important;
+        margin: 0 2px 2px 0 !important;
+    }
+    
+    .hot-cold-container {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+    
+    .hot-numbers, .cold-numbers, .absent-numbers {
+        max-height: none !important;
+        margin-bottom: 12px !important;
+    }
+    
+    #hotNumbersContainer, #coldNumbersContainer, #absentNumbersContainer {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .data-analytics-preview .lottery-ball {
+        width: 25px !important;
+        height: 25px !important;
+        min-width: 25px !important;
+        min-height: 25px !important;
+        max-width: 25px !important;
+        max-height: 25px !important;
+        font-size: 11px !important;
+        margin: 0 1px 1px 0 !important;
+    }
+}
