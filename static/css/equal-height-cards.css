@@ -51,25 +51,25 @@
 
 /* Adjust chart containers for optimal analytics display */
 .data-analytics-preview .chart-card {
-    height: 410px !important;
-    min-height: 410px !important;
-    max-height: 410px !important;
+    height: 350px !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
     overflow: visible !important;
 }
 
 .data-analytics-preview .hot-cold-container {
-    height: 360px !important;
-    min-height: 360px !important;
-    max-height: 360px !important;
+    height: 300px !important;
+    min-height: 300px !important;
+    max-height: 300px !important;
     overflow: visible !important;
 }
 
 .data-analytics-preview .bar-chart-container {
-    height: 330px !important;
-    max-height: 330px !important;
+    height: 270px !important;
+    max-height: 270px !important;
 }
 
 .data-analytics-preview .bar-chart-container svg {
-    height: 310px !important;
-    max-height: 310px !important;
+    height: 250px !important;
+    max-height: 250px !important;
 }
