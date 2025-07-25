@@ -1227,15 +1227,15 @@
 
 /* Hot & Cold Numbers Styling */
 .hot-cold-container {
-    display: block;
-    height: 100%;
-    overflow: visible; /* Allow content to be visible */
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important; /* Allow content to be visible */
     padding-bottom: 2px;
     /* Removed transform scale to match main lottery ball sizes */
     transform-origin: top center;
     position: relative;
     z-index: 5;
-    /* Removed containment that was hiding elements */
+    /* Ensure container is fully visible */
 }
 
 .hot-numbers, .cold-numbers, .absent-numbers {
@@ -1243,8 +1243,9 @@
     margin-bottom: 15px;
     position: relative;
     z-index: 3;
-    overflow: visible;
-    /* Removed containment that was hiding sections */
+    overflow: visible !important;
+    display: block !important;
+    /* Ensure sections are fully visible */
 }
 
 /* Smaller headings for hot/cold sections */
@@ -1259,15 +1260,17 @@
 }
 
 .hot-number-item, .cold-number-item, .absent-number-item {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 0 5px 10px 0; /* Match lottery ball margins */
-    padding: 0;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    margin: 0 5px 10px 0 !important; /* Match lottery ball margins */
+    padding: 0 !important;
     /* Removed transform scale to match main lottery ball sizes */
     transform-origin: center top;
-    position: relative;
-    z-index: 2;
+    position: relative !important;
+    z-index: 2 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Hot/cold balls consistent with analytics display */
