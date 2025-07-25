@@ -1229,13 +1229,13 @@
 .hot-cold-container {
     display: block;
     height: 100%;
-    overflow: hidden; /* Hide scrollbar and overflow content */
+    overflow: visible; /* Allow content to be visible */
     padding-bottom: 2px;
     /* Removed transform scale to match main lottery ball sizes */
     transform-origin: top center;
     position: relative;
     z-index: 5;
-    contain: layout style;
+    /* Removed containment that was hiding elements */
 }
 
 .hot-numbers, .cold-numbers, .absent-numbers {
@@ -1244,7 +1244,7 @@
     position: relative;
     z-index: 3;
     overflow: visible;
-    contain: layout style;
+    /* Removed containment that was hiding sections */
 }
 
 /* Smaller headings for hot/cold sections */
@@ -1285,7 +1285,7 @@
     line-height: 1 !important;
     position: relative;
     z-index: 1;
-    contain: layout style;
+    /* Removed containment that was hiding balls */
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;

@@ -21,9 +21,7 @@
 .hot-cold-container {
     position: relative;
     z-index: 5 !important;
-    isolation: isolate !important;
-    contain: layout style paint !important;
-    transform: translateZ(0); /* Force new stacking context */
+    /* Removed aggressive containment that was hiding elements */
 }
 
 /* Individual lottery balls contained within their sections */
@@ -32,7 +30,7 @@
 .absent-number-item {
     position: relative;
     z-index: 2 !important;
-    contain: layout style !important;
+    /* Removed containment that was hiding elements */
 }
 
 .hot-number-item .lottery-ball,
@@ -40,7 +38,7 @@
 .absent-number-item .lottery-ball {
     position: relative;
     z-index: 1 !important;
-    contain: layout style !important;
+    /* Removed containment that was hiding balls */
 }
 
 /* Section headings stay above their content */
@@ -56,18 +54,17 @@
 /* Mobile-specific containment */
 @media (max-width: 576px) {
     .data-analytics-preview {
-        contain: layout style !important;
+        /* Removed containment that was hiding analytics */
     }
     
     .hot-numbers, .cold-numbers, .absent-numbers {
-        contain: layout style !important;
-        isolation: isolate !important;
+        /* Removed containment that was hiding elements */
         overflow: visible !important;
     }
     
     /* Ensure chart card shows hot/cold sections on mobile */
     .chart-card {
         overflow: visible !important;
-        contain: layout style !important;
+        /* Removed containment that was hiding content */
     }
 }
