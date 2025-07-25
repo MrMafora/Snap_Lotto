@@ -42,22 +42,22 @@
 
 /* Make Hot & Cold Numbers section match chart height with proper content fitting */
 .hot-cold-container {
-    height: 260px !important;
-    min-height: 260px !important;
-    max-height: 260px !important;
+    height: 240px !important;
+    min-height: 240px !important;
+    max-height: 240px !important;
     overflow-y: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-evenly !important;
-    padding: 6px !important;
+    padding: 5px !important;
 }
 
 /* Ultra compact spacing for the three sections */
 .hot-numbers, .cold-numbers, .absent-numbers {
     flex: 1 !important;
-    margin-bottom: 6px !important;
-    min-height: 75px !important;
-    max-height: 85px !important;
+    margin-bottom: 5px !important;
+    min-height: 70px !important;
+    max-height: 80px !important;
     overflow: hidden !important;
 }
 
@@ -75,7 +75,7 @@
 
 /* Ultra compact lottery ball containers */
 #hotNumbersContainer, #coldNumbersContainer, #absentNumbersContainer {
-    max-height: 45px !important;
+    max-height: 42px !important;
     overflow: hidden !important;
 }
 
