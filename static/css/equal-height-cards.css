@@ -39,37 +39,37 @@
 
 /* Data Analytics card - optimized for its content */
 .data-analytics-preview {
-    min-height: 480px !important;
-    max-height: 480px !important;
+    min-height: 520px !important;
+    max-height: 520px !important;
 }
 
 .data-analytics-preview .card-body {
-    max-height: 430px !important;
-    overflow: hidden !important;
+    max-height: 470px !important;
+    overflow: visible !important;
     padding: 12px !important;
 }
 
 /* Adjust chart containers for optimal analytics display */
 .data-analytics-preview .chart-card {
-    height: 370px !important;
-    min-height: 370px !important;
-    max-height: 370px !important;
-    overflow: hidden !important;
+    height: 410px !important;
+    min-height: 410px !important;
+    max-height: 410px !important;
+    overflow: visible !important;
 }
 
 .data-analytics-preview .hot-cold-container {
-    height: 320px !important;
-    min-height: 320px !important;
-    max-height: 320px !important;
-    overflow: hidden !important;
+    height: 360px !important;
+    min-height: 360px !important;
+    max-height: 360px !important;
+    overflow: visible !important;
 }
 
 .data-analytics-preview .bar-chart-container {
-    height: 290px !important;
-    max-height: 290px !important;
+    height: 330px !important;
+    max-height: 330px !important;
 }
 
 .data-analytics-preview .bar-chart-container svg {
-    height: 270px !important;
-    max-height: 270px !important;
+    height: 310px !important;
+    max-height: 310px !important;
 }
