@@ -48,10 +48,10 @@
 
 .table-lottery th,
 .table-lottery td {
-    padding: 4px 6px;
+    padding: 3px 4px;
     vertical-align: middle;
     border-top: 1px solid #dee2e6;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 .table-lottery thead th {
@@ -136,25 +136,25 @@
 
 /* Lottery Ball Styles - same size as analytics balls for consistency */
 .lottery-ball {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-    max-width: 36px;
-    max-height: 36px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: 32px;
+    max-height: 32px;
     border-radius: 50%;
     background-color: var(--lottery-red);
     color: white;
-    margin: 0 1px 3px 0;
+    margin: 0 2px 3px 0;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 13px;
     box-sizing: border-box;
     flex-shrink: 0;
     text-align: center;

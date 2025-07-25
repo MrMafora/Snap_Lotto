@@ -194,7 +194,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin: 0 1px 0 0;
+        margin: 0;
     }
     
     /* Mobile card layout */
@@ -458,16 +458,16 @@
                     <table class="table table-lottery table-striped mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-2 py-1" style="width: 22%;">GAME TYPE</th>
-                                <th class="py-1" style="width: 12%;">DRAW</th>
-                                <th class="py-1" style="width: 18%;">DATE</th>
-                                <th class="py-1" style="width: 48%;">NUMBERS</th>
+                                <th class="ps-1 py-1" style="width: 20%; font-size: 0.8rem;">GAME TYPE</th>
+                                <th class="py-1" style="width: 10%; font-size: 0.8rem;">DRAW</th>
+                                <th class="py-1" style="width: 15%; font-size: 0.8rem;">DATE</th>
+                                <th class="py-1" style="width: 55%; font-size: 0.8rem;">NUMBERS</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for result in results %}
                             <tr>
-                                <td class="ps-2 py-1">
+                                <td class="ps-1 py-1" style="font-size: 0.75rem;">
                                     {% set display_type = result.lottery_type %}
                                     {# Always normalize any legacy Lotto references to Lottery for display #}
                                     {% if 'LOTTO' in display_type %}
@@ -475,17 +475,17 @@
                                     {% endif %}
                                     
                                     {% if 'POWERBALL' in display_type.upper() %}
-                                        <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
+                                        <span class="game-type-badge game-type-powerball" style="font-size: 0.7rem; padding: 2px 6px;">{{ display_type }}</span>
                                     {% elif 'DAILY' in display_type.upper() %}
-                                        <span class="game-type-badge game-type-daily">{{ display_type }}</span>
+                                        <span class="game-type-badge game-type-daily" style="font-size: 0.7rem; padding: 2px 6px;">{{ display_type }}</span>
                                     {% else %}
-                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                        <span class="game-type-badge game-type-lottery" style="font-size: 0.7rem; padding: 2px 6px;">{{ display_type }}</span>
                                     {% endif %}
                                 </td>
-                                <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
-                                <td class="py-1 text-nowrap">
+                                <td class="py-1" style="font-size: 0.8rem;"><strong>{{ result.draw_number }}</strong></td>
+                                <td class="py-1 text-nowrap" style="font-size: 0.75rem;">
                                     {% if result.draw_date %}
-                                        {{ result.draw_date.strftime('%Y-%m-%d') }}
+                                        {{ result.draw_date.strftime('%m-%d') }}
                                     {% else %}
                                         N/A
                                     {% endif %}
@@ -512,7 +512,7 @@
                                             </div>
                                         {% endfor %}
                                         {% if result.bonus_numbers and result.bonus_numbers != '{}' and 'DAILY' not in result.lottery_type.upper() %}
-                                            <div class="mx-1 d-flex align-items-center" style="font-size: 14px;">+</div>
+                                            <div class="d-flex align-items-center" style="font-size: 12px; margin: 0 4px;">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
                                                 <div class="lottery-ball-container">
                                                     <span class="lottery-ball lottery-ball-yellow lottery-ball-bonus">
