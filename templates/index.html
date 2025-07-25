@@ -492,7 +492,7 @@
                                 <td class="py-1">
                                     <div class="numbers-container d-flex">
                                         {% for num in result.get_numbers_list() %}
-                                            {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
+                                            {% set ball_class = 'lottery-ball ' %}
                                             
                                             {% if loop.index0 % 4 == 0 %}
                                                 {% set ball_class = ball_class + 'lottery-ball-red' %}
@@ -514,7 +514,7 @@
                                             <div class="mx-1 d-flex align-items-center">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
                                                 <div class="lottery-ball-container">
-                                                    <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
+                                                    <span class="lottery-ball lottery-ball-yellow lottery-ball-bonus">
                                                         <span class="number">{{ num }}</span>
                                                     </span>
                                                 </div>
