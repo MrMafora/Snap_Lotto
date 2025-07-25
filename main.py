@@ -890,6 +890,12 @@ def scanner_landing():
     """Ticket scanner landing page"""
     return render_template('scanner_landing.html')
 
+# SA Lotto SEO Page Route
+@app.route('/sa-lotto')
+def lotto_seo_page():
+    """SA Lotto SEO optimized information page"""
+    return render_template('lotto_seo_page.html')
+
 # Ticket Scanner Route
 @app.route('/ticket-scanner')
 def ticket_scanner():
