@@ -16,6 +16,25 @@
     transform: none !important;
 }
 
+/* Ensure absent numbers container specifically shows */
+#absentNumbersContainer {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* Ensure absent number balls and text are visible */
+.absent-number-item .lottery-ball .number {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
 /* Force visibility for all hot/cold number items */
 .hot-number-item,
 .cold-number-item,
