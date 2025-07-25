@@ -1,0 +1,47 @@
+/* Latest Lottery Results Card - Exact Fit for 6 Lottery Types */
+
+/* Remove any extra spacing that causes empty rows */
+.latest-results-table {
+    margin-bottom: 0 !important;
+    border-spacing: 0 !important;
+    border-collapse: separate !important;
+}
+
+.latest-results-table tbody tr:last-child {
+    border-bottom: none !important;
+}
+
+.latest-results-table tbody tr:last-child td {
+    border-bottom: none !important;
+    padding-bottom: 8px !important;
+}
+
+/* Ensure table fits exactly within card body */
+.results-body .table-responsive {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Remove any phantom spacing after table */
+.results-body .table-responsive::after {
+    display: none !important;
+}
+
+/* Compact row spacing for exact fit */
+.latest-results-table tr {
+    line-height: 1.2 !important;
+}
+
+.latest-results-table td {
+    padding: 6px 2px !important;
+    vertical-align: middle !important;
+}
+
+/* Ensure last row has no extra margin */
+.latest-results-table tbody tr:nth-child(6) {
+    margin-bottom: 0 !important;
+}
+
+.latest-results-table tbody tr:nth-child(6) td {
+    padding-bottom: 6px !important;
+}

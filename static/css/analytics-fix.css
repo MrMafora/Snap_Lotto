@@ -40,26 +40,26 @@
     overflow: hidden !important;
 }
 
-/* Make Hot & Cold Numbers section match chart height with proper content fitting */
+/* Make Hot & Cold Numbers section with generous spacing */
 .hot-cold-container {
-    height: 270px !important;
-    min-height: 270px !important;
-    max-height: 270px !important;
+    height: 290px !important;
+    min-height: 290px !important;
+    max-height: 290px !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    padding: 4px !important;
+    padding: 6px !important;
 }
 
-/* Ultra compact spacing for the three sections */
+/* Generous spacing for the three sections */
 .hot-numbers, .cold-numbers, .absent-numbers {
     flex: 1 !important;
-    margin-bottom: 3px !important;
-    min-height: 75px !important;
-    max-height: 85px !important;
+    margin-bottom: 4px !important;
+    min-height: 85px !important;
+    max-height: 95px !important;
     overflow: hidden !important;
-    padding: 3px 0 !important;
+    padding: 4px 0 !important;
 }
 
 /* Ultra compact sections to fit all content */
@@ -77,11 +77,11 @@
     margin-top: 0 !important;
 }
 
-/* Ultra compact lottery ball containers */
+/* Optimized lottery ball containers */
 #hotNumbersContainer, #coldNumbersContainer, #absentNumbersContainer {
-    max-height: 42px !important;
+    max-height: 45px !important;
     overflow: hidden !important;
-    margin-top: 2px !important;
+    margin-top: 3px !important;
 }
 
 /* Ensure absent numbers container specifically shows */
