@@ -37,7 +37,7 @@
 
 /* Table styling for lottery results */
 .table-responsive {
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 /* Clean table styling */
