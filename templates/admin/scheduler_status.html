@@ -7,7 +7,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin') }}">Admin</a></li>
                     <li class="breadcrumb-item active">Daily Automation Scheduler</li>
                 </ol>
             </nav>
@@ -17,7 +17,7 @@
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header lottery-header">
                     <h4 class="mb-0">
                         <i class="fas fa-clock me-2"></i>
                         Daily Automation Scheduler Status
@@ -25,134 +25,155 @@
                 </div>
                 <div class="card-body">
                     
+                    <!-- Alert Messages -->
+                    <div id="alertContainer"></div>
+                    
                     <!-- Scheduler Status Overview -->
                     <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="status-card p-3 border rounded">
-                                <h6 class="text-muted mb-2">Scheduler Status</h6>
-                                {% if status.scheduler_available %}
-                                    {% if status.running %}
-                                        <span class="badge bg-success fs-6">
-                                            <i class="fas fa-play-circle me-1"></i>Running
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-warning fs-6">
-                                            <i class="fas fa-pause-circle me-1"></i>Stopped
-                                        </span>
-                                    {% endif %}
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Status</h6>
+                                {% if scheduler_status.running %}
+                                    <span class="badge bg-success fs-6 px-3 py-2">
+                                        <i class="fas fa-play-circle me-1"></i>Running
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-danger fs-6">
-                                        <i class="fas fa-times-circle me-1"></i>Not Available
+                                    <span class="badge bg-warning fs-6 px-3 py-2">
+                                        <i class="fas fa-pause-circle me-1"></i>Stopped
                                     </span>
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="status-card p-3 border rounded">
-                                <h6 class="text-muted mb-2">Scheduled Time</h6>
-                                <div class="fs-5">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Schedule</h6>
+                                <div class="fw-bold">
                                     <i class="fas fa-clock me-2"></i>
-                                    {{ status.run_time }} (Daily)
+                                    {{ scheduler_status.schedule_time or '22:30' }} Daily
                                 </div>
+                                <small class="text-muted">{{ scheduler_status.timezone }}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Last Run</h6>
+                                {% if scheduler_status.last_run %}
+                                    <div class="fw-bold">{{ scheduler_status.last_run[:10] }}</div>
+                                    <small class="text-muted">{{ scheduler_status.last_run[11:19] }}</small>
+                                {% else %}
+                                    <div class="text-muted">Never</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Next Run</h6>
+                                {% if scheduler_status.next_run %}
+                                    <div class="fw-bold">{{ scheduler_status.next_run[:10] }}</div>
+                                    <small class="text-muted">{{ scheduler_status.next_run[11:19] }}</small>
+                                {% else %}
+                                    <div class="text-muted">Not Scheduled</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
-
-                    <!-- Next Run Information -->
-                    {% if status.next_run %}
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <h6 class="alert-heading">
-                                    <i class="fas fa-calendar-alt me-2"></i>Next Scheduled Run
-                                </h6>
-                                <p class="mb-0">{{ status.next_run.strftime('%Y-%m-%d at %H:%M:%S') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Last Run Information -->
-                    {% if status.last_run %}
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-history me-2"></i>Last Run
-                                    </h6>
-                                </div>
-                                <div class="card-body">
-                                    <p><strong>Time:</strong> {{ status.last_run.strftime('%Y-%m-%d at %H:%M:%S') }}</p>
-                                    {% if status.last_results %}
-                                        {% if status.last_results.overall_success %}
-                                            <div class="alert alert-success">
-                                                <i class="fas fa-check-circle me-2"></i>
-                                                Automation completed successfully
-                                            </div>
-                                        {% else %}
-                                            <div class="alert alert-danger">
-                                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                                Automation completed with errors: {{ status.last_results.get('error', 'Unknown error') }}
-                                            </div>
-                                        {% endif %}
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
 
                     <!-- Control Buttons -->
-                    <div class="row">
+                    <div class="row mb-4">
                         <div class="col-12">
-                            <div class="btn-group" role="group">
-                                {% if status.scheduler_available %}
-                                    {% if status.running %}
-                                        <button type="button" class="btn btn-warning" onclick="stopScheduler()">
-                                            <i class="fas fa-stop me-2"></i>Stop Scheduler
-                                        </button>
-                                    {% else %}
-                                        <button type="button" class="btn btn-success" onclick="startScheduler()">
-                                            <i class="fas fa-play me-2"></i>Start Scheduler
-                                        </button>
-                                    {% endif %}
+                            <div class="d-flex gap-3 justify-content-center">
+                                {% if scheduler_status.running %}
+                                    <button type="button" class="btn btn-warning btn-lg" onclick="stopScheduler()">
+                                        <i class="fas fa-stop me-2"></i>Stop Scheduler
+                                    </button>
                                 {% else %}
-                                    <button type="button" class="btn btn-success" onclick="startScheduler()">
-                                        <i class="fas fa-download me-2"></i>Initialize Scheduler
+                                    <button type="button" class="btn btn-success btn-lg" onclick="startScheduler()">
+                                        <i class="fas fa-play me-2"></i>Start Scheduler
                                     </button>
                                 {% endif %}
                                 
-                                <button type="button" class="btn btn-primary" onclick="runAutomationNow()">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="runAutomationNow()">
                                     <i class="fas fa-rocket me-2"></i>Run Automation Now
                                 </button>
                                 
-                                <a href="{{ url_for('admin_automation_control') }}" class="btn btn-secondary">
-                                    <i class="fas fa-cogs me-2"></i>Automation Control
+                                <a href="{{ url_for('automation_control') }}" class="btn btn-secondary btn-lg">
+                                    <i class="fas fa-cogs me-2"></i>Manual Controls
                                 </a>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Information Panel -->
-                    <div class="row mt-4">
+                    <!-- Automation Information -->
+                    <div class="row mb-4">
                         <div class="col-12">
-                            <div class="alert alert-light">
-                                <h6 class="alert-heading">
-                                    <i class="fas fa-info-circle me-2"></i>About Daily Automation
-                                </h6>
-                                <p class="mb-0">
-                                    The daily automation scheduler runs at 1:00 AM every day and performs the complete lottery data collection workflow:
-                                </p>
-                                <ul class="mt-2 mb-0">
-                                    <li>Clears old screenshot files</li>
-                                    <li>Captures fresh lottery result screenshots</li>
-                                    <li>Processes images using AI to extract data</li>
-                                    <li>Updates the database with new lottery results</li>
-                                </ul>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        About Daily Automation
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-0">
+                                        The daily automation scheduler runs at <strong>10:30 PM South African time</strong> every day and performs the complete lottery data collection workflow:
+                                    </p>
+                                    <ul class="mt-2 mb-0">
+                                        <li>Clears old screenshot files</li>
+                                        <li>Captures fresh lottery result screenshots from all SA lottery websites</li>
+                                        <li>Processes images using Google Gemini AI to extract lottery data</li>
+                                        <li>Updates the database with authentic lottery results</li>
+                                        <li>Verifies frontend updates with fresh data</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Recent Automation Runs -->
+                    {% if scheduler_status.recent_runs and scheduler_status.recent_runs|length > 0 %}
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-history me-2"></i>
+                                        Recent Automation Runs
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Start Time</th>
+                                                    <th>Duration</th>
+                                                    <th>Status</th>
+                                                    <th>Message</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for run in scheduler_status.recent_runs %}
+                                                <tr>
+                                                    <td>{{ run.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                                    <td>{{ run.duration_seconds }}s</td>
+                                                    <td>
+                                                        {% if run.success %}
+                                                            <span class="badge bg-success">Success</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Failed</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ run.message or 'No message' }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
 
                 </div>
             </div>
@@ -162,6 +183,8 @@
 
 <script>
 function startScheduler() {
+    showAlert('info', 'Starting scheduler...');
+    
     fetch('/admin/start-scheduler', {
         method: 'POST',
         headers: {
@@ -183,6 +206,8 @@ function startScheduler() {
 }
 
 function stopScheduler() {
+    showAlert('info', 'Stopping scheduler...');
+    
     fetch('/admin/stop-scheduler', {
         method: 'POST',
         headers: {
@@ -226,22 +251,24 @@ function runAutomationNow() {
 }
 
 function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    const alertContainer = document.getElementById('alertContainer');
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     `;
+    alertContainer.innerHTML = alertHtml;
     
-    const container = document.querySelector('.card-body');
-    container.insertBefore(alertDiv, container.firstChild);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
+    // Auto-hide success/info alerts after 5 seconds
+    if (type === 'success' || type === 'info') {
+        setTimeout(() => {
+            const alert = alertContainer.querySelector('.alert');
+            if (alert) {
+                alert.remove();
+            }
+        }, 5000);
+    }
 }
 </script>
 {% endblock %}

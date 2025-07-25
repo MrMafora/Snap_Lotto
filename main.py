@@ -1283,8 +1283,46 @@ def scheduler_status():
     """Daily Automation Scheduler Status"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    flash('Daily Automation Scheduler - Monitor automated daily lottery result extraction', 'info')
-    return render_template('admin/scheduler_status.html')
+    
+    # Get scheduler status
+    try:
+        from daily_scheduler import get_scheduler_status
+        scheduler_data = get_scheduler_status()
+        
+        # Get recent automation logs
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get last 10 automation runs
+        cur.execute("""
+            SELECT start_time, end_time, success, message, duration_seconds
+            FROM automation_logs 
+            ORDER BY start_time DESC 
+            LIMIT 10
+        """)
+        recent_runs = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        scheduler_data['recent_runs'] = recent_runs
+        
+    except Exception as e:
+        logger.error(f"Error getting scheduler status: {e}")
+        scheduler_data = {
+            'running': False,
+            'schedule_time': '22:30',
+            'last_run': None,
+            'next_run': None,
+            'current_time': None,
+            'timezone': 'South Africa (UTC+2)',
+            'recent_runs': []
+        }
+    
+    return render_template('admin/scheduler_status.html', scheduler_status=scheduler_data)
 
 @app.route('/admin/health_dashboard')  
 @login_required
@@ -1407,6 +1445,88 @@ def run_health_checks():
         return redirect(url_for('index'))
     flash('Health checks initiated successfully', 'success')
     return redirect(url_for('admin'))
+
+# Daily Scheduler API Routes
+@app.route('/admin/start-scheduler', methods=['POST'])
+@login_required
+def start_scheduler():
+    """Start the daily automation scheduler"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        from daily_scheduler import start_scheduler as start_sched
+        success = start_sched()
+        
+        if success:
+            logger.info("Daily scheduler started via admin interface")
+            return jsonify({
+                'success': True,
+                'message': 'Daily automation scheduler started successfully! Runs at 10:30 PM South African time.'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Scheduler is already running or failed to start'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error starting scheduler: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/stop-scheduler', methods=['POST'])
+@login_required
+def stop_scheduler():
+    """Stop the daily automation scheduler"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        from daily_scheduler import stop_scheduler as stop_sched
+        success = stop_sched()
+        
+        if success:
+            logger.info("Daily scheduler stopped via admin interface")
+            return jsonify({
+                'success': True,
+                'message': 'Daily automation scheduler stopped successfully.'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Scheduler was not running'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error stopping scheduler: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/run-automation-now', methods=['POST'])
+@login_required
+def run_automation_now():
+    """Run automation workflow immediately"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        from daily_scheduler import run_automation_now as run_now
+        success = run_now()
+        
+        if success:
+            logger.info("Manual automation triggered via admin interface")
+            return jsonify({
+                'success': True,
+                'message': 'Automation workflow started! This may take several minutes to complete. Check the logs for progress.'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to start automation workflow'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error running automation now: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/manage_ads')
 @login_required
@@ -2229,6 +2349,16 @@ except ImportError as e:
     logger.warning(f"Cache manager not available: {e}")
 
 logger.info("All modules lazy-loaded successfully")
+
+# Initialize daily scheduler on startup
+try:
+    from daily_scheduler import start_scheduler
+    if start_scheduler():
+        logger.info("✅ Daily automation scheduler started on application startup")
+    else:
+        logger.warning("⚠️ Scheduler was already running or failed to start")
+except Exception as e:
+    logger.error(f"❌ Failed to start scheduler on startup: {e}")
 
 if __name__ == '__main__':
     # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development

@@ -38,3 +38,4 @@ flask-login
 oauthlib
 pyjwt
 pyppeteer
+schedule
