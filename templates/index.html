@@ -482,15 +482,15 @@
                                         <span class="game-type-badge game-type-lottery" style="font-size: 0.7rem; padding: 2px 6px;">{{ display_type }}</span>
                                     {% endif %}
                                 </td>
-                                <td class="py-1" style="font-size: 0.8rem; padding-left: 1px; padding-right: 1px;"><strong>{{ result.draw_number }}</strong></td>
-                                <td class="py-1 text-nowrap" style="font-size: 0.75rem; padding-left: 1px; padding-right: 1px;">
+                                <td class="py-1" style="font-size: 0.8rem; padding-left: 2px; padding-right: 0px;"><strong>{{ result.draw_number }}</strong></td>
+                                <td class="py-1 text-nowrap" style="font-size: 0.75rem; padding-left: 2px; padding-right: 0px;">
                                     {% if result.draw_date %}
                                         {{ result.draw_date.strftime('%Y-%m-%d') }}
                                     {% else %}
                                         N/A
                                     {% endif %}
                                 </td>
-                                <td class="py-1" style="padding-left: 1px; padding-right: 1px;">
+                                <td class="py-1" style="padding-left: 2px; padding-right: 1px;">
                                     <div class="numbers-container d-flex">
                                         {% for num in result.get_numbers_list() %}
                                             {% set ball_class = 'lottery-ball ' %}
