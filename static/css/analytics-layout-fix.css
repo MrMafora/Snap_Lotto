@@ -27,8 +27,8 @@
 
 /* Chart card title spacing */
 .chart-card h6 {
-    font-size: 0.9rem !important;
-    margin-bottom: 8px !important;
+    font-size: 0.8rem !important;
+    margin-bottom: 4px !important;
     font-weight: 600 !important;
 }
 
@@ -38,12 +38,12 @@
 }
 
 .data-analytics-preview .col-md-6 {
-    padding: 5px !important;
+    padding: 3px !important;
 }
 
 /* Ensure proper content distribution */
 .hot-cold-container > div {
-    padding: 2px 0 !important;
+    padding: 1px 0 !important;
 }
 
 /* Mobile optimizations */

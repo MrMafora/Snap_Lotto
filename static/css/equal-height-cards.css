@@ -47,8 +47,8 @@
 
 .data-analytics-preview .card-body {
     max-height: 350px !important;
-    overflow-y: auto !important;
-    padding: 15px !important;
+    overflow: hidden !important;
+    padding: 12px !important;
 }
 
 /* Adjust chart containers to fit within the constrained height */

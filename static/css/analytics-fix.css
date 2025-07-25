@@ -45,38 +45,43 @@
     height: 240px !important;
     min-height: 240px !important;
     max-height: 240px !important;
-    overflow-y: hidden !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-evenly !important;
-    padding: 5px !important;
+    justify-content: space-between !important;
+    padding: 3px !important;
 }
 
 /* Ultra compact spacing for the three sections */
 .hot-numbers, .cold-numbers, .absent-numbers {
     flex: 1 !important;
-    margin-bottom: 5px !important;
-    min-height: 70px !important;
-    max-height: 80px !important;
+    margin-bottom: 2px !important;
+    min-height: 65px !important;
+    max-height: 75px !important;
     overflow: hidden !important;
+    padding: 2px 0 !important;
 }
 
 /* Ultra compact sections to fit all content */
 .hot-numbers h6, .cold-numbers h6, .absent-numbers h6 {
-    font-size: 0.75rem !important;
-    margin-bottom: 2px !important;
-    line-height: 1.1 !important;
+    font-size: 0.65rem !important;
+    margin-bottom: 1px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
 }
 
 .hot-numbers h6 small, .cold-numbers h6 small, .absent-numbers h6 small {
-    font-size: 0.6rem !important;
+    font-size: 0.55rem !important;
     display: block !important;
+    line-height: 1 !important;
+    margin-top: 0 !important;
 }
 
 /* Ultra compact lottery ball containers */
 #hotNumbersContainer, #coldNumbersContainer, #absentNumbersContainer {
-    max-height: 42px !important;
+    max-height: 38px !important;
     overflow: hidden !important;
+    margin-top: 1px !important;
 }
 
 /* Ensure absent numbers container specifically shows */
