@@ -1,0 +1,93 @@
+/* Chart Bar Size Optimization for Data Analytics */
+
+/* Reduce bar chart height and bar dimensions */
+.data-analytics-preview .bar-chart-container svg {
+    height: 160px !important;
+    max-height: 160px !important;
+}
+
+/* Smaller bar widths and spacing */
+.data-analytics-preview .bar-column {
+    width: 20px !important;
+    margin: 0 2px !important;
+}
+
+.data-analytics-preview .bar-background {
+    width: 20px !important;
+}
+
+.data-analytics-preview .bar-fill {
+    width: 20px !important;
+}
+
+/* Compact bar labels */
+.data-analytics-preview .bar-label {
+    font-size: 10px !important;
+    margin-top: 2px !important;
+}
+
+.data-analytics-preview .bar-value {
+    font-size: 8px !important;
+    margin-bottom: 2px !important;
+}
+
+/* Reduce chart container padding */
+.data-analytics-preview .chart-card {
+    padding: 8px !important;
+    padding-bottom: 10px !important;
+}
+
+/* Compact chart title */
+.data-analytics-preview .chart-card h6 {
+    font-size: 0.85rem !important;
+    margin-bottom: 6px !important;
+}
+
+/* Mobile chart optimizations */
+@media (max-width: 768px) {
+    .data-analytics-preview .bar-chart-container svg {
+        height: 140px !important;
+    }
+    
+    .data-analytics-preview .bar-column {
+        width: 18px !important;
+        margin: 0 1px !important;
+    }
+    
+    .data-analytics-preview .bar-background,
+    .data-analytics-preview .bar-fill {
+        width: 18px !important;
+    }
+    
+    .data-analytics-preview .bar-label {
+        font-size: 9px !important;
+    }
+    
+    .data-analytics-preview .bar-value {
+        font-size: 7px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .data-analytics-preview .bar-chart-container svg {
+        height: 120px !important;
+    }
+    
+    .data-analytics-preview .bar-column {
+        width: 16px !important;
+        margin: 0 1px !important;
+    }
+    
+    .data-analytics-preview .bar-background,
+    .data-analytics-preview .bar-fill {
+        width: 16px !important;
+    }
+    
+    .data-analytics-preview .bar-label {
+        font-size: 8px !important;
+    }
+    
+    .data-analytics-preview .bar-value {
+        font-size: 6px !important;
+    }
+}
