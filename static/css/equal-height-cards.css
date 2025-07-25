@@ -28,50 +28,50 @@
 @media (min-width: 992px) {
     .equal-height-row .col-lg-6:first-child .card,
     .equal-height-row .col-lg-6:last-child .card {
-        min-height: 450px;
-        max-height: 450px;
+        min-height: 380px;
+        max-height: 380px;
     }
     
     .equal-height-row .card-body.results-body,
     .data-analytics-preview .card-body {
-        max-height: 400px;
+        max-height: 330px;
         overflow-y: auto;
     }
 }
 
 /* Ensure the Data Analytics card matches the results card height exactly */
 .data-analytics-preview {
-    min-height: 450px !important;
-    max-height: 450px !important;
+    min-height: 380px !important;
+    max-height: 380px !important;
 }
 
 .data-analytics-preview .card-body {
-    max-height: 400px !important;
+    max-height: 330px !important;
     overflow-y: auto !important;
     padding: 15px !important;
 }
 
 /* Adjust chart containers to fit within the constrained height */
 .data-analytics-preview .chart-card {
-    height: 340px !important;
-    min-height: 340px !important;
-    max-height: 340px !important;
+    height: 270px !important;
+    min-height: 270px !important;
+    max-height: 270px !important;
     overflow: hidden !important;
 }
 
 .data-analytics-preview .hot-cold-container {
-    height: 280px !important;
-    min-height: 280px !important;
-    max-height: 280px !important;
+    height: 220px !important;
+    min-height: 220px !important;
+    max-height: 220px !important;
     overflow: hidden !important;
 }
 
 .data-analytics-preview .bar-chart-container {
-    height: 260px !important;
-    max-height: 260px !important;
+    height: 190px !important;
+    max-height: 190px !important;
 }
 
 .data-analytics-preview .bar-chart-container svg {
-    height: 240px !important;
-    max-height: 240px !important;
+    height: 170px !important;
+    max-height: 170px !important;
 }
