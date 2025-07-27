@@ -75,9 +75,9 @@ def capture_fresh_screenshots(logger):
                 try:
                     logger.info(f"Capturing {lottery_type} from {url}")
                     
-                    # Navigate and wait for load
-                    page.goto(url, wait_until='networkidle', timeout=30000)
-                    page.wait_for_timeout(3000)  # Additional wait for dynamic content
+                    # Navigate and wait for load - use domcontentloaded to avoid timeout issues
+                    page.goto(url, wait_until='domcontentloaded', timeout=60000)
+                    page.wait_for_timeout(5000)  # Wait longer for dynamic content
                     
                     # Generate filename
                     safe_name = lottery_type.lower().replace(' ', '_').replace('+', '_plus')
