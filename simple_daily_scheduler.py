@@ -40,14 +40,20 @@ class SimpleLotteryScheduler:
         start_time = datetime.now(SA_TIMEZONE)
         
         try:
-            # Import the working automation system
+            # Import Flask app and working automation system
             sys.path.append('.')
+            from app import app
             from complete_automation_workflow import run_complete_automation
             
             logger.info(f"Calling existing automation workflow at {start_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
             
-            # Call the working automation workflow
-            result = run_complete_automation()
+            # Run within Flask application context to ensure proper resource access
+            with app.app_context():
+                # Set environment variables for browser context
+                os.environ['DISPLAY'] = ':0'
+                
+                # Call the working automation workflow with proper context
+                result = run_complete_automation()
             
             end_time = datetime.now(SA_TIMEZONE)
             duration_seconds = int((end_time - start_time).total_seconds())
