@@ -180,7 +180,9 @@
                                     <tr>
                                         <td><strong>{{ division.division if division.division else 'DIV ' + loop.index|string }}</strong></td>
                                         <td class="match-compact">
-                                            {% if division.description %}
+                                            {% if division.match %}
+                                                {{ division.match }}
+                                            {% elif division.description %}
                                                 {% if 'FIVE CORRECT NUMBERS + POWERBALL' in division.description %}5+PB
                                                 {% elif 'FOUR CORRECT NUMBERS + POWERBALL' in division.description %}4+PB
                                                 {% elif 'THREE CORRECT NUMBERS + POWERBALL' in division.description %}3+PB
