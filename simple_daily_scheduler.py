@@ -49,8 +49,16 @@ class SimpleLotteryScheduler:
             
             # Run within Flask application context to ensure proper resource access
             with app.app_context():
-                # Set environment variables for browser context
+                # Set comprehensive environment variables for scheduled execution
                 os.environ['DISPLAY'] = ':0'
+                os.environ['XVFB_WHD'] = '1920x1080x24'
+                
+                # Ensure Chrome/Playwright can access display in daemon thread
+                os.environ['CHROME_BIN'] = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium'
+                
+                logger.info("🔧 Environment configured for scheduled execution")
+                logger.info(f"DISPLAY: {os.environ.get('DISPLAY')}")
+                logger.info(f"CHROME_BIN: {os.environ.get('CHROME_BIN')}")
                 
                 # Call the working automation workflow with proper context
                 result = run_complete_automation()
