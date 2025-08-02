@@ -774,23 +774,41 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        user = User.query.filter_by(username=username).first()
+        logger.info(f"LOGIN ATTEMPT: Username='{username}', Password length={len(password) if password else 0}")
         
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            flash('Login successful!', 'success')
+        user = User.query.filter_by(username=username).first()
+        logger.info(f"LOGIN DEBUG: User found={user is not None}")
+        
+        if user:
+            logger.info(f"LOGIN DEBUG: User ID={user.id}, Is Admin={user.is_admin}")
+            password_valid = check_password_hash(user.password_hash, password)
+            logger.info(f"LOGIN DEBUG: Password valid={password_valid}")
             
-            # Handle next URL parameter safely to prevent open redirect attacks
-            next_page = request.args.get('next')
-            if next_page and is_safe_url(next_page):
-                return redirect(next_page)
-            
-            # Redirect admin users to admin dashboard
-            if user.is_admin:
-                return redirect(url_for('admin'))
+            if password_valid:
+                login_result = login_user(user)
+                logger.info(f"LOGIN DEBUG: login_user result={login_result}")
+                flash('Login successful!', 'success')
+                
+                # Handle next URL parameter safely to prevent open redirect attacks
+                next_page = request.args.get('next')
+                logger.info(f"LOGIN DEBUG: Next page={next_page}")
+                
+                if next_page and is_safe_url(next_page):
+                    logger.info(f"LOGIN DEBUG: Redirecting to next page: {next_page}")
+                    return redirect(next_page)
+                
+                # Redirect admin users to admin dashboard
+                if user.is_admin:
+                    logger.info("LOGIN DEBUG: Redirecting admin to admin dashboard")
+                    return redirect(url_for('admin'))
+                else:
+                    logger.info("LOGIN DEBUG: Redirecting regular user to index")
+                    return redirect(url_for('index'))
             else:
-                return redirect(url_for('index'))
+                logger.warning(f"LOGIN FAILED: Invalid password for user '{username}'")
+                flash('Invalid username or password', 'error')
         else:
+            logger.warning(f"LOGIN FAILED: User '{username}' not found")
             flash('Invalid username or password', 'error')
     
     return render_template('login.html')
