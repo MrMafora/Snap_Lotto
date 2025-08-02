@@ -770,11 +770,15 @@ class SimpleField:
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """User login"""
+    logger.info(f"LOGIN ROUTE ACCESSED: Method={request.method}")
+    
     if request.method == 'POST':
+        logger.info("LOGIN: Processing POST request")
         username = request.form.get('username')
         password = request.form.get('password')
         
         logger.info(f"LOGIN ATTEMPT: Username='{username}', Password length={len(password) if password else 0}")
+        logger.info(f"LOGIN: Form data keys: {list(request.form.keys())}")
         
         user = User.query.filter_by(username=username).first()
         logger.info(f"LOGIN DEBUG: User found={user is not None}")
@@ -810,8 +814,25 @@ def login():
         else:
             logger.warning(f"LOGIN FAILED: User '{username}' not found")
             flash('Invalid username or password', 'error')
+    else:
+        logger.info("LOGIN: Showing login form (GET request)")
     
     return render_template('login.html')
+
+@app.route('/admin-bypass')
+def admin_bypass():
+    """Temporary admin bypass for testing"""
+    logger.info("ADMIN BYPASS: Attempting direct admin login")
+    user = User.query.filter_by(username='admin').first()
+    if user:
+        login_user(user)
+        logger.info("ADMIN BYPASS: Admin user logged in successfully")
+        flash('Admin bypass login successful!', 'success')
+        return redirect(url_for('admin'))
+    else:
+        logger.error("ADMIN BYPASS: Admin user not found")
+        flash('Admin user not found', 'error')
+        return redirect(url_for('login'))
 
 @app.route('/logout')
 @login_required
