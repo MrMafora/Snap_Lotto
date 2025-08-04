@@ -834,6 +834,26 @@ def admin_bypass():
         flash('Admin user not found', 'error')
         return redirect(url_for('login'))
 
+# PWA Routes
+@app.route('/manifest.json')
+def manifest():
+    """Serve PWA manifest file"""
+    return send_file('static/manifest.json', mimetype='application/manifest+json')
+
+@app.route('/sw.js')
+def service_worker():
+    """Serve service worker file"""
+    response = send_file('static/sw.js', mimetype='application/javascript')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+@app.route('/browserconfig.xml')
+def browserconfig():
+    """Serve browserconfig.xml for Windows/Edge"""
+    return send_file('static/browserconfig.xml', mimetype='application/xml')
+
 @app.route('/logout')
 @login_required
 def logout():
