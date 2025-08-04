@@ -15,16 +15,52 @@
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* PWA Status Bar Styling */
+/* PWA Status Bar Styling - Fix header color and prevent content scrolling behind status bar */
 @supports (padding-top: env(safe-area-inset-top)) {
-    .navbar {
-        padding-top: calc(0.5rem + env(safe-area-inset-top));
-    }
-    
+    /* Keep original header colors for PWA mode - RESTORE WHITE/YELLOW THEME */
     body.ios-standalone .navbar,
     body.android-standalone .navbar {
-        padding-top: calc(0.5rem + env(safe-area-inset-top));
-        background: linear-gradient(135deg, #1a472a 0%, #0f2c18 100%);
+        padding-top: calc(1rem + env(safe-area-inset-top));
+        background: linear-gradient(135deg, #ffffff 0%, #fffacd 100%) !important;
+        border-bottom: 3px solid #ffc107 !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1050 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* Fix navbar brand colors for PWA */
+    body.ios-standalone .navbar-brand,
+    body.android-standalone .navbar-brand {
+        color: #000 !important;
+    }
+    
+    body.ios-standalone .navbar-brand .lottery-logo,
+    body.android-standalone .navbar-brand .lottery-logo {
+        color: #000 !important;
+    }
+    
+    body.ios-standalone .navbar-brand .fas,
+    body.android-standalone .navbar-brand .fas {
+        color: #ffc107 !important;
+    }
+    
+    /* Add top padding to body content to prevent scrolling behind header */
+    body.ios-standalone,
+    body.android-standalone {
+        padding-top: calc(90px + env(safe-area-inset-top)) !important;
+        background: #f8f9fa !important;
+    }
+    
+    /* Ensure main content starts below fixed header */
+    body.ios-standalone .container-fluid,
+    body.android-standalone .container-fluid {
+        margin-top: 0 !important;
+        padding-top: 10px !important;
+        position: relative !important;
+        z-index: 1 !important;
     }
 }
 
@@ -111,6 +147,28 @@
     body.ios-standalone,
     body.android-standalone {
         padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    }
+    
+    /* Fix for the yellow header issue - override theme color in PWA mode */
+    body.ios-standalone .navbar-brand,
+    body.android-standalone .navbar-brand {
+        color: #000 !important;
+    }
+    
+    /* Prevent scrolling content from going behind status bar */
+    body.ios-standalone .container,
+    body.android-standalone .container,
+    body.ios-standalone .container-fluid,
+    body.android-standalone .container-fluid {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    /* Ensure cards don't scroll behind header */
+    body.ios-standalone .card,
+    body.android-standalone .card {
+        position: relative !important;
+        z-index: 1 !important;
     }
 }
 
