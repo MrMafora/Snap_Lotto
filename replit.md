@@ -38,6 +38,9 @@ This project is an AI-powered lottery intelligence platform for South African lo
   - Added mobile-optimized CSS for proper display when added as phone shortcut
   - Created install button for browsers that support PWA installation
   - Added safe area inset support for devices with notches/cutouts
+- **USER ISSUE RESOLVED**: Successfully fixed PWA styling issues - restored white/yellow header theme and prevented content from scrolling behind status bar
+- **CRITICAL DATA INTEGRITY**: Manually added missing Daily Lotto draws 2332 (2025-08-02) and 2333 (2025-08-03) that were identified by user as missing from database
+- **USER VALIDATION CONFIRMED**: Daily automation workflow is essential to prevent missing lottery results - user evidence shows gaps when automation doesn't run daily
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
