@@ -134,53 +134,150 @@
     <!-- Bootstrap JS - Load immediately for dropdown functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Simple dropdown functionality -->
+    <!-- Bootstrap dropdown functionality for all dropdowns -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Wait a bit for Bootstrap to initialize
             setTimeout(function() {
+                // Handle user dropdown (if exists)
                 const userDropdown = document.getElementById('userDropdown');
-                const dropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
+                const userDropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
                 
-                if (userDropdown && dropdownMenu) {
-                    // Simple click handler
+                if (userDropdown && userDropdownMenu) {
+                    // Simple click handler for user dropdown
                     userDropdown.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         
                         // Toggle dropdown
-                        if (dropdownMenu.style.display === 'block') {
-                            dropdownMenu.style.display = 'none';
+                        if (userDropdownMenu.style.display === 'block') {
+                            userDropdownMenu.style.display = 'none';
                             this.setAttribute('aria-expanded', 'false');
                         } else {
-                            dropdownMenu.style.display = 'block';
+                            userDropdownMenu.style.display = 'block';
                             this.setAttribute('aria-expanded', 'true');
                             
                             // Position the dropdown
                             const rect = this.getBoundingClientRect();
-                            dropdownMenu.style.position = 'absolute';
-                            dropdownMenu.style.top = (rect.bottom - rect.top) + 'px';
-                            dropdownMenu.style.right = '0';
+                            userDropdownMenu.style.position = 'absolute';
+                            userDropdownMenu.style.top = (rect.bottom - rect.top) + 'px';
+                            userDropdownMenu.style.right = '0';
                         }
                     });
                     
                     // Close on click outside
                     document.addEventListener('click', function(e) {
-                        if (!userDropdown.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                            dropdownMenu.style.display = 'none';
+                        if (!userDropdown.contains(e.target) && !userDropdownMenu.contains(e.target)) {
+                            userDropdownMenu.style.display = 'none';
                             userDropdown.setAttribute('aria-expanded', 'false');
                         }
                     });
                     
                     // Close on item click
-                    dropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
+                    userDropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
                         item.addEventListener('click', function() {
-                            dropdownMenu.style.display = 'none';
+                            userDropdownMenu.style.display = 'none';
                             userDropdown.setAttribute('aria-expanded', 'false');
                         });
                     });
                 }
-            }, 100);
+
+                // Handle data filter dropdown
+                const dataFilterDropdown = document.getElementById('dataFilterDropdown');
+                const dataFilterDropdownMenu = document.querySelector('#dataFilterDropdown + .dropdown-menu');
+                
+                if (dataFilterDropdown && dataFilterDropdownMenu) {
+                    console.log('DROPDOWN DEBUG: Found data filter dropdown elements');
+                    
+                    // Try Bootstrap initialization first
+                    if (window.bootstrap && window.bootstrap.Dropdown) {
+                        try {
+                            const bsDropdown = new window.bootstrap.Dropdown(dataFilterDropdown);
+                            console.log('DROPDOWN DEBUG: Bootstrap dropdown initialized successfully');
+                        } catch (error) {
+                            console.warn('DROPDOWN DEBUG: Bootstrap initialization failed, using fallback:', error);
+                            initializeCustomDropdown();
+                        }
+                    } else {
+                        console.warn('DROPDOWN DEBUG: Bootstrap not available, using custom dropdown');
+                        initializeCustomDropdown();
+                    }
+                    
+                    function initializeCustomDropdown() {
+                        console.log('DROPDOWN DEBUG: Initializing custom dropdown');
+                        
+                        // Simple click handler for filter dropdown
+                        dataFilterDropdown.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('DROPDOWN DEBUG: Filter dropdown clicked');
+                            
+                            // Toggle dropdown visibility
+                            const isOpen = dataFilterDropdownMenu.style.display === 'block';
+                            
+                            if (isOpen) {
+                                dataFilterDropdownMenu.style.display = 'none';
+                                this.setAttribute('aria-expanded', 'false');
+                                this.classList.remove('show');
+                                dataFilterDropdownMenu.classList.remove('show');
+                                console.log('DROPDOWN DEBUG: Dropdown closed');
+                            } else {
+                                // Position the dropdown properly
+                                const rect = this.getBoundingClientRect();
+                                dataFilterDropdownMenu.style.position = 'absolute';
+                                dataFilterDropdownMenu.style.top = (rect.height + 2) + 'px';
+                                dataFilterDropdownMenu.style.right = '0';
+                                dataFilterDropdownMenu.style.left = 'auto';
+                                dataFilterDropdownMenu.style.zIndex = '1050';
+                                dataFilterDropdownMenu.style.display = 'block';
+                                
+                                this.setAttribute('aria-expanded', 'true');
+                                this.classList.add('show');
+                                dataFilterDropdownMenu.classList.add('show');
+                                console.log('DROPDOWN DEBUG: Dropdown opened');
+                            }
+                        });
+                        
+                        // Close on click outside
+                        document.addEventListener('click', function(e) {
+                            if (!dataFilterDropdown.contains(e.target) && !dataFilterDropdownMenu.contains(e.target)) {
+                                dataFilterDropdownMenu.style.display = 'none';
+                                dataFilterDropdown.setAttribute('aria-expanded', 'false');
+                                dataFilterDropdown.classList.remove('show');
+                                dataFilterDropdownMenu.classList.remove('show');
+                            }
+                        });
+                        
+                        // Handle filter selection
+                        dataFilterDropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
+                            item.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                console.log('DROPDOWN DEBUG: Filter item clicked:', this.textContent);
+                                
+                                // Remove active class from siblings
+                                const isLotteryType = this.hasAttribute('data-lottery-type');
+                                const isTimePeriod = this.hasAttribute('data-time-period');
+                                
+                                if (isLotteryType) {
+                                    dataFilterDropdownMenu.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
+                                    this.classList.add('active');
+                                } else if (isTimePeriod) {
+                                    dataFilterDropdownMenu.querySelectorAll('[data-time-period]').forEach(el => el.classList.remove('active'));
+                                    this.classList.add('active');
+                                }
+                                
+                                // Close dropdown after selection
+                                dataFilterDropdownMenu.style.display = 'none';
+                                dataFilterDropdown.setAttribute('aria-expanded', 'false');
+                                dataFilterDropdown.classList.remove('show');
+                                dataFilterDropdownMenu.classList.remove('show');
+                            });
+                        });
+                    }
+                } else {
+                    console.warn('DROPDOWN DEBUG: Data filter dropdown elements not found');
+                }
+            }, 150); // Slightly longer delay to ensure Bootstrap is ready
         });
     </script>
     <!-- Mobile optimization -->
