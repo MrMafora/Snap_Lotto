@@ -183,8 +183,11 @@
                 }
 
                 // Handle data filter dropdown
+                console.log('DROPDOWN DEBUG: Looking for data filter dropdown...');
                 const dataFilterDropdown = document.getElementById('dataFilterDropdown');
                 const dataFilterDropdownMenu = document.querySelector('#dataFilterDropdown + .dropdown-menu');
+                console.log('DROPDOWN DEBUG: dataFilterDropdown:', dataFilterDropdown);
+                console.log('DROPDOWN DEBUG: dataFilterDropdownMenu:', dataFilterDropdownMenu);
                 
                 if (dataFilterDropdown && dataFilterDropdownMenu) {
                     console.log('DROPDOWN DEBUG: Found data filter dropdown elements');
