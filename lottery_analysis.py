@@ -375,3 +375,147 @@ def game_type_insights():
     except Exception as e:
         logger.error(f"Game insights error: {e}")
         return jsonify({'error': str(e)}), 500
+
+@bp.route('/predictions')
+def get_lottery_predictions():
+    """Get AI-generated lottery predictions for upcoming draws"""
+    try:
+        from ai_lottery_predictor import predictor
+        
+        # Get query parameters
+        game_type = request.args.get('game_type', 'LOTTO')
+        generate_new = request.args.get('generate_new', 'false').lower() == 'true'
+        
+        # Map frontend to database type
+        db_game_type = map_frontend_to_db_lottery_type(game_type)
+        
+        logger.info(f"Getting predictions for: {db_game_type}, generate_new: {generate_new}")
+        
+        if generate_new:
+            # Generate new prediction
+            historical_data = predictor.get_historical_data_for_prediction(db_game_type, 365)
+            prediction = predictor.generate_ai_prediction(db_game_type, historical_data)
+            prediction_id = predictor.save_prediction(prediction)
+            
+            response = {
+                'success': True,
+                'prediction_id': prediction_id,
+                'game_type': game_type,
+                'prediction': prediction.dict(),
+                'is_new': True
+            }
+        else:
+            # Get existing predictions
+            with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT id, predicted_numbers, bonus_numbers, confidence_score,
+                               prediction_method, reasoning, target_draw_date, created_at,
+                               is_verified, accuracy_score
+                        FROM lottery_predictions 
+                        WHERE game_type = %s 
+                        ORDER BY created_at DESC 
+                        LIMIT 5
+                    """, (db_game_type,))
+                    
+                    results = cur.fetchall()
+                    predictions = []
+                    
+                    for row in results:
+                        predictions.append({
+                            'id': row[0],
+                            'predicted_numbers': row[1],
+                            'bonus_numbers': row[2] or [],
+                            'confidence_score': row[3],
+                            'prediction_method': row[4],
+                            'reasoning': row[5],
+                            'target_draw_date': row[6].isoformat() if row[6] else None,
+                            'created_at': row[7].isoformat() if row[7] else None,
+                            'is_verified': row[8],
+                            'accuracy_score': row[9]
+                        })
+                    
+                    response = {
+                        'success': True,
+                        'game_type': game_type,
+                        'predictions': predictions,
+                        'is_new': False
+                    }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Predictions error: {e}")
+        return jsonify({'error': 'Prediction system temporarily unavailable'}), 500
+
+@bp.route('/prediction-accuracy')
+def get_prediction_accuracy():
+    """Get accuracy statistics for AI predictions"""
+    try:
+        from ai_lottery_predictor import predictor
+        
+        # Get query parameters
+        game_type = request.args.get('game_type')
+        days = int(request.args.get('days', 90))
+        
+        # Map frontend to database type if specified
+        db_game_type = None
+        if game_type and game_type != 'all':
+            db_game_type = map_frontend_to_db_lottery_type(game_type)
+        
+        logger.info(f"Getting prediction accuracy for: {db_game_type}, {days} days")
+        
+        # Verify recent predictions first
+        accuracy_results = predictor.verify_predictions()
+        
+        # Get performance statistics
+        performance_stats = predictor.get_prediction_performance_stats(db_game_type, days)
+        
+        response = {
+            'success': True,
+            'game_type': game_type or 'all',
+            'period_days': days,
+            'recent_verifications': len(accuracy_results),
+            'performance_stats': performance_stats,
+            'last_verified': [acc.dict() for acc in accuracy_results[:5]]  # Last 5 verifications
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Prediction accuracy error: {e}")
+        return jsonify({'error': 'Accuracy tracking temporarily unavailable'}), 500
+
+@bp.route('/generate-prediction', methods=['POST'])
+def generate_new_prediction():
+    """Generate a new AI prediction for specified game"""
+    try:
+        from ai_lottery_predictor import predictor
+        
+        data = request.get_json() or {}
+        game_type = data.get('game_type', 'LOTTO')
+        
+        # Map frontend to database type
+        db_game_type = map_frontend_to_db_lottery_type(game_type)
+        
+        logger.info(f"Generating new prediction for: {db_game_type}")
+        
+        # Get historical data and generate prediction
+        historical_data = predictor.get_historical_data_for_prediction(db_game_type, 365)
+        prediction = predictor.generate_ai_prediction(db_game_type, historical_data)
+        prediction_id = predictor.save_prediction(prediction)
+        
+        response = {
+            'success': True,
+            'prediction_id': prediction_id,
+            'game_type': game_type,
+            'prediction': prediction.dict(),
+            'historical_data_points': len(historical_data.get('draws', [])),
+            'confidence_score': prediction.confidence_score
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Generate prediction error: {e}")
+        return jsonify({'error': 'Prediction generation temporarily unavailable'}), 500

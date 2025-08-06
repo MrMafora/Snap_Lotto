@@ -1,0 +1,604 @@
+{% extends "layout.html" %}
+
+{% block title %}AI Lottery Predictions | Snap Lotto{% endblock %}
+
+{% block head %}
+<meta name="description" content="AI-powered lottery number predictions for South African lotteries. Machine learning algorithms analyze patterns to generate intelligent lottery number predictions.">
+<meta name="keywords" content="lottery predictions, AI numbers, machine learning, South African lottery, LOTTO, POWERBALL, DAILY LOTTO">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/lottery-results-fix.css') }}">
+<style>
+    .prediction-card {
+        border: 2px solid #FFE11D;
+        border-radius: 15px;
+        background: linear-gradient(135deg, #fff 0%, #fffacd 100%);
+        box-shadow: 0 8px 25px rgba(255, 225, 29, 0.2);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .prediction-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(255, 225, 29, 0.3);
+    }
+    
+    .prediction-numbers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin: 15px 0;
+    }
+    
+    .predicted-ball {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #E0323B 0%, #c8252e 100%);
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 12px rgba(224, 50, 55, 0.4);
+        animation: pulse 2s infinite;
+    }
+    
+    .bonus-ball {
+        background: linear-gradient(135deg, #FFE11D 0%, #e6cc1a 100%);
+        color: #333;
+        box-shadow: 0 4px 12px rgba(255, 225, 29, 0.4);
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .confidence-meter {
+        background: linear-gradient(90deg, #dc3545 0%, #ffc107 50%, #28a745 100%);
+        height: 20px;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .confidence-indicator {
+        background: rgba(255, 255, 255, 0.9);
+        height: 100%;
+        border-radius: 10px;
+        position: relative;
+        transition: width 0.8s ease-in-out;
+    }
+    
+    .accuracy-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .accuracy-verified {
+        background: #28a745;
+        color: white;
+    }
+    
+    .accuracy-pending {
+        background: #ffc107;
+        color: #333;
+    }
+    
+    .prediction-stats {
+        background: rgba(255, 225, 29, 0.1);
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 10px;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #E0323B;
+    }
+    
+    .ai-reasoning {
+        background: rgba(103, 198, 237, 0.1);
+        border-left: 4px solid #67C6ED;
+        padding: 15px;
+        border-radius: 5px;
+        font-style: italic;
+        margin-top: 15px;
+    }
+    
+    .generate-btn {
+        background: linear-gradient(135deg, #E0323B 0%, #FFE11D 100%);
+        border: none;
+        color: white;
+        font-weight: bold;
+        padding: 15px 30px;
+        border-radius: 25px;
+        box-shadow: 0 6px 20px rgba(224, 50, 55, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .generate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(224, 50, 55, 0.4);
+        color: white;
+    }
+    
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #E0323B;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 2s linear infinite;
+        margin: 20px auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card prediction-card">
+                <div class="card-body text-center">
+                    <h1 class="card-title mb-3">
+                        🤖 AI Lottery Predictions
+                    </h1>
+                    <p class="lead mb-0">
+                        Advanced machine learning algorithms analyze historical patterns to generate intelligent lottery number predictions
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Selection and Controls -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">🎯 Generate New Prediction</h5>
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <label for="prediction-game-type" class="form-label">Select Lottery Game:</label>
+                            <select id="prediction-game-type" class="form-select">
+                                <option value="LOTTO">LOTTO (6 from 52)</option>
+                                <option value="LOTTO PLUS 1">LOTTO PLUS 1 (6 from 52)</option>
+                                <option value="LOTTO PLUS 2">LOTTO PLUS 2 (6 from 52)</option>
+                                <option value="POWERBALL">POWERBALL (5+1)</option>
+                                <option value="POWERBALL PLUS">POWERBALL PLUS (5+1)</option>
+                                <option value="DAILY LOTTO">DAILY LOTTO (5 from 36)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="generate-prediction-btn" class="btn generate-btn w-100">
+                                <i class="fas fa-magic me-2"></i>Generate AI Prediction
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Prediction Accuracy</h6>
+                    <div class="stat-value" id="overall-accuracy">--</div>
+                    <small class="text-muted">Overall Success Rate</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading State -->
+    <div id="prediction-loading" class="text-center d-none">
+        <div class="card">
+            <div class="card-body">
+                <div class="loading-spinner"></div>
+                <h5>AI is analyzing patterns...</h5>
+                <p class="text-muted">Processing historical data and generating intelligent predictions</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Prediction Display -->
+    <div id="new-prediction" class="d-none">
+        <div class="row">
+            <div class="col-12">
+                <div class="card prediction-card">
+                    <div class="accuracy-badge accuracy-pending">New Prediction</div>
+                    <div class="card-body">
+                        <h4 class="card-title text-center" id="new-prediction-title">AI Prediction</h4>
+                        
+                        <!-- Predicted Numbers -->
+                        <div class="prediction-numbers" id="new-prediction-numbers">
+                            <!-- Numbers will be populated here -->
+                        </div>
+                        
+                        <!-- Confidence Score -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span><strong>Confidence Score:</strong></span>
+                                <span id="new-prediction-confidence">--</span>
+                            </div>
+                            <div class="confidence-meter">
+                                <div class="confidence-indicator" id="new-prediction-meter" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Reasoning -->
+                        <div class="ai-reasoning" id="new-prediction-reasoning">
+                            <!-- Reasoning will be populated here -->
+                        </div>
+                        
+                        <!-- Prediction Details -->
+                        <div class="row mt-3 text-center">
+                            <div class="col-4">
+                                <small class="text-muted">Method</small>
+                                <div id="new-prediction-method">--</div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Target Draw</small>
+                                <div id="new-prediction-date">--</div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Data Points</small>
+                                <div id="new-prediction-datapoints">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Historical Predictions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 Recent Predictions & Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <select id="history-game-filter" class="form-select">
+                                <option value="all">All Games</option>
+                                <option value="LOTTO">LOTTO</option>
+                                <option value="LOTTO PLUS 1">LOTTO PLUS 1</option>
+                                <option value="LOTTO PLUS 2">LOTTO PLUS 2</option>
+                                <option value="POWERBALL">POWERBALL</option>
+                                <option value="POWERBALL PLUS">POWERBALL PLUS</option>
+                                <option value="DAILY LOTTO">DAILY LOTTO</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button id="refresh-predictions-btn" class="btn btn-outline-primary">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="predictions-history">
+                        <!-- Historical predictions will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Statistics -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">🎯 Performance Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="prediction-stats">
+                        <div class="row" id="performance-stats">
+                            <div class="col-md-3 stat-item">
+                                <div class="stat-value" id="total-predictions">--</div>
+                                <small class="text-muted">Total Predictions</small>
+                            </div>
+                            <div class="col-md-3 stat-item">
+                                <div class="stat-value" id="avg-accuracy">--</div>
+                                <small class="text-muted">Average Accuracy</small>
+                            </div>
+                            <div class="col-md-3 stat-item">
+                                <div class="stat-value" id="best-accuracy">--</div>
+                                <small class="text-muted">Best Result</small>
+                            </div>
+                            <div class="col-md-3 stat-item">
+                                <div class="stat-value" id="recent-trend">--</div>
+                                <small class="text-muted">Recent Trend</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+class LotteryPredictionSystem {
+    constructor() {
+        this.currentGameType = 'LOTTO';
+        this.isGenerating = false;
+        this.initializeEventListeners();
+        this.loadPredictionHistory();
+        this.loadPerformanceStats();
+    }
+    
+    initializeEventListeners() {
+        // Generate new prediction
+        document.getElementById('generate-prediction-btn').addEventListener('click', () => {
+            this.generateNewPrediction();
+        });
+        
+        // Game type selection
+        document.getElementById('prediction-game-type').addEventListener('change', (e) => {
+            this.currentGameType = e.target.value;
+            this.loadPredictionHistory();
+        });
+        
+        // History filter
+        document.getElementById('history-game-filter').addEventListener('change', () => {
+            this.loadPredictionHistory();
+        });
+        
+        // Refresh button
+        document.getElementById('refresh-predictions-btn').addEventListener('click', () => {
+            this.loadPredictionHistory();
+            this.loadPerformanceStats();
+        });
+    }
+    
+    async generateNewPrediction() {
+        if (this.isGenerating) return;
+        
+        this.isGenerating = true;
+        const button = document.getElementById('generate-prediction-btn');
+        const originalText = button.innerHTML;
+        
+        try {
+            // Show loading state
+            this.showLoadingState();
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+            
+            const response = await fetch('/api/lottery-analysis/generate-prediction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    game_type: this.currentGameType
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.displayNewPrediction(data);
+                this.loadPredictionHistory(); // Refresh history
+                this.loadPerformanceStats(); // Refresh stats
+            } else {
+                this.showError(data.error || 'Failed to generate prediction');
+            }
+            
+        } catch (error) {
+            console.error('Prediction error:', error);
+            this.showError('Unable to generate prediction at this time');
+        } finally {
+            this.isGenerating = false;
+            this.hideLoadingState();
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+    
+    showLoadingState() {
+        document.getElementById('prediction-loading').classList.remove('d-none');
+        document.getElementById('new-prediction').classList.add('d-none');
+    }
+    
+    hideLoadingState() {
+        document.getElementById('prediction-loading').classList.add('d-none');
+    }
+    
+    displayNewPrediction(data) {
+        const prediction = data.prediction;
+        
+        // Show prediction container
+        document.getElementById('new-prediction').classList.remove('d-none');
+        
+        // Set title and basic info
+        document.getElementById('new-prediction-title').textContent = `${this.currentGameType} AI Prediction`;
+        document.getElementById('new-prediction-confidence').textContent = `${(prediction.confidence_score * 100).toFixed(1)}%`;
+        document.getElementById('new-prediction-method').textContent = prediction.prediction_method.replace(/_/g, ' ');
+        document.getElementById('new-prediction-date').textContent = prediction.draw_date;
+        document.getElementById('new-prediction-datapoints').textContent = data.historical_data_points || '--';
+        
+        // Set confidence meter
+        const meter = document.getElementById('new-prediction-meter');
+        const confidencePercent = prediction.confidence_score * 100;
+        meter.style.width = `${confidencePercent}%`;
+        
+        // Display predicted numbers
+        this.displayPredictedNumbers(prediction.predicted_numbers, prediction.bonus_numbers);
+        
+        // Set reasoning
+        document.getElementById('new-prediction-reasoning').textContent = prediction.reasoning;
+        
+        // Scroll to prediction
+        document.getElementById('new-prediction').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    displayPredictedNumbers(mainNumbers, bonusNumbers) {
+        const container = document.getElementById('new-prediction-numbers');
+        container.innerHTML = '';
+        
+        // Main numbers
+        mainNumbers.forEach(number => {
+            const ball = document.createElement('div');
+            ball.className = 'predicted-ball';
+            ball.textContent = number;
+            ball.title = `Main number: ${number}`;
+            container.appendChild(ball);
+        });
+        
+        // Bonus numbers
+        if (bonusNumbers && bonusNumbers.length > 0) {
+            bonusNumbers.forEach(number => {
+                const ball = document.createElement('div');
+                ball.className = 'predicted-ball bonus-ball';
+                ball.textContent = number;
+                ball.title = `Bonus number: ${number}`;
+                container.appendChild(ball);
+            });
+        }
+    }
+    
+    async loadPredictionHistory() {
+        try {
+            const gameFilter = document.getElementById('history-game-filter').value;
+            const gameType = gameFilter === 'all' ? this.currentGameType : gameFilter;
+            
+            const response = await fetch(`/api/lottery-analysis/predictions?game_type=${gameType}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.displayPredictionHistory(data.predictions);
+            } else {
+                console.error('Failed to load prediction history:', data.error);
+            }
+        } catch (error) {
+            console.error('Error loading prediction history:', error);
+        }
+    }
+    
+    displayPredictionHistory(predictions) {
+        const container = document.getElementById('predictions-history');
+        container.innerHTML = '';
+        
+        if (!predictions || predictions.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-info-circle fa-3x mb-3"></i>
+                    <p>No predictions found for this game type.</p>
+                    <p>Generate your first prediction using the button above!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        predictions.forEach(prediction => {
+            const card = this.createPredictionHistoryCard(prediction);
+            container.appendChild(card);
+        });
+    }
+    
+    createPredictionHistoryCard(prediction) {
+        const card = document.createElement('div');
+        card.className = 'col-md-6 mb-3';
+        
+        const accuracyBadge = prediction.is_verified ? 
+            `<div class="accuracy-badge accuracy-verified">Verified: ${(prediction.accuracy_score * 100).toFixed(1)}%</div>` :
+            `<div class="accuracy-badge accuracy-pending">Pending</div>`;
+        
+        const numbersHtml = prediction.predicted_numbers.map(num => 
+            `<span class="predicted-ball me-2">${num}</span>`
+        ).join('') + 
+        (prediction.bonus_numbers?.map(num => 
+            `<span class="predicted-ball bonus-ball me-2">${num}</span>`
+        ).join('') || '');
+        
+        card.innerHTML = `
+            <div class="card prediction-card">
+                ${accuracyBadge}
+                <div class="card-body">
+                    <h6 class="card-title">${this.currentGameType}</h6>
+                    <div class="prediction-numbers small mb-3">
+                        ${numbersHtml}
+                    </div>
+                    <div class="small text-muted">
+                        <div>Confidence: ${(prediction.confidence_score * 100).toFixed(1)}%</div>
+                        <div>Created: ${new Date(prediction.created_at).toLocaleDateString()}</div>
+                        <div>Target: ${new Date(prediction.target_draw_date).toLocaleDateString()}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return card;
+    }
+    
+    async loadPerformanceStats() {
+        try {
+            const response = await fetch('/api/lottery-analysis/prediction-accuracy?days=90');
+            const data = await response.json();
+            
+            if (data.success && data.performance_stats) {
+                this.displayPerformanceStats(data.performance_stats);
+            }
+        } catch (error) {
+            console.error('Error loading performance stats:', error);
+        }
+    }
+    
+    displayPerformanceStats(stats) {
+        document.getElementById('total-predictions').textContent = stats.total_predictions || 0;
+        document.getElementById('avg-accuracy').textContent = stats.average_accuracy ? 
+            `${(stats.average_accuracy * 100).toFixed(1)}%` : '--';
+        document.getElementById('best-accuracy').textContent = stats.best_accuracy ? 
+            `${(stats.best_accuracy * 100).toFixed(1)}%` : '--';
+        document.getElementById('overall-accuracy').textContent = stats.average_accuracy ? 
+            `${(stats.average_accuracy * 100).toFixed(1)}%` : '--';
+        
+        // Calculate trend
+        if (stats.accuracy_trend && stats.accuracy_trend.length >= 2) {
+            const recent = stats.accuracy_trend.slice(-3);
+            const trend = recent[recent.length - 1] - recent[0];
+            document.getElementById('recent-trend').textContent = trend > 0 ? '↗️' : trend < 0 ? '↘️' : '→';
+        } else {
+            document.getElementById('recent-trend').textContent = '--';
+        }
+    }
+    
+    showError(message) {
+        // You could implement a toast notification system here
+        alert(`Prediction Error: ${message}`);
+    }
+}
+
+// Initialize the prediction system when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    new LotteryPredictionSystem();
+});
+</script>
+{% endblock %}

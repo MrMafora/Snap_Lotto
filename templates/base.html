@@ -350,6 +350,9 @@
                         <a class="nav-link d-flex align-items-center py-2 px-2" href="/visualizations"><i class="fas fa-chart-bar me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Analytics</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/predictions"><i class="fas fa-brain me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> AI Predictions</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link d-flex align-items-center py-2 px-2 {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}" href="/scanner-landing"><i class="fas fa-ticket-alt me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Scanner</a>
                     </li>
 
@@ -539,8 +542,12 @@
             <small>Scanner</small>
         </a>
         <a href="/visualizations" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/visualizations' %}#dc3545{% else %}#666{% endif %};">
-            <i class="fas fa-chart-bar" style="font-size: 16px; margin-bottom: 2px;"></i>
-            <small>Analytics</small>
+            <i class="fas fa-chart-bar" style="font-size: 14px; margin-bottom: 2px;"></i>
+            <small style="font-size: 11px;">Analytics</small>
+        </a>
+        <a href="/predictions" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/predictions' %}#dc3545{% else %}#666{% endif %};">
+            <i class="fas fa-brain" style="font-size: 14px; margin-bottom: 2px;"></i>
+            <small style="font-size: 11px;">AI</small>
         </a>
         {% if current_user.is_authenticated and current_user.is_admin %}
         <a href="{{ url_for('admin') }}" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/admin' %}#dc3545{% else %}#666{% endif %};">

@@ -943,6 +943,12 @@ def visualizations():
                              latest_draw_date=datetime.now(),
                              lottery_types=['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'])
 
+# Predictions Route
+@app.route('/predictions')
+def predictions():
+    """AI lottery predictions page"""
+    return render_template('predictions.html')
+
 # Scanner Landing Route
 @app.route('/scanner-landing')
 def scanner_landing():
