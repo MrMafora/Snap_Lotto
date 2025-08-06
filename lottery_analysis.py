@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 # Create blueprint
 bp = Blueprint('lottery_analysis', __name__, url_prefix='/api/lottery-analysis')
 
+def map_frontend_to_db_lottery_type(frontend_type):
+    """Map frontend lottery type names to database values"""
+    mapping = {
+        'Lottery': 'LOTTO',
+        'Lottery Plus 1': 'LOTTO PLUS 1',
+        'Lottery Plus 2': 'LOTTO PLUS 2',
+        'Powerball': 'POWERBALL',
+        'Powerball Plus': 'POWERBALL PLUS',
+        'Daily Lottery': 'DAILY LOTTO'
+    }
+    return mapping.get(frontend_type, frontend_type)
+
 @bp.route('/frequency')
 def frequency_analysis():
     """Get frequency analysis of lottery numbers"""
@@ -25,6 +37,10 @@ def frequency_analysis():
         # Get query parameters
         lottery_type = request.args.get('lottery_type')
         days = int(request.args.get('days', 365))
+        
+        # Map frontend lottery type to database value
+        if lottery_type and lottery_type != 'all':
+            lottery_type = map_frontend_to_db_lottery_type(lottery_type)
         
         logger.info(f"Performing optimized analysis for: lottery_type={lottery_type}, days={days}")
         
