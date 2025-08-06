@@ -523,3 +523,149 @@ def generate_new_prediction():
     except Exception as e:
         logger.error(f"Generate prediction error: {e}")
         return jsonify({'error': 'Prediction generation temporarily unavailable'}), 500
+
+@bp.route('/prediction-history')
+@require_admin
+def get_prediction_history():
+    """Get historical AI predictions with accuracy data"""
+    try:
+        import psycopg2
+        import os
+        
+        # Get query parameters
+        game_type = request.args.get('game_type', 'all')
+        limit = int(request.args.get('limit', 10))
+        
+        logger.info(f"Getting prediction history for: {game_type}, limit: {limit}")
+        
+        with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+            with conn.cursor() as cur:
+                if game_type != 'all':
+                    db_game_type = map_frontend_to_db_lottery_type(game_type)
+                    cur.execute("""
+                        SELECT id, game_type, predicted_numbers, bonus_numbers, 
+                               confidence_score, prediction_method, reasoning, 
+                               target_draw_date, created_at, is_verified, accuracy_score
+                        FROM lottery_predictions 
+                        WHERE game_type = %s 
+                        ORDER BY created_at DESC 
+                        LIMIT %s
+                    """, (db_game_type, limit))
+                else:
+                    cur.execute("""
+                        SELECT id, game_type, predicted_numbers, bonus_numbers, 
+                               confidence_score, prediction_method, reasoning, 
+                               target_draw_date, created_at, is_verified, accuracy_score
+                        FROM lottery_predictions 
+                        ORDER BY created_at DESC 
+                        LIMIT %s
+                    """, (limit,))
+                
+                results = cur.fetchall()
+                predictions = []
+                
+                for row in results:
+                    predictions.append({
+                        'id': row[0],
+                        'game_type': row[1],
+                        'predicted_numbers': row[2],
+                        'bonus_numbers': row[3] or [],
+                        'confidence_score': float(row[4]) if row[4] else 0.0,
+                        'prediction_method': row[5],
+                        'reasoning': row[6],
+                        'target_draw_date': row[7].isoformat() if row[7] else None,
+                        'created_at': row[8].isoformat() if row[8] else None,
+                        'is_verified': row[9] if row[9] is not None else False,
+                        'accuracy_score': float(row[10]) if row[10] else None,
+                        'status': 'Verified' if row[9] else 'Pending'
+                    })
+        
+        response = {
+            'success': True,
+            'game_type': game_type,
+            'total_predictions': len(predictions),
+            'predictions': predictions
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Prediction history error: {e}")
+        return jsonify({'error': 'Unable to load prediction history'}), 500
+
+@bp.route('/system-metrics')
+@require_admin
+def get_system_metrics():
+    """Get AI prediction system performance metrics"""
+    try:
+        import psycopg2
+        import os
+        from datetime import datetime, timedelta
+        
+        logger.info("Getting AI prediction system metrics")
+        
+        with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+            with conn.cursor() as cur:
+                # Get total predictions count
+                cur.execute("SELECT COUNT(*) FROM lottery_predictions")
+                total_predictions = cur.fetchone()[0]
+                
+                # Get predictions from last 30 days
+                thirty_days_ago = datetime.now() - timedelta(days=30)
+                cur.execute("""
+                    SELECT COUNT(*) FROM lottery_predictions 
+                    WHERE created_at >= %s
+                """, (thirty_days_ago,))
+                recent_predictions = cur.fetchone()[0]
+                
+                # Get verified predictions count
+                cur.execute("SELECT COUNT(*) FROM lottery_predictions WHERE is_verified = true")
+                verified_predictions = cur.fetchone()[0]
+                
+                # Get average confidence score
+                cur.execute("SELECT AVG(confidence_score) FROM lottery_predictions WHERE confidence_score IS NOT NULL")
+                avg_confidence = cur.fetchone()[0] or 0.0
+                
+                # Get predictions by game type
+                cur.execute("""
+                    SELECT game_type, COUNT(*) as count 
+                    FROM lottery_predictions 
+                    GROUP BY game_type 
+                    ORDER BY count DESC
+                """)
+                predictions_by_game = [{'game_type': row[0], 'count': row[1]} for row in cur.fetchall()]
+                
+                # Get accuracy metrics for verified predictions
+                cur.execute("""
+                    SELECT AVG(accuracy_score) as avg_accuracy,
+                           MIN(accuracy_score) as min_accuracy,
+                           MAX(accuracy_score) as max_accuracy
+                    FROM lottery_predictions 
+                    WHERE is_verified = true AND accuracy_score IS NOT NULL
+                """)
+                accuracy_data = cur.fetchone()
+                
+                accuracy_metrics = {
+                    'average': float(accuracy_data[0]) if accuracy_data[0] else 0.0,
+                    'minimum': float(accuracy_data[1]) if accuracy_data[1] else 0.0,
+                    'maximum': float(accuracy_data[2]) if accuracy_data[2] else 0.0
+                } if accuracy_data else {'average': 0.0, 'minimum': 0.0, 'maximum': 0.0}
+                
+        response = {
+            'success': True,
+            'system_status': 'Active',
+            'total_predictions': total_predictions,
+            'recent_predictions_30d': recent_predictions,
+            'verified_predictions': verified_predictions,
+            'verification_rate': (verified_predictions / total_predictions * 100) if total_predictions > 0 else 0.0,
+            'average_confidence': round(float(avg_confidence), 2),
+            'accuracy_metrics': accuracy_metrics,
+            'predictions_by_game': predictions_by_game,
+            'last_updated': datetime.now().isoformat()
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"System metrics error: {e}")
+        return jsonify({'error': 'Unable to load system metrics'}), 500
