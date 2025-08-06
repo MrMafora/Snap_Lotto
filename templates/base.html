@@ -278,9 +278,37 @@
                         });
                     }
                 } else {
-                    console.warn('DROPDOWN DEBUG: Data filter dropdown elements not found');
+                    console.warn('DROPDOWN DEBUG: Data filter dropdown elements not found on this page');
                 }
-            }, 150); // Slightly longer delay to ensure Bootstrap is ready
+
+                // Also add a global click handler for any dropdown buttons as additional fallback
+                document.addEventListener('click', function(e) {
+                    if (e.target.id === 'dataFilterDropdown' || e.target.closest('#dataFilterDropdown')) {
+                        console.log('DROPDOWN DEBUG: Manual click detected on filter button');
+                        const button = e.target.id === 'dataFilterDropdown' ? e.target : e.target.closest('#dataFilterDropdown');
+                        const menu = button.nextElementSibling;
+                        
+                        if (menu && menu.classList.contains('dropdown-menu')) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('DROPDOWN DEBUG: Manual dropdown toggle');
+                            
+                            if (menu.style.display === 'block' || menu.classList.contains('show')) {
+                                menu.style.display = 'none';
+                                menu.classList.remove('show');
+                                button.setAttribute('aria-expanded', 'false');
+                            } else {
+                                menu.style.display = 'block';
+                                menu.classList.add('show');
+                                button.setAttribute('aria-expanded', 'true');
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn('DROPDOWN DEBUG: Data filter dropdown elements not found on this page');
+            }
+            }, 500); // Longer delay to ensure all HTML is rendered
         });
     </script>
     <!-- Mobile optimization -->
