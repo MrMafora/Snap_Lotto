@@ -10,6 +10,7 @@ import json
 import logging
 from collections import Counter
 from cache_manager import cached_query
+from security_utils import require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -377,6 +378,7 @@ def game_type_insights():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/predictions')
+@require_admin
 def get_lottery_predictions():
     """Get AI-generated lottery predictions for upcoming draws"""
     try:
@@ -449,6 +451,7 @@ def get_lottery_predictions():
         return jsonify({'error': 'Prediction system temporarily unavailable'}), 500
 
 @bp.route('/prediction-accuracy')
+@require_admin
 def get_prediction_accuracy():
     """Get accuracy statistics for AI predictions"""
     try:
@@ -487,6 +490,7 @@ def get_prediction_accuracy():
         return jsonify({'error': 'Accuracy tracking temporarily unavailable'}), 500
 
 @bp.route('/generate-prediction', methods=['POST'])
+@require_admin
 def generate_new_prediction():
     """Generate a new AI prediction for specified game"""
     try:

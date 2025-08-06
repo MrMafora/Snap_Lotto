@@ -55,6 +55,15 @@ This project is an AI-powered lottery intelligence platform for South African lo
   - Enhanced system to generate lottery number predictions, validate accuracy against actual results, and fine-tune future predictions
   - Added predictions route handler in main.py to serve the predictions page
   - Full navigation system implemented with "AI Predictions" in desktop menu and "AI" icon in mobile bottom bar
+- **SECURITY ENHANCEMENT COMPLETED**: Admin-Only Access for AI Predictions Feature
+  - Applied @require_admin decorator to /predictions route for admin-only page access
+  - Protected all AI prediction API endpoints with admin authentication:
+    * /api/lottery-analysis/predictions - Get AI-generated predictions
+    * /api/lottery-analysis/prediction-accuracy - Get accuracy statistics  
+    * /api/lottery-analysis/generate-prediction - Generate new predictions
+  - Hidden AI Predictions navigation links from non-admin users in both desktop and mobile menus
+  - Implemented conditional Jinja2 templates using current_user.is_authenticated and current_user.is_admin checks
+  - Ensures AI prediction system is exclusively available to administrators while maintaining secure access control
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.

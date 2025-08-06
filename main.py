@@ -23,7 +23,7 @@ import psycopg2
 # Import configuration and models
 from config import Config
 from models import db, User, LotteryResult, ExtractionReview, HealthCheck, Alert, SystemLog
-from security_utils import limiter, sanitize_input, validate_form_data, RateLimitExceeded
+from security_utils import limiter, sanitize_input, validate_form_data, RateLimitExceeded, require_admin
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -943,10 +943,11 @@ def visualizations():
                              latest_draw_date=datetime.now(),
                              lottery_types=['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'])
 
-# Predictions Route
+# Predictions Route - Admin Only
 @app.route('/predictions')
+@require_admin
 def predictions():
-    """AI lottery predictions page"""
+    """AI lottery predictions page - Admin access only"""
     return render_template('predictions.html')
 
 # Scanner Landing Route
