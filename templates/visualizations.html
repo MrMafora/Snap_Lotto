@@ -212,42 +212,119 @@
         </div>
     </div>
     
-    <div class="card mb-4">
-        <div class="card-header bg-lottery">
-            <h5 class="card-title mb-0">Advanced Pattern Analysis</h5>
-        </div>
-        <div class="card-body">
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Important Notice:</strong> This analysis is provided for entertainment purposes only. Lottery games are based on random chance, and past results do not influence future draws.
+    <!-- AI-Powered Pattern Analysis Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-lottery d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">🤖 AI-Powered Pattern Analysis</h5>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="ai-lottery-type" style="width: auto;">
+                            <option value="all">All Games</option>
+                            <option value="Lottery">Lottery</option>
+                            <option value="Lottery Plus 1">Lottery Plus 1</option>
+                            <option value="Lottery Plus 2">Lottery Plus 2</option>
+                            <option value="Powerball">Powerball</option>
+                            <option value="Powerball Plus">Powerball Plus</option>
+                            <option value="Daily Lottery">Daily Lottery</option>
+                        </select>
+                        <button id="analyze-patterns-btn" class="btn btn-warning btn-sm">
+                            <i class="fas fa-brain me-1"></i>Analyze Patterns
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>AI Analysis:</strong> Our advanced AI analyzes authentic lottery data to identify mathematical patterns, sequences, and statistical anomalies. Analysis is for entertainment purposes only.
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="ai-loading" class="text-center py-4 d-none">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Analyzing patterns...</span>
+                        </div>
+                        <p class="mt-2 text-muted">AI is analyzing lottery patterns...</p>
+                    </div>
+                    
+                    <!-- AI Summary Section -->
+                    <div id="ai-summary-section" class="mb-4 d-none">
+                        <h6 class="text-warning">📊 AI Insights Summary</h6>
+                        <div id="ai-summary-content" class="p-3 bg-light rounded">
+                            <!-- AI summary will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Pattern Analysis Results -->
+                    <div id="pattern-results" class="d-none">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-warning">🔍 Number Patterns Found</h6>
+                                <div id="number-patterns-list">
+                                    <!-- Pattern analysis results will be populated here -->
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-warning">🎮 Game Type Analysis</h6>
+                                <div id="game-analysis-list">
+                                    <!-- Game-specific analysis will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error State -->
+                    <div id="ai-error" class="alert alert-danger d-none">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="ai-error-message">Unable to analyze patterns at this time.</span>
+                    </div>
+                    
+                    <!-- Initial State -->
+                    <div id="ai-initial-state" class="text-center py-4">
+                        <i class="fas fa-brain fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Select a lottery type and click "Analyze Patterns" to discover AI-powered insights</p>
+                    </div>
+                </div>
             </div>
-            
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-title">Number Combinations</h6>
-                            <p class="small">Analysis of frequently occurring number combinations and patterns.</p>
-                            <button class="btn btn-lottery-primary btn-sm" disabled>Coming Soon</button>
-                        </div>
+        </div>
+    </div>
+    
+    <!-- Game-Specific Insights Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-lottery d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">🎯 Game-Specific AI Insights</h5>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="game-insights-type" style="width: auto;">
+                            <option value="">Select Game</option>
+                            <option value="Lottery">Lottery</option>
+                            <option value="Lottery Plus 1">Lottery Plus 1</option>
+                            <option value="Lottery Plus 2">Lottery Plus 2</option>
+                            <option value="Powerball">Powerball</option>
+                            <option value="Powerball Plus">Powerball Plus</option>
+                            <option value="Daily Lottery">Daily Lottery</option>
+                        </select>
+                        <button id="get-game-insights-btn" class="btn btn-warning btn-sm" disabled>
+                            <i class="fas fa-lightbulb me-1"></i>Get Insights
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-title">Draw Frequency</h6>
-                            <p class="small">Analysis of time between draws and seasonal patterns.</p>
-                            <button class="btn btn-lottery-primary btn-sm" disabled>Coming Soon</button>
+                <div class="card-body">
+                    <div id="game-insights-loading" class="text-center py-4 d-none">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Getting game insights...</span>
                         </div>
+                        <p class="mt-2 text-muted">AI is analyzing game-specific patterns...</p>
                     </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-title">Predictive Modeling</h6>
-                            <p class="small">Advanced statistical models to identify emerging patterns.</p>
-                            <button class="btn btn-lottery-primary btn-sm" disabled>Coming Soon</button>
-                        </div>
+                    
+                    <div id="game-insights-content" class="d-none">
+                        <!-- Game insights will be populated here -->
+                    </div>
+                    
+                    <div id="game-insights-initial" class="text-center py-4">
+                        <i class="fas fa-lightbulb fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Select a specific game to get AI-powered insights about its unique patterns</p>
                     </div>
                 </div>
             </div>
@@ -863,4 +940,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- AI Pattern Analyzer JavaScript -->
+<script src="{{ url_for('static', filename='js/ai-pattern-analyzer.js') }}"></script>
 {% endblock %}

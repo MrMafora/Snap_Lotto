@@ -39,3 +39,4 @@ oauthlib
 pyjwt
 pyppeteer
 schedule
+google-genai

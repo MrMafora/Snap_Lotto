@@ -304,29 +304,74 @@ def pattern_analysis():
     except Exception as e:
         logger.error(f"Pattern analysis error: {e}")
         return jsonify({'error': str(e)}), 500
+
+@bp.route('/ai-patterns')
+def ai_pattern_analysis():
+    """AI-powered comprehensive pattern analysis using Google Gemini"""
+    try:
+        from gemini_pattern_analyzer import get_comprehensive_ai_analysis
         
-        # Analyze patterns (simplified)
-        all_numbers = []
-        for result in results:
-            if result.numbers:
-                try:
-                    if isinstance(result.numbers, str):
-                        numbers = json.loads(result.numbers)
-                    else:
-                        numbers = result.numbers
-                    
-                    if isinstance(numbers, list):
-                        all_numbers.extend(numbers)
-                except:
-                    pass
+        # Get query parameters
+        lottery_type = request.args.get('lottery_type', 'all')
+        days = int(request.args.get('days', 180))
         
-        # Calculate frequency for hot/cold numbers
-        frequency = Counter(all_numbers)
-        patterns['hot_numbers'] = frequency.most_common(10)
-        patterns['cold_numbers'] = frequency.most_common()[-10:]
+        logger.info(f"Starting AI pattern analysis for: {lottery_type}, {days} days")
         
-        return jsonify(patterns)
+        # Get comprehensive AI analysis
+        analysis_result = get_comprehensive_ai_analysis(lottery_type, days)
+        
+        if 'error' in analysis_result:
+            logger.error(f"AI analysis error: {analysis_result['error']}")
+            return jsonify(analysis_result), 500
+            
+        logger.info(f"AI analysis completed: {len(analysis_result.get('pattern_analyses', []))} patterns, {len(analysis_result.get('game_analyses', []))} game analyses")
+        
+        return jsonify(analysis_result)
         
     except Exception as e:
-        logger.error(f"Pattern analysis error: {e}")
+        logger.error(f"AI pattern analysis error: {e}")
+        return jsonify({
+            'error': str(e),
+            'pattern_analyses': [],
+            'game_analyses': [],
+            'ai_summary': 'AI analysis temporarily unavailable.'
+        }), 500
+
+@bp.route('/game-insights')
+def game_type_insights():
+    """Get AI insights for specific game types"""
+    try:
+        from gemini_pattern_analyzer import get_lottery_data_for_ai, analyze_game_types_with_ai
+        
+        # Get query parameters
+        lottery_type = request.args.get('lottery_type')
+        days = int(request.args.get('days', 90))
+        
+        if not lottery_type or lottery_type == 'all':
+            return jsonify({'error': 'Specific lottery type required for game insights'}), 400
+            
+        # Map frontend to database type
+        db_lottery_type = map_frontend_to_db_lottery_type(lottery_type)
+        
+        logger.info(f"Getting game insights for: {db_lottery_type}")
+        
+        # Get lottery data
+        lottery_data = get_lottery_data_for_ai(db_lottery_type, days)
+        
+        if not lottery_data:
+            return jsonify({'error': f'No data available for {lottery_type}'}), 404
+            
+        # Analyze with AI
+        game_analyses = analyze_game_types_with_ai(lottery_data)
+        
+        return jsonify({
+            'success': True,
+            'lottery_type': lottery_type,
+            'game_analyses': [g.dict() for g in game_analyses],
+            'data_period_days': days,
+            'total_draws': sum(len(data['draws']) for data in lottery_data.values())
+        })
+        
+    except Exception as e:
+        logger.error(f"Game insights error: {e}")
         return jsonify({'error': str(e)}), 500
