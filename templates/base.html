@@ -571,6 +571,8 @@
     {% block additional_scripts %}{% endblock %}
     <!-- Ad scripts have been replaced with stubs that maintain compatibility but don't show ads -->
     <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
+    <!-- Dedicated dropdown fix for filter button -->
+    <script src="{{ url_for('static', filename='js/dropdown-fix.js') }}"></script>
     
     <!-- PWA Service Worker Registration -->
     <script>
