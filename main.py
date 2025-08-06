@@ -950,6 +950,40 @@ def predictions():
     """AI lottery predictions page - Admin access only"""
     return render_template('predictions.html')
 
+# Weekly predictions trigger - Admin Only
+@app.route('/trigger-weekly-predictions', methods=['POST'])
+@require_admin
+def trigger_weekly_predictions():
+    """Manually trigger weekly AI predictions generation"""
+    try:
+        import subprocess
+        import threading
+        
+        def run_predictions():
+            try:
+                subprocess.run([
+                    'python', 'weekly_prediction_scheduler.py'
+                ], timeout=1800)
+            except Exception as e:
+                logger.error(f"Weekly predictions failed: {e}")
+        
+        # Run in background thread
+        thread = threading.Thread(target=run_predictions)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Weekly predictions started in background'
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to trigger weekly predictions: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to start weekly predictions'
+        }), 500
+
 # Scanner Landing Route
 @app.route('/scanner-landing')
 def scanner_landing():

@@ -212,7 +212,7 @@ class AILotteryPredictor:
         
         return patterns
 
-    def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> LotteryPrediction:
+    def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any], variation_seed: int = 1) -> LotteryPrediction:
         """Use AI to generate lottery number predictions based on historical data"""
         try:
             # Get game configuration
@@ -239,6 +239,7 @@ class AILotteryPredictor:
             4. Account for randomness and avoid overfitting
             5. Provide confidence score (0.0-1.0)
             6. Explain reasoning behind selections
+            7. Variation factor: {variation_seed} (use this to create diverse predictions)
             
             Generate prediction with:
             - Main numbers: {game_config['main_count']} unique numbers
@@ -252,7 +253,7 @@ class AILotteryPredictor:
                 contents=prediction_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.4
+                    temperature=0.4 + (variation_seed * 0.1)  # Add variation based on seed
                 )
             )
             
