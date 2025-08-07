@@ -541,9 +541,14 @@ class AILotteryPredictor:
                             bonus_number_matches = %s,
                             accuracy_percentage = %s,
                             prize_tier = %s,
+                            matched_main_numbers = %s,
+                            matched_bonus_numbers = %s,
                             verified_at = NOW()
                         WHERE id = %s
-                    """, (main_matches, bonus_matches, accuracy_percentage, prize_tier, prediction_id))
+                    """, (main_matches, bonus_matches, accuracy_percentage, prize_tier, 
+                          list(set(predicted_numbers) & set(actual_numbers)),
+                          list(set(predicted_bonus) & set(actual_bonus)) if predicted_bonus and actual_bonus else [],
+                          prediction_id))
                     
                     conn.commit()
                     
@@ -557,7 +562,8 @@ class AILotteryPredictor:
                         'accuracy_percentage': accuracy_percentage,
                         'prize_tier': prize_tier,
                         'confidence_score': confidence,
-                        'matched_numbers': list(set(predicted_numbers) & set(actual_numbers))
+                        'matched_main_numbers': list(set(predicted_numbers) & set(actual_numbers)),
+                        'matched_bonus_numbers': list(set(predicted_bonus) & set(actual_bonus)) if predicted_bonus and actual_bonus else []
                     }
                     
                     logger.info(f"Prediction {prediction_id} validated: {main_matches} matches ({accuracy_percentage:.1f}%)")

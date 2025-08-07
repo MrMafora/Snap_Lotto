@@ -165,6 +165,60 @@
         padding: 40px;
         color: #6b7280;
     }
+
+    .prediction-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .game-type-section {
+        margin-bottom: 30px;
+    }
+
+    .game-type-header {
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+    }
+
+    .predictions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .lottery-ball.bg-success {
+        border: 2px solid #28a745 !important;
+        font-weight: bold;
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 8px rgba(40, 167, 69, 0.6); }
+        50% { box-shadow: 0 0 15px rgba(40, 167, 69, 0.9); }
+        100% { box-shadow: 0 0 8px rgba(40, 167, 69, 0.6); }
+    }
+
+    .matched-numbers {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 1px solid #28a745;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 10px;
+        border-left: 4px solid #28a745;
+    }
+
+    .game-type-header h5 {
+        color: #0056b3;
+        font-weight: 600;
+        margin: 0;
+    }
 </style>
 {% endblock %}
 
@@ -432,10 +486,10 @@ class PredictionsManager {
 
     async loadLatestPredictions() {
         try {
-            const response = await fetch('/api/lottery-analysis/prediction-history?limit=5');
+            const response = await fetch('/api/lottery-analysis/prediction-history?limit=50');
             if (response.ok) {
                 const data = await response.json();
-                this.renderPredictions(data.predictions || []);
+                this.renderPredictionsByGameType(data.predictions || []);
             } else {
                 throw new Error('Failed to load predictions');
             }
@@ -449,7 +503,7 @@ class PredictionsManager {
         }
     }
 
-    renderPredictions(predictions) {
+    renderPredictionsByGameType(predictions) {
         const container = document.getElementById('latestPredictions');
         
         if (predictions.length === 0) {
@@ -462,61 +516,137 @@ class PredictionsManager {
             return;
         }
 
-        const html = predictions.map(pred => `
-            <div class="prediction-card">
-                <div class="prediction-header">
-                    <span class="game-type">${pred.game_type}</span>
-                    <span class="confidence-badge">${Math.round(pred.confidence_score * 100)}% Confidence</span>
+        // Group predictions by game type
+        const gameTypes = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'];
+        const groupedPredictions = {};
+        
+        gameTypes.forEach(gameType => {
+            groupedPredictions[gameType] = predictions.filter(pred => pred.game_type === gameType);
+        });
+
+        const gameRowsHTML = gameTypes.map(gameType => {
+            const gamePredictions = groupedPredictions[gameType];
+            
+            if (!gamePredictions || gamePredictions.length === 0) {
+                return `
+                    <div class="game-type-section mb-4">
+                        <div class="game-type-header">
+                            <h5 class="mb-2">${gameType} <span class="badge bg-secondary ms-2">0</span></h5>
+                        </div>
+                        <div class="text-center text-muted py-3">
+                            <small><i class="fas fa-info-circle me-1"></i>No predictions generated yet</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const predictionsHTML = gamePredictions.map(pred => this.renderSinglePrediction(pred)).join('');
+            
+            return `
+                <div class="game-type-section mb-4">
+                    <div class="game-type-header">
+                        <h5 class="mb-2">${gameType} <span class="badge bg-primary ms-2">${gamePredictions.length}</span></h5>
+                    </div>
+                    <div class="predictions-row">
+                        ${predictionsHTML}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = gameRowsHTML;
+    }
+
+    renderSinglePrediction(pred) {
+        // Get matched numbers for highlighting
+        const matchedNumbers = this.getMatchedNumbers(pred);
+        
+        return `
+            <div class="prediction-card" style="display: inline-block; width: 300px; margin: 0 10px 15px 0; vertical-align: top;">
+                <div class="prediction-header mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="confidence-badge ${pred.confidence_score > 0.4 ? 'high' : pred.confidence_score > 0.2 ? 'medium' : 'low'}">
+                            ${Math.round(pred.confidence_score * 100)}% Confidence
+                        </span>
+                        ${pred.is_verified ? '<i class="fas fa-check-circle text-success" title="Validated"></i>' : '<i class="fas fa-clock text-warning" title="Pending"></i>'}
+                    </div>
                 </div>
                 
-                <div class="prediction-numbers">
-                    <strong>Predicted Numbers:</strong><br>
-                    ${pred.predicted_numbers.map(num => `<span class="lottery-ball">${num}</span>`).join('')}
-                    ${pred.bonus_numbers.length > 0 ? '<br><strong>Bonus:</strong> ' + pred.bonus_numbers.map(num => `<span class="lottery-ball">${num}</span>`).join('') : ''}
+                <div class="prediction-numbers mb-2">
+                    <strong>Predicted:</strong><br>
+                    ${pred.predicted_numbers.map(num => {
+                        const isMatched = matchedNumbers.main.includes(num);
+                        return `<span class="lottery-ball ${isMatched ? 'bg-success text-white' : ''}" style="margin: 1px;">${num}</span>`;
+                    }).join('')}
+                    ${pred.bonus_numbers && pred.bonus_numbers.length > 0 ? `
+                        <br><strong>Bonus:</strong>
+                        ${pred.bonus_numbers.map(num => {
+                            const isMatched = matchedNumbers.bonus.includes(num);
+                            return `<span class="lottery-ball ${isMatched ? 'bg-success text-white' : ''}" style="margin: 1px;">${num}</span>`;
+                        }).join('')}
+                    ` : ''}
                 </div>
                 
-                ${pred.reasoning ? `
-                    <div class="prediction-reasoning">
-                        <strong>AI Analysis:</strong><br>
-                        ${pred.reasoning.substring(0, 300)}${pred.reasoning.length > 300 ? '...' : ''}
+                ${matchedNumbers.hasMatches ? `
+                    <div class="matched-numbers mb-2">
+                        <strong style="color: #28a745;">✓ Matched Numbers:</strong><br>
+                        ${matchedNumbers.main.length > 0 ? `
+                            Main: ${matchedNumbers.main.map(num => `<span class="lottery-ball bg-success text-white" style="margin: 1px;">${num}</span>`).join('')}
+                        ` : ''}
+                        ${matchedNumbers.bonus.length > 0 ? `<br>Bonus: ${matchedNumbers.bonus.map(num => `<span class="lottery-ball bg-success text-white" style="margin: 1px;">${num}</span>`).join('')}` : ''}
                     </div>
                 ` : ''}
                 
                 ${pred.is_verified && pred.main_number_matches !== undefined ? `
-                    <div class="validation-results mt-3">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Validation Results:</strong><br>
-                                <span class="badge bg-${pred.main_number_matches >= 3 ? 'success' : pred.main_number_matches >= 1 ? 'warning' : 'secondary'}">
-                                    ${pred.main_number_matches} Main Matches
-                                </span>
-                                ${pred.bonus_number_matches > 0 ? `<span class="badge bg-info ms-1">${pred.bonus_number_matches} Bonus</span>` : ''}
-                                <span class="badge bg-primary ms-1">${pred.prize_tier || 'No Prize'}</span>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                <strong>Accuracy:</strong> ${(pred.accuracy_percentage || 0).toFixed(1)}%
-                            </div>
+                    <div class="validation-results mb-2">
+                        <div class="text-center">
+                            <span class="badge bg-${pred.main_number_matches >= 3 ? 'success' : pred.main_number_matches >= 1 ? 'warning' : 'secondary'}">
+                                ${pred.main_number_matches} Main${pred.bonus_number_matches > 0 ? ` + ${pred.bonus_number_matches} Bonus` : ''}
+                            </span>
+                            <span class="badge bg-primary ms-1">${pred.prize_tier || 'No Prize'}</span>
+                            <br><small><strong>${(pred.accuracy_percentage || 0).toFixed(1)}% Accuracy</strong></small>
                         </div>
                     </div>
-                ` : pred.is_verified ? `
-                    <div class="alert alert-info mt-2">
-                        <i class="fas fa-info-circle me-2"></i>Verified but no match data available
+                ` : !pred.is_verified ? `
+                    <div class="text-center mb-2">
+                        <small class="text-warning"><i class="fas fa-clock me-1"></i>Pending validation</small>
                     </div>
-                ` : `
-                    <div class="alert alert-warning mt-2">
-                        <i class="fas fa-clock me-2"></i>Pending validation against actual results
-                    </div>
-                `}
+                ` : ''}
                 
-                <small class="text-muted">
-                    Generated: ${new Date(pred.created_at).toLocaleString()}
-                    ${pred.target_draw_date ? ` • Target Draw: ${new Date(pred.target_draw_date).toLocaleDateString()}` : ''}
-                    ${pred.verified_at ? ` • Validated: ${new Date(pred.verified_at).toLocaleDateString()}` : ''}
+                <small class="text-muted d-block text-center">
+                    ${new Date(pred.created_at).toLocaleDateString()}
+                    ${pred.target_draw_date ? ` • ${new Date(pred.target_draw_date).toLocaleDateString()}` : ''}
                 </small>
             </div>
-        `).join('');
+        `;
+    }
 
-        container.innerHTML = html;
+    getMatchedNumbers(pred) {
+        const result = {
+            main: [],
+            bonus: [],
+            hasMatches: false
+        };
+
+        // If we have the actual matched numbers from validation
+        if (pred.matched_main_numbers && Array.isArray(pred.matched_main_numbers)) {
+            result.main = pred.matched_main_numbers;
+            result.hasMatches = pred.matched_main_numbers.length > 0;
+        }
+
+        if (pred.matched_bonus_numbers && Array.isArray(pred.matched_bonus_numbers)) {
+            result.bonus = pred.matched_bonus_numbers;
+            if (pred.matched_bonus_numbers.length > 0) {
+                result.hasMatches = true;
+            }
+        }
+
+        // Fallback: if we have match counts but no specific matched numbers
+        if (!result.hasMatches && pred.is_verified && pred.main_number_matches > 0) {
+            result.hasMatches = true;
+        }
+
+        return result;
     }
 
     async loadSystemStats() {

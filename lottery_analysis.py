@@ -545,7 +545,9 @@ def get_prediction_history():
                     cur.execute("""
                         SELECT id, game_type, predicted_numbers, bonus_numbers, 
                                confidence_score, prediction_method, reasoning, 
-                               target_draw_date, created_at, is_verified, accuracy_score
+                               target_draw_date, created_at, is_verified, accuracy_score,
+                               main_number_matches, bonus_number_matches, accuracy_percentage,
+                               prize_tier, verified_at, matched_main_numbers, matched_bonus_numbers
                         FROM lottery_predictions 
                         WHERE game_type = %s 
                         ORDER BY created_at DESC 
@@ -555,7 +557,9 @@ def get_prediction_history():
                     cur.execute("""
                         SELECT id, game_type, predicted_numbers, bonus_numbers, 
                                confidence_score, prediction_method, reasoning, 
-                               target_draw_date, created_at, is_verified, accuracy_score
+                               target_draw_date, created_at, is_verified, accuracy_score,
+                               main_number_matches, bonus_number_matches, accuracy_percentage,
+                               prize_tier, verified_at, matched_main_numbers, matched_bonus_numbers
                         FROM lottery_predictions 
                         ORDER BY created_at DESC 
                         LIMIT %s
@@ -577,6 +581,13 @@ def get_prediction_history():
                         'created_at': row[8].isoformat() if row[8] else None,
                         'is_verified': row[9] if row[9] is not None else False,
                         'accuracy_score': float(row[10]) if row[10] else None,
+                        'main_number_matches': row[11] if len(row) > 11 else None,
+                        'bonus_number_matches': row[12] if len(row) > 12 else None,
+                        'accuracy_percentage': float(row[13]) if len(row) > 13 and row[13] else None,
+                        'prize_tier': row[14] if len(row) > 14 else None,
+                        'verified_at': row[15].isoformat() if len(row) > 15 and row[15] else None,
+                        'matched_main_numbers': row[16] if len(row) > 16 else [],
+                        'matched_bonus_numbers': row[17] if len(row) > 17 else [],
                         'status': 'Verified' if row[9] else 'Pending'
                     })
         
