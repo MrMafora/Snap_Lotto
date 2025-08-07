@@ -36,12 +36,47 @@ class WeeklyPredictionScheduler:
             'DAILY LOTTO': {'draws_per_week': 7, 'predictions_per_draw': 3}  # Every day
         }
         
+    def cleanup_old_predictions(self, game_type, max_predictions):
+        """Remove old predictions to maintain target count per game"""
+        try:
+            with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+                with conn.cursor() as cur:
+                    # Count current predictions for this game
+                    cur.execute("SELECT COUNT(*) FROM lottery_predictions WHERE game_type = %s", (game_type,))
+                    current_count = cur.fetchone()[0]
+                    
+                    if current_count > max_predictions:
+                        excess_count = current_count - max_predictions
+                        logger.info(f"Removing {excess_count} old {game_type} predictions (keeping newest {max_predictions})")
+                        
+                        # Delete oldest predictions beyond the limit
+                        cur.execute("""
+                            DELETE FROM lottery_predictions 
+                            WHERE id IN (
+                                SELECT id FROM lottery_predictions 
+                                WHERE game_type = %s 
+                                ORDER BY created_at ASC 
+                                LIMIT %s
+                            )
+                        """, (game_type, excess_count))
+                        
+                        conn.commit()
+                        logger.info(f"Successfully cleaned up {excess_count} old predictions for {game_type}")
+                        
+        except Exception as e:
+            logger.error(f"Error cleaning up predictions for {game_type}: {e}")
+
     def generate_weekly_predictions(self):
         """Generate predictions for each lottery game based on draw frequency"""
         logger.info("=== STARTING WEEKLY PREDICTION GENERATION ===")
         
         total_generated = 0
         results = {}
+        
+        # First, cleanup old predictions to maintain target counts
+        for game_type, schedule in self.game_schedules.items():
+            target_count = schedule['draws_per_week'] * schedule['predictions_per_draw']
+            self.cleanup_old_predictions(game_type, target_count)
         
         for game_type, schedule in self.game_schedules.items():
             try:
@@ -54,45 +89,67 @@ class WeeklyPredictionScheduler:
                 
                 game_results = []
                 
-                # Generate predictions for each draw of the week
-                for draw_num in range(1, draws_per_week + 1):
-                    for pred_num in range(1, predictions_per_draw + 1):
-                        try:
-                            # Calculate unique variation seed
-                            variation_seed = (draw_num * 10) + pred_num
-                            
-                            logger.info(f"Generating {game_type} Draw #{draw_num} Prediction #{pred_num}")
-                            
-                            # Get historical data
-                            historical_data = predictor.get_historical_data_for_prediction(game_type, 365)
-                            
-                            # Generate AI prediction with draw-specific variation
-                            prediction = predictor.generate_ai_prediction(
-                                game_type, 
-                                historical_data,
-                                variation_seed=variation_seed
+                # Check how many predictions already exist
+                with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT COUNT(*) FROM lottery_predictions WHERE game_type = %s", (game_type,))
+                        existing_count = cur.fetchone()[0]
+                
+                predictions_to_generate = max(0, total_predictions_needed - existing_count)
+                
+                if predictions_to_generate == 0:
+                    logger.info(f"{game_type} already has {existing_count} predictions - skipping generation")
+                    results[game_type] = {'generated': 0, 'existing': existing_count}
+                    continue
+                
+                logger.info(f"Generating {predictions_to_generate} new predictions for {game_type} (existing: {existing_count})")
+                
+                # Generate only the needed predictions
+                generated_count = 0
+                for i in range(predictions_to_generate):
+                    try:
+                        # Calculate unique variation seed
+                        variation_seed = (i + existing_count + 1) * 13  # Unique seed
+                        
+                        logger.info(f"Generating {game_type} Prediction #{i+1}/{predictions_to_generate}")
+                        
+                        # Get historical data
+                        historical_data = predictor.get_historical_data_for_prediction(game_type, 365)
+                        
+                        # Generate AI prediction with unique variation
+                        prediction = predictor.generate_ai_prediction(
+                            game_type, 
+                            historical_data,
+                            variation_seed=variation_seed
+                        )
+                        
+                        if prediction:
+                            # Store prediction in database
+                            success = predictor.store_prediction_in_database(
+                                game_type, prediction, f"Weekly Auto-Generation #{i+1}"
                             )
                             
-                            # Save prediction to database
-                            prediction_id = predictor.save_prediction(prediction)
+                            if success:
+                                game_results.append({
+                                    'prediction': i+1,
+                                    'numbers': prediction.predicted_numbers,
+                                    'bonus': getattr(prediction, 'bonus_numbers', []),
+                                    'confidence': prediction.confidence_score
+                                })
+                                generated_count += 1
+                                total_generated += 1
+                                logger.info(f"✅ Stored {game_type} Prediction #{i+1}")
+                            else:
+                                logger.error(f"❌ Failed to store {game_type} Prediction #{i+1}")
+                        else:
+                            logger.error(f"❌ Failed to generate {game_type} Prediction #{i+1}")
                             
-                            game_results.append({
-                                'prediction_id': prediction_id,
-                                'draw_number': draw_num,
-                                'prediction_number': pred_num,
-                                'numbers': prediction.predicted_numbers,
-                                'confidence': prediction.confidence_score
-                            })
-                            
-                            total_generated += 1
-                            logger.info(f"✓ Generated {game_type} D{draw_num}P{pred_num} (ID: {prediction_id})")
-                            
-                        except Exception as e:
-                            logger.error(f"Failed to generate {game_type} D{draw_num}P{pred_num}: {e}")
-                            continue
+                    except Exception as e:
+                        logger.error(f"Error generating {game_type} Prediction #{i+1}: {e}")
+                        continue
                 
-                results[game_type] = game_results
-                logger.info(f"Completed {game_type}: {len(game_results)}/{total_predictions_needed} predictions generated")
+                results[game_type] = {'generated': generated_count, 'existing': existing_count, 'total': existing_count + generated_count}
+                logger.info(f"Completed {game_type}: {generated_count} new + {existing_count} existing = {existing_count + generated_count} total predictions")
                 
             except Exception as e:
                 logger.error(f"Failed to process {game_type}: {e}")
