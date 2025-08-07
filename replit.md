@@ -90,6 +90,13 @@ This project is an AI-powered lottery intelligence platform for South African lo
   - Created prediction accuracy insights API for analyzing which numbers perform best
   - Added validation interface showing match results, prize tiers, and accuracy percentages
   - Enhanced predictions display with validation status, match counts, and improvement recommendations
+- **STATIC PREDICTION SYSTEM IMPLEMENTED**: Draw-Based Refresh Logic
+  - Created prediction_refresh_system.py for intelligent prediction management
+  - Predictions now remain static until new draw results become available for each game type
+  - Each game displays exactly 3 predictions for the upcoming draw only
+  - System automatically refreshes predictions when new draw data is detected
+  - Enhanced user experience with consistent predictions until validation against actual results
+  - Eliminates confusion from constantly changing predictions without new data justification
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
