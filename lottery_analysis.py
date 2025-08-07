@@ -669,3 +669,67 @@ def get_system_metrics():
     except Exception as e:
         logger.error(f"System metrics error: {e}")
         return jsonify({'error': 'Unable to load system metrics'}), 500
+
+@bp.route('/validate-prediction', methods=['POST'])
+@require_admin
+def validate_prediction():
+    """Validate a specific prediction against actual results"""
+    try:
+        data = request.get_json()
+        prediction_id = data.get('prediction_id')
+        actual_numbers = data.get('actual_numbers', [])
+        actual_bonus = data.get('actual_bonus', [])
+        
+        if not prediction_id:
+            return jsonify({'error': 'Prediction ID required'}), 400
+        
+        validation_result = predictor.validate_prediction_against_draw(
+            prediction_id, actual_numbers, actual_bonus
+        )
+        
+        return jsonify({
+            'success': True,
+            'validation': validation_result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error validating prediction: {e}")
+        return jsonify({'error': 'Validation failed'}), 500
+
+@bp.route('/accuracy-insights')
+@require_admin 
+def get_accuracy_insights():
+    """Get prediction accuracy insights and improvement recommendations"""
+    try:
+        game_type = request.args.get('game_type')
+        days = int(request.args.get('days', 30))
+        
+        insights = predictor.get_prediction_accuracy_insights(game_type, days)
+        
+        return jsonify({
+            'success': True,
+            'insights': insights
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting accuracy insights: {e}")
+        return jsonify({'error': 'Failed to get insights'}), 500
+
+@bp.route('/auto-validate', methods=['POST'])
+@require_admin
+def auto_validate_predictions():
+    """Automatically validate all pending predictions against available results"""
+    try:
+        from prediction_validation_system import PredictionValidationSystem
+        
+        validator = PredictionValidationSystem()
+        results = validator.auto_validate_pending_predictions()
+        
+        return jsonify({
+            'success': True,
+            'validation_results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in auto-validation: {e}")
+        return jsonify({'error': 'Auto-validation failed'}), 500

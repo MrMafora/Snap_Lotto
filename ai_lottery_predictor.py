@@ -503,6 +503,174 @@ class AILotteryPredictor:
         
         return accuracy_results
 
+    def validate_prediction_against_draw(self, prediction_id: int, actual_numbers: List[int], actual_bonus: List[int] = None) -> Dict[str, Any]:
+        """Validate a prediction against actual draw results"""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor() as cur:
+                    # Get prediction details
+                    cur.execute("""
+                        SELECT predicted_numbers, bonus_numbers, game_type, confidence_score
+                        FROM lottery_predictions WHERE id = %s
+                    """, (prediction_id,))
+                    
+                    result = cur.fetchone()
+                    if not result:
+                        return {'error': 'Prediction not found'}
+                    
+                    predicted_numbers, predicted_bonus, game_type, confidence = result
+                    predicted_bonus = predicted_bonus or []
+                    actual_bonus = actual_bonus or []
+                    
+                    # Calculate matches
+                    main_matches = len(set(predicted_numbers) & set(actual_numbers))
+                    bonus_matches = len(set(predicted_bonus) & set(actual_bonus)) if predicted_bonus and actual_bonus else 0
+                    
+                    # Determine accuracy level
+                    total_predicted = len(predicted_numbers)
+                    accuracy_percentage = (main_matches / total_predicted) * 100 if total_predicted > 0 else 0
+                    
+                    # Calculate prize tier (simplified)
+                    prize_tier = self.calculate_prize_tier(game_type, main_matches, bonus_matches)
+                    
+                    # Update prediction with validation results
+                    cur.execute("""
+                        UPDATE lottery_predictions 
+                        SET is_verified = true, 
+                            main_number_matches = %s,
+                            bonus_number_matches = %s,
+                            accuracy_percentage = %s,
+                            prize_tier = %s,
+                            verified_at = NOW()
+                        WHERE id = %s
+                    """, (main_matches, bonus_matches, accuracy_percentage, prize_tier, prediction_id))
+                    
+                    conn.commit()
+                    
+                    validation_result = {
+                        'prediction_id': prediction_id,
+                        'game_type': game_type,
+                        'predicted_numbers': predicted_numbers,
+                        'actual_numbers': actual_numbers,
+                        'main_matches': main_matches,
+                        'bonus_matches': bonus_matches,
+                        'accuracy_percentage': accuracy_percentage,
+                        'prize_tier': prize_tier,
+                        'confidence_score': confidence,
+                        'matched_numbers': list(set(predicted_numbers) & set(actual_numbers))
+                    }
+                    
+                    logger.info(f"Prediction {prediction_id} validated: {main_matches} matches ({accuracy_percentage:.1f}%)")
+                    return validation_result
+                    
+        except Exception as e:
+            logger.error(f"Error validating prediction: {e}")
+            return {'error': str(e)}
+
+    def calculate_prize_tier(self, game_type: str, main_matches: int, bonus_matches: int) -> str:
+        """Calculate the prize tier based on matches"""
+        if game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2']:
+            if main_matches >= 6: return 'Division 1'
+            elif main_matches >= 5: return 'Division 2'
+            elif main_matches >= 4: return 'Division 3'
+            elif main_matches >= 3: return 'Division 4'
+            else: return 'No Prize'
+        elif game_type in ['POWERBALL', 'POWERBALL PLUS']:
+            if main_matches >= 5 and bonus_matches >= 1: return 'Division 1'
+            elif main_matches >= 5: return 'Division 2'
+            elif main_matches >= 4 and bonus_matches >= 1: return 'Division 3'
+            elif main_matches >= 4: return 'Division 4'
+            elif main_matches >= 3 and bonus_matches >= 1: return 'Division 5'
+            elif main_matches >= 3: return 'Division 6'
+            elif main_matches >= 2 and bonus_matches >= 1: return 'Division 7'
+            elif main_matches >= 1 and bonus_matches >= 1: return 'Division 8'
+            elif bonus_matches >= 1: return 'Division 9'
+            else: return 'No Prize'
+        elif game_type == 'DAILY LOTTO':
+            if main_matches >= 5: return 'Division 1'
+            elif main_matches >= 4: return 'Division 2'
+            elif main_matches >= 3: return 'Division 3'
+            elif main_matches >= 2: return 'Division 4'
+            else: return 'No Prize'
+        return 'No Prize'
+
+    def get_prediction_accuracy_insights(self, game_type: str = None, days: int = 30) -> Dict[str, Any]:
+        """Analyze prediction accuracy to improve future predictions"""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor() as cur:
+                    # Base query for verified predictions
+                    where_clause = "WHERE is_verified = true"
+                    params = []
+                    
+                    if game_type:
+                        where_clause += " AND game_type = %s"
+                        params.append(game_type)
+                    
+                    if days:
+                        where_clause += " AND verified_at >= NOW() - INTERVAL '%s days'"
+                        params.append(days)
+                    
+                    # Get overall accuracy stats
+                    cur.execute(f"""
+                        SELECT 
+                            game_type,
+                            COUNT(*) as total_predictions,
+                            AVG(accuracy_percentage) as avg_accuracy,
+                            AVG(main_number_matches) as avg_main_matches,
+                            AVG(confidence_score) as avg_confidence,
+                            COUNT(CASE WHEN main_number_matches >= 3 THEN 1 END) as winning_predictions
+                        FROM lottery_predictions 
+                        {where_clause}
+                        GROUP BY game_type
+                        ORDER BY avg_accuracy DESC
+                    """, params)
+                    
+                    accuracy_stats = []
+                    for row in cur.fetchall():
+                        accuracy_stats.append({
+                            'game_type': row[0],
+                            'total_predictions': row[1],
+                            'avg_accuracy': float(row[2]) if row[2] else 0,
+                            'avg_main_matches': float(row[3]) if row[3] else 0,
+                            'avg_confidence': float(row[4]) if row[4] else 0,
+                            'winning_predictions': row[5],
+                            'win_rate': (row[5] / row[1] * 100) if row[1] > 0 else 0
+                        })
+                    
+                    # Get number patterns that performed well
+                    cur.execute(f"""
+                        SELECT 
+                            unnest(predicted_numbers) as number,
+                            COUNT(*) as times_predicted,
+                            AVG(main_number_matches) as avg_matches_when_predicted
+                        FROM lottery_predictions 
+                        {where_clause}
+                        GROUP BY unnest(predicted_numbers)
+                        HAVING COUNT(*) >= 3
+                        ORDER BY avg_matches_when_predicted DESC, times_predicted DESC
+                        LIMIT 20
+                    """, params)
+                    
+                    successful_numbers = []
+                    for row in cur.fetchall():
+                        successful_numbers.append({
+                            'number': row[0],
+                            'times_predicted': row[1],
+                            'avg_matches_when_predicted': float(row[2]) if row[2] else 0
+                        })
+                    
+                    return {
+                        'accuracy_stats': accuracy_stats,
+                        'successful_numbers': successful_numbers,
+                        'analysis_period': f"{days} days" if days else "all time",
+                        'total_verified_predictions': sum(stat['total_predictions'] for stat in accuracy_stats)
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error getting accuracy insights: {e}")
+            return {'error': str(e)}
+
     def calculate_prediction_accuracy(self, predicted_main: List[int], predicted_bonus: List[int], 
                                     actual_main: List[int], actual_bonus: List[int]) -> Dict[str, float]:
         """Calculate accuracy score for a prediction"""

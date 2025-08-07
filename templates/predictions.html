@@ -206,7 +206,12 @@
                     </div>
                     <div class="col-md-4">
                         <button id="weeklyBtn" class="btn-generate" style="background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);">
-                            <i class="fas fa-calendar-week me-2"></i>Generate Weekly Batch (18 total)
+                            <i class="fas fa-calendar-week me-2"></i>Generate Weekly Batch
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button id="validateBtn" class="btn-generate" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                            <i class="fas fa-check-double me-2"></i>Validate Predictions
                         </button>
                     </div>
                 </div>
@@ -255,6 +260,10 @@ class PredictionsManager {
         
         document.getElementById('weeklyBtn').addEventListener('click', () => {
             this.generateWeeklyPredictions();
+        });
+        
+        document.getElementById('validateBtn').addEventListener('click', () => {
+            this.validatePendingPredictions();
         });
     }
 
@@ -372,6 +381,55 @@ class PredictionsManager {
         }, 30000); // Refresh every 30 seconds
     }
 
+    async validatePendingPredictions() {
+        const btn = document.getElementById('validateBtn');
+        const status = document.getElementById('generationStatus');
+        
+        // Show loading state
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
+        status.innerHTML = '<div class="loading">Checking predictions against actual lottery results...</div>';
+
+        try {
+            const response = await fetch('/api/lottery-analysis/auto-validate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const validationResults = result.validation_results || {};
+                
+                status.innerHTML = `
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Validation complete! Checked ${validationResults.pending_count || 0} predictions, 
+                        validated ${validationResults.validated_count || 0} against actual results.
+                    </div>
+                `;
+                
+                // Refresh the predictions list to show validation results
+                await this.loadLatestPredictions();
+                await this.loadSystemStats();
+            } else {
+                throw new Error('Validation failed');
+            }
+        } catch (error) {
+            status.innerHTML = `
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Failed to validate predictions. Please try again.
+                </div>
+            `;
+        } finally {
+            // Reset button
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-double me-2"></i>Validate Predictions';
+        }
+    }
+
     async loadLatestPredictions() {
         try {
             const response = await fetch('/api/lottery-analysis/prediction-history?limit=5');
@@ -424,9 +482,36 @@ class PredictionsManager {
                     </div>
                 ` : ''}
                 
+                ${pred.is_verified && pred.main_number_matches !== undefined ? `
+                    <div class="validation-results mt-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Validation Results:</strong><br>
+                                <span class="badge bg-${pred.main_number_matches >= 3 ? 'success' : pred.main_number_matches >= 1 ? 'warning' : 'secondary'}">
+                                    ${pred.main_number_matches} Main Matches
+                                </span>
+                                ${pred.bonus_number_matches > 0 ? `<span class="badge bg-info ms-1">${pred.bonus_number_matches} Bonus</span>` : ''}
+                                <span class="badge bg-primary ms-1">${pred.prize_tier || 'No Prize'}</span>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <strong>Accuracy:</strong> ${(pred.accuracy_percentage || 0).toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+                ` : pred.is_verified ? `
+                    <div class="alert alert-info mt-2">
+                        <i class="fas fa-info-circle me-2"></i>Verified but no match data available
+                    </div>
+                ` : `
+                    <div class="alert alert-warning mt-2">
+                        <i class="fas fa-clock me-2"></i>Pending validation against actual results
+                    </div>
+                `}
+                
                 <small class="text-muted">
                     Generated: ${new Date(pred.created_at).toLocaleString()}
                     ${pred.target_draw_date ? ` • Target Draw: ${new Date(pred.target_draw_date).toLocaleDateString()}` : ''}
+                    ${pred.verified_at ? ` • Validated: ${new Date(pred.verified_at).toLocaleDateString()}` : ''}
                 </small>
             </div>
         `).join('');

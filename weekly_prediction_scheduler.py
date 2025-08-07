@@ -26,61 +26,73 @@ class WeeklyPredictionScheduler:
     """Handles automated weekly prediction generation"""
     
     def __init__(self):
-        self.games = [
-            'LOTTO',
-            'LOTTO PLUS 1', 
-            'LOTTO PLUS 2',
-            'POWERBALL',
-            'POWERBALL PLUS',
-            'DAILY LOTTO'
-        ]
-        self.predictions_per_game = 3
+        # Games with their draw frequencies
+        self.game_schedules = {
+            'LOTTO': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Wed, Sat
+            'LOTTO PLUS 1': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Wed, Sat
+            'LOTTO PLUS 2': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Wed, Sat
+            'POWERBALL': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Tue, Fri
+            'POWERBALL PLUS': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Tue, Fri
+            'DAILY LOTTO': {'draws_per_week': 7, 'predictions_per_draw': 3}  # Every day
+        }
         
     def generate_weekly_predictions(self):
-        """Generate 3 predictions for each lottery game"""
+        """Generate predictions for each lottery game based on draw frequency"""
         logger.info("=== STARTING WEEKLY PREDICTION GENERATION ===")
         
         total_generated = 0
         results = {}
         
-        for game_type in self.games:
+        for game_type, schedule in self.game_schedules.items():
             try:
-                logger.info(f"Generating {self.predictions_per_game} predictions for {game_type}")
+                draws_per_week = schedule['draws_per_week']
+                predictions_per_draw = schedule['predictions_per_draw']
+                total_predictions_needed = draws_per_week * predictions_per_draw
+                
+                logger.info(f"Generating {total_predictions_needed} predictions for {game_type} "
+                          f"({draws_per_week} draws × {predictions_per_draw} predictions per draw)")
+                
                 game_results = []
                 
-                for prediction_num in range(1, self.predictions_per_game + 1):
-                    try:
-                        # Generate prediction
-                        logger.info(f"Generating {game_type} prediction #{prediction_num}")
-                        
-                        # Get historical data
-                        historical_data = predictor.get_historical_data_for_prediction(game_type, 365)
-                        
-                        # Generate AI prediction with variation for multiple predictions
-                        prediction = predictor.generate_ai_prediction(
-                            game_type, 
-                            historical_data,
-                            variation_seed=prediction_num  # Add variation for different predictions
-                        )
-                        
-                        # Save prediction to database
-                        prediction_id = predictor.save_prediction(prediction)
-                        
-                        game_results.append({
-                            'prediction_id': prediction_id,
-                            'numbers': prediction.predicted_numbers,
-                            'confidence': prediction.confidence_score
-                        })
-                        
-                        total_generated += 1
-                        logger.info(f"✓ Generated {game_type} prediction #{prediction_num} (ID: {prediction_id})")
-                        
-                    except Exception as e:
-                        logger.error(f"Failed to generate {game_type} prediction #{prediction_num}: {e}")
-                        continue
+                # Generate predictions for each draw of the week
+                for draw_num in range(1, draws_per_week + 1):
+                    for pred_num in range(1, predictions_per_draw + 1):
+                        try:
+                            # Calculate unique variation seed
+                            variation_seed = (draw_num * 10) + pred_num
+                            
+                            logger.info(f"Generating {game_type} Draw #{draw_num} Prediction #{pred_num}")
+                            
+                            # Get historical data
+                            historical_data = predictor.get_historical_data_for_prediction(game_type, 365)
+                            
+                            # Generate AI prediction with draw-specific variation
+                            prediction = predictor.generate_ai_prediction(
+                                game_type, 
+                                historical_data,
+                                variation_seed=variation_seed
+                            )
+                            
+                            # Save prediction to database
+                            prediction_id = predictor.save_prediction(prediction)
+                            
+                            game_results.append({
+                                'prediction_id': prediction_id,
+                                'draw_number': draw_num,
+                                'prediction_number': pred_num,
+                                'numbers': prediction.predicted_numbers,
+                                'confidence': prediction.confidence_score
+                            })
+                            
+                            total_generated += 1
+                            logger.info(f"✓ Generated {game_type} D{draw_num}P{pred_num} (ID: {prediction_id})")
+                            
+                        except Exception as e:
+                            logger.error(f"Failed to generate {game_type} D{draw_num}P{pred_num}: {e}")
+                            continue
                 
                 results[game_type] = game_results
-                logger.info(f"Completed {game_type}: {len(game_results)} predictions generated")
+                logger.info(f"Completed {game_type}: {len(game_results)}/{total_predictions_needed} predictions generated")
                 
             except Exception as e:
                 logger.error(f"Failed to process {game_type}: {e}")
@@ -105,20 +117,37 @@ class WeeklyPredictionScheduler:
         report_content.append(f"WEEKLY AI PREDICTION REPORT - {report_date}")
         report_content.append("=" * 60)
         report_content.append(f"Total Predictions Generated: {total_generated}")
-        report_content.append(f"Target per Game: {self.predictions_per_game}")
+        report_content.append("Prediction Strategy: 3 predictions per draw, tailored to each game's schedule")
         report_content.append("")
         
         for game_type, predictions in results.items():
+            schedule = self.game_schedules.get(game_type, {})
+            draws_per_week = schedule.get('draws_per_week', 0)
+            predictions_per_draw = schedule.get('predictions_per_draw', 0)
+            expected_total = draws_per_week * predictions_per_draw
+            
             report_content.append(f"🎲 {game_type}:")
+            report_content.append(f"   Schedule: {draws_per_week} draws/week × {predictions_per_draw} predictions/draw = {expected_total} total")
             report_content.append(f"   Generated: {len(predictions)} predictions")
             
             if predictions:
                 avg_confidence = sum(p['confidence'] for p in predictions) / len(predictions)
                 report_content.append(f"   Average Confidence: {avg_confidence:.1%}")
                 
-                for i, pred in enumerate(predictions, 1):
-                    numbers_str = ', '.join(map(str, sorted(pred['numbers'])))
-                    report_content.append(f"   Prediction #{i}: [{numbers_str}] ({pred['confidence']:.1%})")
+                # Group by draw
+                draws = {}
+                for pred in predictions:
+                    draw_num = pred.get('draw_number', 1)
+                    if draw_num not in draws:
+                        draws[draw_num] = []
+                    draws[draw_num].append(pred)
+                
+                for draw_num in sorted(draws.keys()):
+                    report_content.append(f"   Draw #{draw_num}:")
+                    for pred in draws[draw_num]:
+                        numbers_str = ', '.join(map(str, sorted(pred['numbers'])))
+                        pred_num = pred.get('prediction_number', 0)
+                        report_content.append(f"     P{pred_num}: [{numbers_str}] ({pred['confidence']:.1%})")
             else:
                 report_content.append("   ❌ No predictions generated")
                 
