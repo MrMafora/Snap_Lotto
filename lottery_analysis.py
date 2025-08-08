@@ -569,11 +569,15 @@ def get_prediction_history():
                 predictions = []
                 
                 for row in results:
+                    # Convert PostgreSQL arrays to Python lists
+                    predicted_numbers = list(row[2]) if row[2] else []
+                    bonus_numbers = list(row[3]) if row[3] else []
+                    
                     predictions.append({
                         'id': row[0],
                         'game_type': row[1],
-                        'predicted_numbers': row[2],
-                        'bonus_numbers': row[3] or [],
+                        'predicted_numbers': predicted_numbers,
+                        'bonus_numbers': bonus_numbers,
                         'confidence_score': float(row[4]) if row[4] else 0.0,
                         'prediction_method': row[5],
                         'reasoning': row[6],
@@ -586,8 +590,8 @@ def get_prediction_history():
                         'accuracy_percentage': float(row[13]) if len(row) > 13 and row[13] else None,
                         'prize_tier': row[14] if len(row) > 14 else None,
                         'verified_at': row[15].isoformat() if len(row) > 15 and row[15] else None,
-                        'matched_main_numbers': row[16] if len(row) > 16 else [],
-                        'matched_bonus_numbers': row[17] if len(row) > 17 else [],
+                        'matched_main_numbers': list(row[16]) if len(row) > 16 and row[16] else [],
+                        'matched_bonus_numbers': list(row[17]) if len(row) > 17 and row[17] else [],
                         'status': 'Verified' if row[9] else 'Pending'
                     })
         
