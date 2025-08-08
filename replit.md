@@ -105,32 +105,40 @@ This project is an AI-powered lottery intelligence platform for South African lo
   - Temporal pattern analysis for day-of-week, monthly, and yearly correlations
   - Financial correlation analysis between jackpot amounts, sales volumes, and number patterns
   - Google Gemini 2.5 Pro tasked with finding exploitable algorithmic behaviors rather than just statistical analysis
+- **FULL SYSTEM INTEGRATION COMPLETED**: All Prediction Tools Use Comprehensive AI
+  - Updated all scheduled prediction systems (weekly_prediction_scheduler.py, prediction_refresh_system.py)
+  - Updated all API endpoints (/predictions, /generate-prediction, /prediction-accuracy, /validate-prediction, /accuracy-insights)
+  - Updated prediction validation system (prediction_validation_system.py) to use comprehensive analysis
+  - All prediction generation now uses AILotteryPredictor class with complete lottery ecosystem analysis
+  - Every prediction spends 60-75 seconds analyzing prize patterns, financial flows, temporal correlations
+  - Unified system ensures consistent comprehensive AI analysis across all prediction interfaces
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
 
-- **Frontend**: Responsive web interface with mobile-friendly design. Visual consistency across all lottery ball displays (e.g., ticket scanner and analytics cards). Specific CSS classes manage styling for various components.
+- **Frontend**: Responsive web interface with mobile-friendly design with PWA functionality. Visual consistency is maintained across all lottery ball displays through specific CSS classes.
 - **Backend**: Python Flask framework.
-- **Database**: PostgreSQL with optimized architecture including 4 performance indexes, cleaned duplicate tables, and major space savings.
-- **AI Integration**: Google Gemini 2.5 Pro for AI-powered ticket scanning and data extraction. This involves a comprehensive AI processor (`ai_lottery_processor.py`) that handles full prize division extraction, number recognition, and confidence scoring.
-- **Automation Workflow**: A robust 4-step automation process using Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification. This includes anti-detection stealth measures and proper browser headers for reliable data fetching.
-- **Data Handling**: Strict adherence to authentic data only. Duplicate prevention system implemented to maintain database integrity. PostgreSQL array parsing is used for bonus numbers.
-- **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, and centralized error handling.
-- **Performance**: Optimized database queries, critical performance indexes, and a cache manager for speed improvements. Decoupled card heights for optimal content display and layout optimization.
-- **Admin Dashboard**: Comprehensive admin interface for data management, system settings, system health monitoring, advertisement management, and automation control.
+- **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage. Strict adherence to authentic data.
+- **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and lottery prediction. This includes an `ai_lottery_processor.py` for data extraction and an `ai_lottery_predictor.py` for generating and validating predictions with deep data analysis.
+- **Automation Workflow**: A robust 4-step daily automation process utilizing Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification, with anti-detection measures.
+- **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, centralized error handling, and admin-only access for sensitive AI features.
+- **Performance**: Optimized database queries, critical performance indexes, and a cache manager. Decoupled card heights for optimal content display.
+- **Admin Dashboard**: Comprehensive interface for data management, system settings, system health monitoring, advertisement management, and automation control, including manual triggers for AI prediction generation and data approval.
 - **Core Features**:
     - **Ticket Scanner**: Extracts player-selected numbers and detects multiple game types (LOTTO, LOTTO PLUS 1, LOTTO PLUS 2) with multi-line support.
-    - **Results Display**: Shows complete lottery results with all prize divisions (8 for Lotto, 9 for Powerball, 4 for Daily Lotto) and financial details. Numbers are sorted in ascending order.
-    - **Data Analytics**: Displays hot/cold/absent numbers and frequency charts, all derived from authentic lottery data.
-    - **Automated Scheduler**: Daily scheduler system running at 10:30 PM SA time to automatically run the complete 4-step automation process.
+    - **Results Display**: Shows complete lottery results with all prize divisions and financial details, with numbers sorted ascending.
+    - **Data Analytics**: Displays hot/cold/absent numbers and frequency charts, derived from authentic lottery data, including AI-powered pattern analysis.
+    - **AI-Powered Lottery Predictor**: Generates and validates lottery number predictions with accuracy tracking and self-improvement, based on comprehensive AI analysis of historical data, with automated weekly generation.
     - **Data Preview and Approval System**: Allows review, approval, deeper extraction requests, and rejection of AI-extracted data.
 
 ## External Dependencies
-- **Google Gemini 2.5 Pro**: Integrated via `GOOGLE_API_KEY_SNAP_LOTTERY` for AI-powered lottery ticket scanning and data extraction.
+- **Google Gemini 2.5 Pro**: Integrated via `GOOGLE_API_KEY_SNAP_LOTTERY` for all AI-powered functionalities.
 - **Playwright + Chromium**: Used for automated screenshot capture of South African lottery websites.
 - **PostgreSQL**: The primary database for storing and managing all lottery results and related data.
-- **psycopg2**: Python adapter for PostgreSQL, used for direct database connections.
-- **Flask**: Python web framework forming the backend of the application.
-- **Gunicorn**: WSGI HTTP server for running the Flask application in production.
-- **SQLAlchemy**: ORM for database interaction (though direct `psycopg2` is used for critical paths to bypass specific issues).
-- **Other Python Libraries**: Includes `Flask-WTF` for CSRF protection, `Flask-Login` for user management, and `APScheduler` for task scheduling.
+- **psycopg2**: Python adapter for PostgreSQL.
+- **Flask**: Python web framework.
+- **Gunicorn**: WSGI HTTP server for production.
+- **SQLAlchemy**: ORM for database interaction.
+- **Flask-WTF**: For CSRF protection.
+- **Flask-Login**: For user management.
+- **APScheduler**: For task scheduling.

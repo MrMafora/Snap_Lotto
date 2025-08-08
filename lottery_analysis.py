@@ -382,7 +382,8 @@ def game_type_insights():
 def get_lottery_predictions():
     """Get AI-generated lottery predictions for upcoming draws"""
     try:
-        from ai_lottery_predictor import predictor
+        from ai_lottery_predictor import AILotteryPredictor
+        predictor = AILotteryPredictor()
         
         # Get query parameters
         game_type = request.args.get('game_type', 'LOTTO')
@@ -397,7 +398,7 @@ def get_lottery_predictions():
             # Generate new prediction
             historical_data = predictor.get_historical_data_for_prediction(db_game_type, 365)
             prediction = predictor.generate_ai_prediction(db_game_type, historical_data)
-            prediction_id = predictor.save_prediction(prediction)
+            prediction_id = predictor.store_prediction_in_database(prediction)
             
             response = {
                 'success': True,
@@ -455,7 +456,8 @@ def get_lottery_predictions():
 def get_prediction_accuracy():
     """Get accuracy statistics for AI predictions"""
     try:
-        from ai_lottery_predictor import predictor
+        from ai_lottery_predictor import AILotteryPredictor
+        predictor = AILotteryPredictor()
         
         # Get query parameters
         game_type = request.args.get('game_type')
@@ -494,7 +496,8 @@ def get_prediction_accuracy():
 def generate_new_prediction():
     """Generate a new AI prediction for specified game"""
     try:
-        from ai_lottery_predictor import predictor
+        from ai_lottery_predictor import AILotteryPredictor
+        predictor = AILotteryPredictor()
         
         data = request.get_json() or {}
         game_type = data.get('game_type', 'LOTTO')
@@ -507,7 +510,7 @@ def generate_new_prediction():
         # Get historical data and generate prediction
         historical_data = predictor.get_historical_data_for_prediction(db_game_type, 365)
         prediction = predictor.generate_ai_prediction(db_game_type, historical_data)
-        prediction_id = predictor.save_prediction(prediction)
+        prediction_id = predictor.store_prediction_in_database(prediction)
         
         response = {
             'success': True,
@@ -698,6 +701,9 @@ def validate_prediction():
         if not prediction_id:
             return jsonify({'error': 'Prediction ID required'}), 400
         
+        from ai_lottery_predictor import AILotteryPredictor
+        predictor = AILotteryPredictor()
+        
         validation_result = predictor.validate_prediction_against_draw(
             prediction_id, actual_numbers, actual_bonus
         )
@@ -718,6 +724,9 @@ def get_accuracy_insights():
     try:
         game_type = request.args.get('game_type')
         days = int(request.args.get('days', 30))
+        
+        from ai_lottery_predictor import AILotteryPredictor
+        predictor = AILotteryPredictor()
         
         insights = predictor.get_prediction_accuracy_insights(game_type, days)
         
