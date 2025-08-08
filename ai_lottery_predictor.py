@@ -111,15 +111,8 @@ class AILotteryPredictor:
                     cur.execute("""
                         SELECT 
                             main_numbers, bonus_numbers, draw_date, draw_number,
-                            division_1_winners, division_1_payout,
-                            division_2_winners, division_2_payout,
-                            division_3_winners, division_3_payout,
-                            division_4_winners, division_4_payout,
-                            division_5_winners, division_5_payout,
-                            division_6_winners, division_6_payout,
-                            division_7_winners, division_7_payout,
-                            division_8_winners, division_8_payout,
-                            rollover_amount, estimated_jackpot, total_sales,
+                            divisions, prize_divisions, estimated_jackpot, rollover_amount,
+                            total_sales, total_prize_pool,
                             EXTRACT(DOW FROM draw_date) as day_of_week,
                             EXTRACT(MONTH FROM draw_date) as month,
                             EXTRACT(YEAR FROM draw_date) as year,
@@ -165,9 +158,8 @@ class AILotteryPredictor:
                     for i, row in enumerate(results):
                         # Extract all data fields
                         (main_nums, bonus_nums, draw_date, draw_num,
-                         d1_win, d1_pay, d2_win, d2_pay, d3_win, d3_pay, d4_win, d4_pay,
-                         d5_win, d5_pay, d6_win, d6_pay, d7_win, d7_pay, d8_win, d8_pay,
-                         rollover, jackpot, sales, dow, month, year, created) = row
+                         divisions, prize_divisions, jackpot, rollover, 
+                         sales, prize_pool, dow, month, year, created) = row
                         
                         # Parse numbers
                         parsed_main = self.parse_numbers(main_nums)
@@ -181,24 +173,17 @@ class AILotteryPredictor:
                                 'main_numbers': sorted(parsed_main),
                                 'bonus_numbers': sorted(parsed_bonus) if parsed_bonus else [],
                                 
-                                # Complete prize structure
-                                'prize_divisions': {
-                                    'division_1': {'winners': d1_win, 'payout': d1_pay},
-                                    'division_2': {'winners': d2_win, 'payout': d2_pay},
-                                    'division_3': {'winners': d3_win, 'payout': d3_pay},
-                                    'division_4': {'winners': d4_win, 'payout': d4_pay},
-                                    'division_5': {'winners': d5_win, 'payout': d5_pay},
-                                    'division_6': {'winners': d6_win, 'payout': d6_pay},
-                                    'division_7': {'winners': d7_win, 'payout': d7_pay},
-                                    'division_8': {'winners': d8_win, 'payout': d8_pay}
-                                },
+                                # Complete prize structure (from JSON fields)
+                                'prize_divisions': prize_divisions,
+                                'divisions': divisions,
                                 
                                 # Financial indicators
                                 'financial_data': {
                                     'rollover_amount': rollover,
                                     'estimated_jackpot': jackpot,
                                     'total_sales': sales,
-                                    'had_rollover': rollover is not None and rollover > 0
+                                    'total_prize_pool': prize_pool,
+                                    'had_rollover': rollover is not None and str(rollover).strip() != '' and rollover != '0'
                                 },
                                 
                                 # Temporal data
@@ -231,22 +216,37 @@ class AILotteryPredictor:
                             if i == len(results) - 1:
                                 comprehensive_data['date_range']['start'] = draw_date.isoformat() if draw_date else None
                             
-                            # Collect prize patterns
-                            for div in range(1, 9):
-                                winners = locals()[f'd{div}_win']
-                                payout = locals()[f'd{div}_pay']
-                                if winners is not None:
-                                    comprehensive_data['prize_patterns']['division_winners'][f'division_{div}'].append(winners)
-                                if payout is not None:
-                                    comprehensive_data['prize_patterns']['division_payouts'][f'division_{div}'].append(float(payout))
+                            # Collect prize patterns from JSON data
+                            try:
+                                if prize_divisions and isinstance(prize_divisions, dict):
+                                    for div_key, div_data in prize_divisions.items():
+                                        if isinstance(div_data, dict):
+                                            if 'winners' in div_data:
+                                                comprehensive_data['prize_patterns']['division_winners'][div_key].append(div_data['winners'])
+                                            if 'amount' in div_data or 'payout' in div_data:
+                                                amount = div_data.get('amount') or div_data.get('payout')
+                                                if amount:
+                                                    comprehensive_data['prize_patterns']['division_payouts'][div_key].append(amount)
+                            except Exception as e:
+                                logger.debug(f"Error parsing prize divisions: {e}")
                             
                             # Track financial trends
-                            if jackpot:
-                                comprehensive_data['prize_patterns']['jackpot_progression'].append(float(jackpot))
-                            if rollover and rollover > 0:
+                            try:
+                                if jackpot and str(jackpot).strip():
+                                    jackpot_val = float(str(jackpot).replace(',', '').replace('R', '').strip())
+                                    comprehensive_data['prize_patterns']['jackpot_progression'].append(jackpot_val)
+                            except:
+                                pass
+                                
+                            if rollover and str(rollover).strip() and rollover != '0':
                                 comprehensive_data['prize_patterns']['rollover_frequency'] += 1
-                            if sales:
-                                comprehensive_data['prize_patterns']['total_sales_trend'].append(float(sales))
+                                
+                            try:
+                                if sales and str(sales).strip():
+                                    sales_val = float(str(sales).replace(',', '').replace('R', '').strip())
+                                    comprehensive_data['prize_patterns']['total_sales_trend'].append(sales_val)
+                            except:
+                                pass
                             
                             # Track temporal patterns
                             if dow is not None:
@@ -348,6 +348,58 @@ class AILotteryPredictor:
                 consecutive_count += 1
         
         return consecutive_count
+    
+    def serialize_data_safe(self, data):
+        """Safely serialize data by converting Decimal and other non-JSON types"""
+        import decimal
+        
+        def convert_item(obj):
+            if isinstance(obj, decimal.Decimal):
+                return float(obj)
+            elif isinstance(obj, dict):
+                return {k: convert_item(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_item(item) for item in obj]
+            else:
+                return obj
+        
+        try:
+            converted = convert_item(data)
+            return json.dumps(converted, indent=2)
+        except Exception as e:
+            return f"[Data serialization error: {e}]"
+    
+    def store_prediction_in_database(self, prediction: LotteryPrediction) -> bool:
+        """Store AI prediction in database"""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor() as cur:
+                    # Calculate next draw date (tomorrow for Daily Lotto)
+                    from datetime import datetime, timedelta
+                    next_draw = datetime.now().date() + timedelta(days=1)
+                    
+                    cur.execute("""
+                        INSERT INTO lottery_predictions (
+                            game_type, predicted_numbers, bonus_numbers, 
+                            confidence_score, prediction_method, reasoning, 
+                            target_draw_date, created_at
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        prediction.game_type,
+                        prediction.predicted_numbers,  # PostgreSQL array format
+                        prediction.bonus_numbers,      # PostgreSQL array format
+                        prediction.confidence_score,
+                        prediction.prediction_method,
+                        prediction.reasoning,
+                        next_draw,
+                        prediction.created_at
+                    ))
+                    conn.commit()
+                    logger.info(f"✅ Stored prediction for {prediction.game_type}")
+                    return True
+        except Exception as e:
+            logger.error(f"Error storing prediction: {e}")
+            return False
 
     def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any], variation_seed: int = 1) -> LotteryPrediction:
         """Use AI to generate lottery number predictions based on historical data"""
@@ -396,14 +448,14 @@ class AILotteryPredictor:
             - Consecutive sequence patterns: {historical_data.get('advanced_patterns', {}).get('consecutive_sequences', [])[:20]}
             
             RECENT DRAW ANALYSIS (Last 15 draws with full context):
-            {json.dumps(historical_data.get('draws', [])[:15], indent=2)}
+            {self.serialize_data_safe(historical_data.get('draws', [])[:15])}
             
             NUMBER FREQUENCY ANALYSIS:
             - Overall frequency (top 20): {dict(list(historical_data.get('frequency_analysis', {}).items())[:20])}
             - All numbers frequency: {historical_data.get('frequency_analysis', {})}
             
             SEQUENTIAL PATTERN ANALYSIS:
-            {json.dumps(historical_data.get('sequential_analysis', {}), indent=2)}
+            {self.serialize_data_safe(historical_data.get('sequential_analysis', {}))}
             
             CRITICAL ANALYSIS TASKS:
             ========================

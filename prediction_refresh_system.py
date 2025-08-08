@@ -114,11 +114,7 @@ class PredictionRefreshSystem:
                     )
                     
                     if prediction:
-                        success = predictor.store_prediction_in_database(
-                            game_type, 
-                            prediction, 
-                            f"Refreshed after new draw #{i+1}"
-                        )
+                        success = predictor.store_prediction_in_database(prediction)
                         
                         if success:
                             generated_count += 1
