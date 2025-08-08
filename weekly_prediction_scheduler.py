@@ -126,9 +126,7 @@ class WeeklyPredictionScheduler:
                         
                         if prediction:
                             # Store prediction in database
-                            success = predictor.store_prediction_in_database(
-                                game_type, prediction, f"Weekly Auto-Generation #{i+1}"
-                            )
+                            success = predictor.store_prediction_in_database(prediction)
                             
                             if success:
                                 game_results.append({
