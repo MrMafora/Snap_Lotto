@@ -102,7 +102,7 @@ class PredictionRefreshSystem:
             generated_count = 0
             for i in range(3):
                 try:
-                    # Get fresh historical data
+                    # Get comprehensive historical data for deep AI analysis
                     historical_data = predictor.get_historical_data_for_prediction(game_type, 365)
                     
                     # Generate AI prediction with unique seed

@@ -101,14 +101,29 @@ class AILotteryPredictor:
             logger.error(f"Error initializing prediction tables: {e}")
 
     def get_historical_data_for_prediction(self, game_type: str, days: int = 365) -> Dict[str, Any]:
-        """Get historical lottery data for AI analysis and prediction"""
+        """Get COMPREHENSIVE lottery data for deep AI analysis - ALL available information per draw"""
         try:
             with psycopg2.connect(self.connection_string) as conn:
                 with conn.cursor() as cur:
                     cutoff_date = (datetime.now() - timedelta(days=days)).date()
                     
+                    # Get ALL available data columns for comprehensive analysis
                     cur.execute("""
-                        SELECT main_numbers, bonus_numbers, draw_date, draw_number
+                        SELECT 
+                            main_numbers, bonus_numbers, draw_date, draw_number,
+                            division_1_winners, division_1_payout,
+                            division_2_winners, division_2_payout,
+                            division_3_winners, division_3_payout,
+                            division_4_winners, division_4_payout,
+                            division_5_winners, division_5_payout,
+                            division_6_winners, division_6_payout,
+                            division_7_winners, division_7_payout,
+                            division_8_winners, division_8_payout,
+                            rollover_amount, estimated_jackpot, total_sales,
+                            EXTRACT(DOW FROM draw_date) as day_of_week,
+                            EXTRACT(MONTH FROM draw_date) as month,
+                            EXTRACT(YEAR FROM draw_date) as year,
+                            created_at
                         FROM lottery_results 
                         WHERE lottery_type = %s AND draw_date >= %s 
                         AND main_numbers IS NOT NULL
@@ -118,41 +133,149 @@ class AILotteryPredictor:
                     
                     results = cur.fetchall()
                     
-                    historical_data = {
+                    comprehensive_data = {
+                        'game_type': game_type,
+                        'total_draws': len(results),
+                        'date_range': {'start': None, 'end': None},
                         'draws': [],
                         'all_numbers': [],
                         'all_bonus': [],
-                        'recent_patterns': [],
+                        'prize_patterns': {
+                            'division_winners': defaultdict(list),
+                            'division_payouts': defaultdict(list),
+                            'jackpot_progression': [],
+                            'rollover_frequency': 0,
+                            'total_sales_trend': []
+                        },
+                        'temporal_patterns': {
+                            'day_of_week_frequency': defaultdict(int),
+                            'monthly_patterns': defaultdict(list),
+                            'yearly_trends': defaultdict(list)
+                        },
                         'frequency_analysis': {},
-                        'sequential_analysis': {}
+                        'sequential_analysis': {},
+                        'advanced_patterns': {
+                            'number_sum_analysis': [],
+                            'even_odd_ratios': [],
+                            'high_low_ratios': [],
+                            'consecutive_sequences': []
+                        }
                     }
                     
-                    for row in results:
-                        main_numbers, bonus_numbers, draw_date, draw_number = row
+                    for i, row in enumerate(results):
+                        # Extract all data fields
+                        (main_nums, bonus_nums, draw_date, draw_num,
+                         d1_win, d1_pay, d2_win, d2_pay, d3_win, d3_pay, d4_win, d4_pay,
+                         d5_win, d5_pay, d6_win, d6_pay, d7_win, d7_pay, d8_win, d8_pay,
+                         rollover, jackpot, sales, dow, month, year, created) = row
                         
-                        # Parse main numbers
-                        parsed_main = self.parse_numbers(main_numbers)
-                        parsed_bonus = self.parse_numbers(bonus_numbers)
+                        # Parse numbers
+                        parsed_main = self.parse_numbers(main_nums)
+                        parsed_bonus = self.parse_numbers(bonus_nums)
                         
                         if parsed_main:
-                            historical_data['draws'].append({
-                                'main': sorted(parsed_main),
-                                'bonus': sorted(parsed_bonus) if parsed_bonus else [],
+                            # Core draw data
+                            draw_record = {
+                                'draw_number': draw_num,
                                 'date': draw_date.isoformat() if draw_date else None,
-                                'draw_number': draw_number
-                            })
+                                'main_numbers': sorted(parsed_main),
+                                'bonus_numbers': sorted(parsed_bonus) if parsed_bonus else [],
+                                
+                                # Complete prize structure
+                                'prize_divisions': {
+                                    'division_1': {'winners': d1_win, 'payout': d1_pay},
+                                    'division_2': {'winners': d2_win, 'payout': d2_pay},
+                                    'division_3': {'winners': d3_win, 'payout': d3_pay},
+                                    'division_4': {'winners': d4_win, 'payout': d4_pay},
+                                    'division_5': {'winners': d5_win, 'payout': d5_pay},
+                                    'division_6': {'winners': d6_win, 'payout': d6_pay},
+                                    'division_7': {'winners': d7_win, 'payout': d7_pay},
+                                    'division_8': {'winners': d8_win, 'payout': d8_pay}
+                                },
+                                
+                                # Financial indicators
+                                'financial_data': {
+                                    'rollover_amount': rollover,
+                                    'estimated_jackpot': jackpot,
+                                    'total_sales': sales,
+                                    'had_rollover': rollover is not None and rollover > 0
+                                },
+                                
+                                # Temporal data
+                                'temporal_data': {
+                                    'day_of_week': dow,  # 0=Sunday, 6=Saturday
+                                    'month': month,
+                                    'year': year,
+                                    'processing_date': created.isoformat() if created else None
+                                },
+                                
+                                # Mathematical properties
+                                'mathematical_properties': {
+                                    'sum_of_numbers': sum(parsed_main),
+                                    'even_count': sum(1 for n in parsed_main if n % 2 == 0),
+                                    'odd_count': sum(1 for n in parsed_main if n % 2 == 1),
+                                    'high_count': sum(1 for n in parsed_main if n > 25),  # Assuming 1-49 range
+                                    'low_count': sum(1 for n in parsed_main if n <= 25),
+                                    'consecutive_pairs': self.count_consecutive_pairs(parsed_main)
+                                }
+                            }
                             
-                            historical_data['all_numbers'].extend(parsed_main)
+                            comprehensive_data['draws'].append(draw_record)
+                            comprehensive_data['all_numbers'].extend(parsed_main)
                             if parsed_bonus:
-                                historical_data['all_bonus'].extend(parsed_bonus)
+                                comprehensive_data['all_bonus'].extend(parsed_bonus)
+                            
+                            # Track date range
+                            if i == 0:
+                                comprehensive_data['date_range']['end'] = draw_date.isoformat() if draw_date else None
+                            if i == len(results) - 1:
+                                comprehensive_data['date_range']['start'] = draw_date.isoformat() if draw_date else None
+                            
+                            # Collect prize patterns
+                            for div in range(1, 9):
+                                winners = locals()[f'd{div}_win']
+                                payout = locals()[f'd{div}_pay']
+                                if winners is not None:
+                                    comprehensive_data['prize_patterns']['division_winners'][f'division_{div}'].append(winners)
+                                if payout is not None:
+                                    comprehensive_data['prize_patterns']['division_payouts'][f'division_{div}'].append(float(payout))
+                            
+                            # Track financial trends
+                            if jackpot:
+                                comprehensive_data['prize_patterns']['jackpot_progression'].append(float(jackpot))
+                            if rollover and rollover > 0:
+                                comprehensive_data['prize_patterns']['rollover_frequency'] += 1
+                            if sales:
+                                comprehensive_data['prize_patterns']['total_sales_trend'].append(float(sales))
+                            
+                            # Track temporal patterns
+                            if dow is not None:
+                                comprehensive_data['temporal_patterns']['day_of_week_frequency'][int(dow)] += 1
+                            if month:
+                                comprehensive_data['temporal_patterns']['monthly_patterns'][int(month)].append(parsed_main)
+                            if year:
+                                comprehensive_data['temporal_patterns']['yearly_trends'][int(year)].append(parsed_main)
+                            
+                            # Advanced mathematical analysis
+                            comprehensive_data['advanced_patterns']['number_sum_analysis'].append(sum(parsed_main))
+                            comprehensive_data['advanced_patterns']['even_odd_ratios'].append(
+                                (sum(1 for n in parsed_main if n % 2 == 0), sum(1 for n in parsed_main if n % 2 == 1))
+                            )
+                            comprehensive_data['advanced_patterns']['high_low_ratios'].append(
+                                (sum(1 for n in parsed_main if n > 25), sum(1 for n in parsed_main if n <= 25))
+                            )
+                            comprehensive_data['advanced_patterns']['consecutive_sequences'].append(
+                                self.count_consecutive_pairs(parsed_main)
+                            )
                     
-                    # Calculate frequency analysis
-                    historical_data['frequency_analysis'] = dict(Counter(historical_data['all_numbers']).most_common())
+                    # Calculate comprehensive frequency analysis
+                    comprehensive_data['frequency_analysis'] = dict(Counter(comprehensive_data['all_numbers']).most_common())
                     
-                    # Analyze sequential patterns
-                    historical_data['sequential_analysis'] = self.analyze_sequential_patterns(historical_data['draws'])
+                    # Analyze sequential patterns with enhanced data
+                    comprehensive_data['sequential_analysis'] = self.analyze_sequential_patterns(comprehensive_data['draws'])
                     
-                    return historical_data
+                    logger.info(f"Retrieved COMPREHENSIVE data for {game_type}: {len(comprehensive_data['draws'])} draws with full prize/financial/temporal analysis")
+                    return comprehensive_data
                     
         except Exception as e:
             logger.error(f"Error getting historical data: {e}")
@@ -211,6 +334,20 @@ class AILotteryPredictor:
             logger.error(f"Error in sequential analysis: {e}")
         
         return patterns
+    
+    def count_consecutive_pairs(self, numbers: List[int]) -> int:
+        """Count consecutive number pairs in a draw"""
+        if len(numbers) < 2:
+            return 0
+        
+        sorted_nums = sorted(numbers)
+        consecutive_count = 0
+        
+        for i in range(len(sorted_nums) - 1):
+            if sorted_nums[i+1] - sorted_nums[i] == 1:
+                consecutive_count += 1
+        
+        return consecutive_count
 
     def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any], variation_seed: int = 1) -> LotteryPrediction:
         """Use AI to generate lottery number predictions based on historical data"""
@@ -218,34 +355,108 @@ class AILotteryPredictor:
             # Get game configuration
             game_config = self.get_game_configuration(game_type)
             
-            # Prepare data for AI analysis
+            # Prepare comprehensive data for deep AI analysis
             prediction_prompt = f"""
-            Based on the following historical lottery data for {game_type}, generate a prediction for the next draw.
+            COMPREHENSIVE LOTTERY ALGORITHM ANALYSIS FOR {game_type}
+            
+            You are an advanced AI tasked with finding hidden patterns in lottery data that might indicate algorithmic behavior or exploitable trends.
+            Analyze ALL the provided data - not just winning numbers, but prize distributions, financial patterns, temporal relationships, and mathematical properties.
+            
+            FULL DATASET FOR ANALYSIS:
+            ============================
             
             Game Configuration:
             - Main numbers to pick: {game_config['main_count']} from 1-{game_config['main_range']}
             - Bonus numbers to pick: {game_config['bonus_count']} from 1-{game_config['bonus_range']}
             
-            Historical Data Summary:
-            - Total draws analyzed: {len(historical_data.get('draws', []))}
-            - Recent draws (last 10): {historical_data.get('draws', [])[:10]}
-            - Number frequency (top 15): {dict(list(historical_data.get('frequency_analysis', {}).items())[:15])}
-            - Sequential patterns: {historical_data.get('sequential_analysis', {})}
+            COMPREHENSIVE HISTORICAL DATA:
+            =============================
             
-            Analysis Requirements:
-            1. Consider statistical frequency of numbers
-            2. Analyze recent trends and patterns
-            3. Look for sequential relationships
-            4. Account for randomness and avoid overfitting
-            5. Provide confidence score (0.0-1.0)
-            6. Explain reasoning behind selections
-            7. Variation factor: {variation_seed} (use this to create diverse predictions)
+            Basic Statistics:
+            - Total draws analyzed: {historical_data.get('total_draws', 0)}
+            - Date range: {historical_data.get('date_range', {})}
+            - Game type: {historical_data.get('game_type', game_type)}
             
-            Generate prediction with:
-            - Main numbers: {game_config['main_count']} unique numbers
-            - Bonus numbers: {game_config['bonus_count']} unique numbers (if applicable)
-            - Confidence score based on pattern strength
-            - Clear reasoning for number selection
+            PRIZE DISTRIBUTION PATTERNS (Look for algorithmic anomalies):
+            - Division winner counts by level: {historical_data.get('prize_patterns', {}).get('division_winners', {})}
+            - Division payout amounts by level: {historical_data.get('prize_patterns', {}).get('division_payouts', {})}
+            - Jackpot progression over time: {historical_data.get('prize_patterns', {}).get('jackpot_progression', [])}
+            - Rollover frequency: {historical_data.get('prize_patterns', {}).get('rollover_frequency', 0)}
+            - Total sales trends: {historical_data.get('prize_patterns', {}).get('total_sales_trend', [])}
+            
+            TEMPORAL PATTERNS (Check for day/time correlations):
+            - Day of week frequency: {historical_data.get('temporal_patterns', {}).get('day_of_week_frequency', {})}
+            - Monthly distribution: {dict(list(historical_data.get('temporal_patterns', {}).get('monthly_patterns', {}).items())[:6])}
+            - Yearly trends: {dict(list(historical_data.get('temporal_patterns', {}).get('yearly_trends', {}).items())[:3])}
+            
+            MATHEMATICAL PROPERTIES (Search for algorithmic signatures):
+            - Number sum analysis: {historical_data.get('advanced_patterns', {}).get('number_sum_analysis', [])[:20]}
+            - Even/odd ratios: {historical_data.get('advanced_patterns', {}).get('even_odd_ratios', [])[:20]}
+            - High/low number ratios: {historical_data.get('advanced_patterns', {}).get('high_low_ratios', [])[:20]}
+            - Consecutive sequence patterns: {historical_data.get('advanced_patterns', {}).get('consecutive_sequences', [])[:20]}
+            
+            RECENT DRAW ANALYSIS (Last 15 draws with full context):
+            {json.dumps(historical_data.get('draws', [])[:15], indent=2)}
+            
+            NUMBER FREQUENCY ANALYSIS:
+            - Overall frequency (top 20): {dict(list(historical_data.get('frequency_analysis', {}).items())[:20])}
+            - All numbers frequency: {historical_data.get('frequency_analysis', {})}
+            
+            SEQUENTIAL PATTERN ANALYSIS:
+            {json.dumps(historical_data.get('sequential_analysis', {}), indent=2)}
+            
+            CRITICAL ANALYSIS TASKS:
+            ========================
+            
+            1. ALGORITHMIC DETECTION: Look for patterns that suggest non-random generation:
+               - Unusual clustering in prize distributions
+               - Temporal correlations that shouldn't exist in true randomness
+               - Mathematical properties that repeat with suspicious frequency
+               - Prize payout patterns that correlate with number selections
+            
+            2. FINANCIAL CORRELATION ANALYSIS:
+               - Do jackpot amounts correlate with specific number patterns?
+               - Are there relationships between sales volumes and winning numbers?
+               - Do rollover events coincide with certain mathematical properties?
+            
+            3. TEMPORAL EXPLOITATION:
+               - Are certain numbers more likely on specific days/months?
+               - Do processing dates reveal any systematic biases?
+               - Are there seasonal trends that indicate algorithmic behavior?
+            
+            4. MATHEMATICAL SIGNATURE DETECTION:
+               - Look for sum ranges that appear more frequently than statistical probability suggests
+               - Analyze even/odd ratios for non-random distributions
+               - Check high/low ratios for algorithmic biases
+               - Examine consecutive number patterns for systematic generation
+            
+            5. PRIZE STRUCTURE ANALYSIS:
+               - Do winner counts in different divisions show correlations with number patterns?
+               - Are there payout amounts that correlate with specific mathematical properties?
+               - Does the frequency of multiple winners suggest predictable patterns?
+            
+            PREDICTION GENERATION REQUIREMENTS:
+            ==================================
+            
+            Based on your comprehensive analysis, generate a prediction that:
+            - Exploits any discovered algorithmic patterns
+            - Considers financial and temporal correlations
+            - Incorporates mathematical property analysis
+            - Accounts for prize distribution anomalies
+            - Uses variation seed {variation_seed} for diverse predictions
+            
+            OUTPUT FORMAT:
+            {{
+                "main_numbers": [array of {game_config['main_count']} unique integers from 1-{game_config['main_range']}],
+                "bonus_numbers": [array of {game_config['bonus_count']} unique integers from 1-{game_config['bonus_range']}],
+                "confidence_score": float between 0.0-1.0,
+                "reasoning": "Detailed explanation of patterns found and exploitation strategy",
+                "algorithmic_indicators": "Specific algorithmic behaviors detected",
+                "pattern_strength": "Assessment of pattern reliability",
+                "exploitation_strategy": "How the prediction exploits discovered patterns"
+            }}
+            
+            Focus on finding exploitable patterns rather than just statistical analysis. Look for evidence of algorithmic generation that can be predicted.
             """
             
             response = client.models.generate_content(
@@ -253,7 +464,7 @@ class AILotteryPredictor:
                 contents=prediction_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.4 + (variation_seed * 0.1)  # Add variation based on seed
+                    temperature=min(0.7 + (variation_seed * 0.1), 2.0)  # Fixed temperature range for comprehensive analysis
                 )
             )
             
