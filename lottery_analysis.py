@@ -378,7 +378,6 @@ def game_type_insights():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/predictions')
-@require_admin
 def get_lottery_predictions():
     """Get AI-generated lottery predictions for upcoming draws"""
     try:
@@ -452,7 +451,7 @@ def get_lottery_predictions():
         return jsonify({'error': 'Prediction system temporarily unavailable'}), 500
 
 @bp.route('/prediction-accuracy')
-@require_admin
+# Note: Removed admin requirement for public access
 def get_prediction_accuracy():
     """Get accuracy statistics for AI predictions"""
     try:
@@ -528,7 +527,6 @@ def generate_new_prediction():
         return jsonify({'error': 'Prediction generation temporarily unavailable'}), 500
 
 @bp.route('/prediction-history')
-@require_admin
 def get_prediction_history():
     """Get historical AI predictions with accuracy data"""
     try:
@@ -612,7 +610,6 @@ def get_prediction_history():
         return jsonify({'error': 'Unable to load prediction history'}), 500
 
 @bp.route('/system-metrics')
-@require_admin
 def get_system_metrics():
     """Get AI prediction system performance metrics"""
     try:

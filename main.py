@@ -945,9 +945,8 @@ def visualizations():
 
 # Predictions Route - Admin Only
 @app.route('/predictions')
-@require_admin
 def predictions():
-    """AI lottery predictions page - Admin access only"""
+    """AI lottery predictions page - Public access"""
     return render_template('predictions.html')
 
 # Weekly predictions trigger - Admin Only
