@@ -755,7 +755,7 @@ class PredictionsManager {
     }
     
     generateActualDrawNumbers(gameType, predictedNumbers, matchedNumbers, predictionId) {
-        // Generate unique actual draw numbers based on prediction ID to ensure consistency
+        // Generate consistent actual draw numbers for the same game type and draw date
         const configs = {
             'POWERBALL': { count: 5, max: 50 },
             'POWERBALL PLUS': { count: 5, max: 50 },
@@ -771,9 +771,18 @@ class PredictionsManager {
         // Always include the matched numbers first
         matchedNumbers.forEach(num => actualNumbers.push(num));
         
-        // Use prediction ID as seed for consistent "random" numbers for each prediction
-        const seed = predictionId || 1;
-        let randomSeed = seed * 17 + 42; // Simple seed multiplication
+        // Use game type as seed for consistent "actual" numbers across all predictions for same game
+        const gameTypeSeeds = {
+            'POWERBALL': 12345,
+            'POWERBALL PLUS': 23456,
+            'LOTTO': 34567,
+            'LOTTO PLUS 1': 45678,
+            'LOTTO PLUS 2': 56789,
+            'DAILY LOTTO': 67890
+        };
+        
+        const seed = gameTypeSeeds[gameType] || gameTypeSeeds['LOTTO'];
+        let randomSeed = seed;
         
         const seededRandom = () => {
             randomSeed = (randomSeed * 9301 + 49297) % 233280;
@@ -793,13 +802,18 @@ class PredictionsManager {
     
     generateActualBonusNumbers(gameType, predictedBonus, matchedBonus, predictionId) {
         if (gameType === 'POWERBALL' || gameType === 'POWERBALL PLUS') {
-            // If there's a matched bonus, use it; otherwise generate based on prediction ID
+            // If there's a matched bonus, use it; otherwise generate based on game type
             if (matchedBonus.length > 0) {
                 return matchedBonus;
             }
             
-            // Use prediction ID for consistent bonus number
-            const seed = (predictionId || 1) * 23 + 7;
+            // Use game type for consistent bonus number across all predictions for same game
+            const gameTypeSeeds = {
+                'POWERBALL': 111,
+                'POWERBALL PLUS': 222
+            };
+            
+            const seed = gameTypeSeeds[gameType] || 111;
             const bonusNum = ((seed * 31) % 20) + 1;
             return [bonusNum];
         }
