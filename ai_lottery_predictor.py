@@ -330,3 +330,131 @@ class AILotteryPredictor:
         except Exception as e:
             logger.error(f"Error storing prediction: {e}")
             return False
+    
+    def validate_prediction_against_draw(self, prediction_id: int, actual_numbers: List[int], actual_bonus: List[int] = None) -> Dict[str, Any]:
+        """Validate a prediction against actual draw results"""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor() as cur:
+                    # Get prediction details
+                    cur.execute("""
+                        SELECT predicted_numbers, bonus_numbers, game_type, confidence_score
+                        FROM lottery_predictions WHERE id = %s
+                    """, (prediction_id,))
+                    
+                    result = cur.fetchone()
+                    if not result:
+                        return {'error': 'Prediction not found'}
+                    
+                    predicted_numbers, predicted_bonus, game_type, confidence = result
+                    predicted_bonus = predicted_bonus or []
+                    actual_bonus = actual_bonus or []
+                    
+                    # Calculate matches
+                    main_matches = len(set(predicted_numbers) & set(actual_numbers))
+                    bonus_matches = len(set(predicted_bonus) & set(actual_bonus)) if predicted_bonus and actual_bonus else 0
+                    
+                    # Determine accuracy level
+                    total_predicted = len(predicted_numbers)
+                    accuracy_percentage = (main_matches / total_predicted) * 100 if total_predicted > 0 else 0
+                    
+                    # Calculate prize tier (simplified)
+                    prize_tier = self.calculate_prize_tier(game_type, main_matches, bonus_matches)
+                    
+                    # Update prediction with validation results
+                    cur.execute("""
+                        UPDATE lottery_predictions 
+                        SET is_verified = true, 
+                            validation_status = 'validated',
+                            main_number_matches = %s,
+                            bonus_number_matches = %s,
+                            accuracy_percentage = %s,
+                            prize_tier = %s,
+                            matched_main_numbers = %s,
+                            matched_bonus_numbers = %s,
+                            verified_at = NOW()
+                        WHERE id = %s
+                    """, (main_matches, bonus_matches, accuracy_percentage, prize_tier, 
+                          list(set(predicted_numbers) & set(actual_numbers)),
+                          list(set(predicted_bonus) & set(actual_bonus)) if predicted_bonus and actual_bonus else [],
+                          prediction_id))
+                    
+                    conn.commit()
+                    
+                    validation_result = {
+                        'prediction_id': prediction_id,
+                        'game_type': game_type,
+                        'predicted_numbers': predicted_numbers,
+                        'predicted_bonus': predicted_bonus,
+                        'actual_numbers': actual_numbers,
+                        'actual_bonus': actual_bonus,
+                        'main_matches': main_matches,
+                        'bonus_matches': bonus_matches,
+                        'accuracy_percentage': round(accuracy_percentage, 2),
+                        'prize_tier': prize_tier,
+                        'matched_main_numbers': list(set(predicted_numbers) & set(actual_numbers)),
+                        'matched_bonus_numbers': list(set(predicted_bonus) & set(actual_bonus)) if predicted_bonus and actual_bonus else [],
+                        'validation_status': 'validated'
+                    }
+                    
+                    logger.info(f"✅ Validated prediction {prediction_id}: {main_matches} main + {bonus_matches} bonus matches ({accuracy_percentage:.1f}%)")
+                    return validation_result
+                    
+        except Exception as e:
+            logger.error(f"Error validating prediction {prediction_id}: {e}")
+            return {'error': f'Validation failed: {str(e)}'}
+    
+    def calculate_prize_tier(self, game_type: str, main_matches: int, bonus_matches: int) -> str:
+        """Calculate prize tier based on matches"""
+        try:
+            if game_type in ['POWERBALL', 'POWERBALL PLUS']:
+                if main_matches == 5 and bonus_matches == 1:
+                    return "Division 1"
+                elif main_matches == 5:
+                    return "Division 2"
+                elif main_matches == 4 and bonus_matches == 1:
+                    return "Division 3"
+                elif main_matches == 4:
+                    return "Division 4"
+                elif main_matches == 3 and bonus_matches == 1:
+                    return "Division 5"
+                elif main_matches == 3:
+                    return "Division 6"
+                elif main_matches == 2 and bonus_matches == 1:
+                    return "Division 7"
+                elif main_matches == 1 and bonus_matches == 1:
+                    return "Division 8"
+                elif bonus_matches == 1:
+                    return "Division 9"
+                else:
+                    return "No prize"
+            
+            elif game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2']:
+                if main_matches == 6:
+                    return "Division 1"
+                elif main_matches == 5:
+                    return "Division 2"  
+                elif main_matches == 4:
+                    return "Division 3"
+                elif main_matches == 3:
+                    return "Division 4"
+                else:
+                    return "No prize"
+            
+            elif game_type == 'DAILY LOTTO':
+                if main_matches == 5:
+                    return "Division 1"
+                elif main_matches == 4:
+                    return "Division 2"
+                elif main_matches == 3:
+                    return "Division 3"
+                elif main_matches == 2:
+                    return "Division 4"
+                else:
+                    return "No prize"
+            
+            return "No prize"
+            
+        except Exception as e:
+            logger.error(f"Error calculating prize tier: {e}")
+            return "No prize"
