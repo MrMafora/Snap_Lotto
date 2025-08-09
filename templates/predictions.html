@@ -560,18 +560,34 @@ class PredictionsManager {
 
     async loadLatestPredictions() {
         try {
-            const response = await fetch('/api/lottery-analysis/prediction-history?limit=50');
+            const response = await fetch('/api/lottery-analysis/prediction-history?limit=50', {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
             if (response.ok) {
                 const data = await response.json();
                 this.renderPredictionsByGameType(data.predictions || []);
+            } else if (response.status === 302 || response.status === 401) {
+                // Not authenticated as admin
+                document.getElementById('latestPredictions').innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-lock me-2"></i>
+                        Admin access required to view AI predictions. Please contact an administrator.
+                    </div>
+                `;
             } else {
                 throw new Error('Failed to load predictions');
             }
         } catch (error) {
+            console.error('Error loading predictions:', error);
             document.getElementById('latestPredictions').innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
-                    <p>Unable to load predictions</p>
+                    <p>Unable to load predictions. Please try again later.</p>
                 </div>
             `;
         }
@@ -866,17 +882,33 @@ class PredictionsManager {
 
     async loadSystemStats() {
         try {
-            const response = await fetch('/api/lottery-analysis/system-metrics');
+            const response = await fetch('/api/lottery-analysis/system-metrics', {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
             if (response.ok) {
                 const data = await response.json();
                 this.renderStats(data);
+            } else if (response.status === 302 || response.status === 401) {
+                // Not authenticated as admin
+                document.getElementById('systemStats').innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-lock me-2"></i>
+                        Admin access required to view system statistics.
+                    </div>
+                `;
             } else {
                 throw new Error('Failed to load stats');
             }
         } catch (error) {
+            console.error('Error loading stats:', error);
             document.getElementById('systemStats').innerHTML = `
                 <div class="empty-state">
-                    <p>Unable to load statistics</p>
+                    <p>Unable to load statistics. Please try again later.</p>
                 </div>
             `;
         }
