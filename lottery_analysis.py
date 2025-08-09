@@ -740,7 +740,6 @@ def get_accuracy_insights():
         return jsonify({'error': 'Failed to get insights'}), 500
 
 @bp.route('/auto-validate', methods=['POST'])
-@require_admin
 def auto_validate_predictions():
     """Automatically validate all pending predictions against available results"""
     try:
