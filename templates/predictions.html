@@ -301,24 +301,44 @@
 
 <script>
 // Clean, simple JavaScript for the AI predictions interface
+// Cache buster: {{ cache_buster }}
 class PredictionsManager {
     constructor() {
+        console.log('PredictionsManager constructor called');
         this.initializeEventListeners();
         this.loadInitialData();
     }
 
     initializeEventListeners() {
-        document.getElementById('generateBtn').addEventListener('click', () => {
-            this.generatePrediction();
-        });
+        console.log('Initializing event listeners...');
         
-        document.getElementById('weeklyBtn').addEventListener('click', () => {
-            this.generateWeeklyPredictions();
-        });
+        const generateBtn = document.getElementById('generateBtn');
+        const weeklyBtn = document.getElementById('weeklyBtn');
+        const validateBtn = document.getElementById('validateBtn');
         
-        document.getElementById('validateBtn').addEventListener('click', () => {
-            this.validatePendingPredictions();
-        });
+        console.log('Buttons found:', { generateBtn, weeklyBtn, validateBtn });
+        
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => {
+                this.generatePrediction();
+            });
+        }
+        
+        if (weeklyBtn) {
+            weeklyBtn.addEventListener('click', () => {
+                this.generateWeeklyPredictions();
+            });
+        }
+        
+        if (validateBtn) {
+            validateBtn.addEventListener('click', () => {
+                console.log('=== VALIDATE BUTTON CLICKED VIA EVENT LISTENER ===');
+                this.validatePendingPredictions();
+            });
+            console.log('Validate button event listener attached successfully');
+        } else {
+            console.error('CRITICAL ERROR: validateBtn not found!');
+        }
     }
 
     async loadInitialData() {
@@ -721,8 +741,37 @@ class PredictionsManager {
 }
 
 // Initialize when page loads
+console.log('=== PREDICTIONS PAGE SCRIPT LOADING ===');
 document.addEventListener('DOMContentLoaded', () => {
-    new PredictionsManager();
+    console.log('DOM Content Loaded - initializing PredictionsManager');
+    try {
+        const predictionManager = new PredictionsManager();
+        console.log('PredictionsManager initialized successfully:', predictionManager);
+        
+        // Add a global reference for debugging
+        window.predictionManager = predictionManager;
+        
+        // Test if the validate button exists after initialization
+        setTimeout(() => {
+            const testBtn = document.getElementById('validateBtn');
+            console.log('Post-init validateBtn check:', testBtn);
+            if (testBtn) {
+                console.log('validateBtn found - innerHTML:', testBtn.innerHTML);
+                console.log('validateBtn has event listeners attached');
+                
+                // Add manual click test
+                testBtn.addEventListener('click', () => {
+                    console.log('Manual event listener - validate button clicked!');
+                });
+            } else {
+                console.error('CRITICAL ERROR: validateBtn not found after initialization!');
+            }
+        }, 500);
+        
+    } catch (error) {
+        console.error('CRITICAL ERROR initializing PredictionsManager:', error);
+        console.error('Error stack:', error.stack);
+    }
 });
 </script>
 {% endblock %}
