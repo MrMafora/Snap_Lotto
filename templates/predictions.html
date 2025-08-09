@@ -570,6 +570,7 @@ class PredictionsManager {
             
             if (response.ok) {
                 const data = await response.json();
+                console.log('Prediction data received:', data);
                 this.renderPredictionsByGameType(data.predictions || []);
             } else if (response.status === 302 || response.status === 401) {
                 // Not authenticated as admin
@@ -580,6 +581,7 @@ class PredictionsManager {
                     </div>
                 `;
             } else {
+                console.error('Failed to load predictions, status:', response.status);
                 throw new Error('Failed to load predictions');
             }
         } catch (error) {
@@ -892,6 +894,7 @@ class PredictionsManager {
             
             if (response.ok) {
                 const data = await response.json();
+                console.log('Stats data received:', data);
                 this.renderStats(data);
             } else if (response.status === 302 || response.status === 401) {
                 // Not authenticated as admin
@@ -902,6 +905,7 @@ class PredictionsManager {
                     </div>
                 `;
             } else {
+                console.error('Failed to load stats, status:', response.status);
                 throw new Error('Failed to load stats');
             }
         } catch (error) {
