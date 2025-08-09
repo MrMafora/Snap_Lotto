@@ -301,44 +301,24 @@
 
 <script>
 // Clean, simple JavaScript for the AI predictions interface
-// Cache buster: {{ cache_buster }}
 class PredictionsManager {
     constructor() {
-        console.log('PredictionsManager constructor called');
         this.initializeEventListeners();
         this.loadInitialData();
     }
 
     initializeEventListeners() {
-        console.log('Initializing event listeners...');
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            this.generatePrediction();
+        });
         
-        const generateBtn = document.getElementById('generateBtn');
-        const weeklyBtn = document.getElementById('weeklyBtn');
-        const validateBtn = document.getElementById('validateBtn');
+        document.getElementById('weeklyBtn').addEventListener('click', () => {
+            this.generateWeeklyPredictions();
+        });
         
-        console.log('Buttons found:', { generateBtn, weeklyBtn, validateBtn });
-        
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => {
-                this.generatePrediction();
-            });
-        }
-        
-        if (weeklyBtn) {
-            weeklyBtn.addEventListener('click', () => {
-                this.generateWeeklyPredictions();
-            });
-        }
-        
-        if (validateBtn) {
-            validateBtn.addEventListener('click', () => {
-                console.log('=== VALIDATE BUTTON CLICKED VIA EVENT LISTENER ===');
-                this.validatePendingPredictions();
-            });
-            console.log('Validate button event listener attached successfully');
-        } else {
-            console.error('CRITICAL ERROR: validateBtn not found!');
-        }
+        document.getElementById('validateBtn').addEventListener('click', () => {
+            this.validatePendingPredictions();
+        });
     }
 
     async loadInitialData() {
@@ -456,12 +436,8 @@ class PredictionsManager {
     }
 
     async validatePendingPredictions() {
-        console.log('=== VALIDATE BUTTON CLICKED ===');
         const btn = document.getElementById('validateBtn');
         const status = document.getElementById('generationStatus');
-        
-        console.log('Button found:', btn);
-        console.log('Status container found:', status);
         
         // Show loading state
         btn.disabled = true;
@@ -469,7 +445,6 @@ class PredictionsManager {
         status.innerHTML = '<div class="loading">Checking predictions against actual lottery results...</div>';
 
         try {
-            console.log('Making API call to auto-validate...');
             const response = await fetch('/api/lottery-analysis/auto-validate', {
                 method: 'POST',
                 headers: {
@@ -477,37 +452,17 @@ class PredictionsManager {
                 }
             });
 
-            console.log('API response status:', response.status);
-            console.log('API response ok:', response.ok);
-
             if (response.ok) {
                 const result = await response.json();
-                console.log('=== RAW API RESPONSE ===');
-                console.log(JSON.stringify(result, null, 2));
+                const validationResults = result.validation_results || {};
                 
-                // Direct access with fallback to ensure we get the values
-                let totalCount = 18; // Known value from backend testing
-                let validatedCount = 9; // Known value from backend testing
-                
-                if (result && result.validation_results) {
-                    const vr = result.validation_results;
-                    console.log('validation_results object:', vr);
-                    totalCount = vr.total_count || totalCount;
-                    validatedCount = vr.validated_count || validatedCount;
-                    console.log('Extracted counts:', { total: vr.total_count, validated: vr.validated_count });
-                }
-                
-                console.log('=== FINAL DISPLAY VALUES ===');
-                console.log('totalCount:', totalCount);
-                console.log('validatedCount:', validatedCount);
-                
-                const successMessage = `Validation complete! Checked ${totalCount} predictions, validated ${validatedCount} against actual results.`;
-                console.log('Success message:', successMessage);
+                const totalCount = validationResults.total_count || 0;
+                const validatedCount = validationResults.validated_count || 0;
                 
                 status.innerHTML = `
                     <div class="alert alert-success mt-3">
                         <i class="fas fa-check-circle me-2"></i>
-                        ${successMessage}
+                        Validation complete! Checked ${totalCount} predictions, validated ${validatedCount} against actual results.
                     </div>
                 `;
                 
@@ -741,37 +696,8 @@ class PredictionsManager {
 }
 
 // Initialize when page loads
-console.log('=== PREDICTIONS PAGE SCRIPT LOADING ===');
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded - initializing PredictionsManager');
-    try {
-        const predictionManager = new PredictionsManager();
-        console.log('PredictionsManager initialized successfully:', predictionManager);
-        
-        // Add a global reference for debugging
-        window.predictionManager = predictionManager;
-        
-        // Test if the validate button exists after initialization
-        setTimeout(() => {
-            const testBtn = document.getElementById('validateBtn');
-            console.log('Post-init validateBtn check:', testBtn);
-            if (testBtn) {
-                console.log('validateBtn found - innerHTML:', testBtn.innerHTML);
-                console.log('validateBtn has event listeners attached');
-                
-                // Add manual click test
-                testBtn.addEventListener('click', () => {
-                    console.log('Manual event listener - validate button clicked!');
-                });
-            } else {
-                console.error('CRITICAL ERROR: validateBtn not found after initialization!');
-            }
-        }, 500);
-        
-    } catch (error) {
-        console.error('CRITICAL ERROR initializing PredictionsManager:', error);
-        console.error('Error stack:', error.stack);
-    }
+    new PredictionsManager();
 });
 </script>
 {% endblock %}
