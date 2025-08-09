@@ -394,10 +394,16 @@ class PredictionsManager {
     }
 
     async loadInitialData() {
-        await Promise.all([
-            this.loadLatestPredictions(),
-            this.loadSystemStats()
-        ]);
+        console.log('Loading initial data...');
+        try {
+            await Promise.all([
+                this.loadLatestPredictions(),
+                this.loadSystemStats()
+            ]);
+            console.log('Initial data loading completed');
+        } catch (error) {
+            console.error('Error loading initial data:', error);
+        }
     }
 
     async generatePrediction() {
@@ -946,7 +952,13 @@ class PredictionsManager {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new PredictionsManager();
+    console.log('DOM loaded, initializing PredictionsManager');
+    try {
+        const manager = new PredictionsManager();
+        console.log('PredictionsManager created successfully');
+    } catch (error) {
+        console.error('Error creating PredictionsManager:', error);
+    }
 });
 </script>
 {% endblock %}
