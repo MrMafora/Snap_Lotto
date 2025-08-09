@@ -459,7 +459,7 @@ class PredictionsManager {
                 status.innerHTML = `
                     <div class="alert alert-success mt-3">
                         <i class="fas fa-check-circle me-2"></i>
-                        Validation complete! Checked ${validationResults.pending_count || 0} predictions, 
+                        Validation complete! Checked ${validationResults.total_count || 0} predictions, 
                         validated ${validationResults.validated_count || 0} against actual results.
                     </div>
                 `;
