@@ -783,3 +783,50 @@ def auto_validate_predictions():
     except Exception as e:
         logger.error(f"Error in auto-validation: {e}")
         return jsonify({'error': 'Auto-validation failed'}), 500
+
+@bp.route('/actual-results')
+def get_actual_lottery_results():
+    """Get actual lottery results for a specific game and date"""
+    try:
+        game_type = request.args.get('game_type')
+        target_date = request.args.get('date')
+        
+        if not game_type or not target_date:
+            return jsonify({'error': 'Missing game_type or date parameter'}), 400
+        
+        import psycopg2
+        import os
+        import json
+        
+        with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+            with conn.cursor() as cur:
+                # Query for actual lottery results near the target date
+                cur.execute("""
+                    SELECT winning_numbers, bonus_numbers, draw_date
+                    FROM lottery_results 
+                    WHERE lottery_type = %s 
+                    AND draw_date <= %s
+                    ORDER BY draw_date DESC
+                    LIMIT 1
+                """, (game_type, target_date))
+                
+                result = cur.fetchone()
+                if result:
+                    winning_numbers, bonus_numbers, draw_date = result
+                    
+                    # Parse winning numbers (stored as JSON array)
+                    main_numbers = json.loads(winning_numbers) if isinstance(winning_numbers, str) else winning_numbers
+                    bonus_nums = json.loads(bonus_numbers) if bonus_numbers and isinstance(bonus_numbers, str) else (bonus_numbers or [])
+                    
+                    return jsonify({
+                        'main_numbers': sorted(main_numbers) if main_numbers else [],
+                        'bonus_numbers': bonus_nums,
+                        'draw_date': draw_date.isoformat() if draw_date else None,
+                        'game_type': game_type
+                    })
+                else:
+                    return jsonify({'error': 'No results found for this game and date'}), 404
+                    
+    except Exception as e:
+        logger.error(f"Error fetching actual lottery results: {e}")
+        return jsonify({'error': 'Failed to fetch actual results'}), 500

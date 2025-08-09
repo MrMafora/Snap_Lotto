@@ -629,6 +629,9 @@ class PredictionsManager {
         }).join('');
 
         container.innerHTML = gameRowsHTML;
+        
+        // Load actual numbers for verified predictions
+        this.loadActualNumbersForVerifiedPredictions(predictions);
     }
 
     renderSinglePrediction(pred) {
@@ -649,36 +652,9 @@ class PredictionsManager {
 
                 
                 ${pred.is_verified ? `
-                    <div class="actual-vs-predicted mb-3">
-                        <div class="row">
-                            <div class="col-6">
-                                <small><strong>Actual Draw:</strong></small><br>
-                                ${this.getActualNumbers(pred).main.map(num => `<span class="lottery-ball actual-number" style="margin: 1px;">${num}</span>`).join('')}
-                                ${this.getActualNumbers(pred).bonus.length > 0 ? `<br><small><strong>Bonus:</strong></small> ${this.getActualNumbers(pred).bonus.map(num => `<span class="lottery-ball actual-bonus" style="margin: 1px;">${num}</span>`).join('')}` : ''}
-                            </div>
-                            <div class="col-6">
-                                <small><strong>Your Prediction:</strong></small><br>
-                                ${pred.predicted_numbers.map(num => {
-                                    const isMatched = matchedNumbers.main.includes(num);
-                                    return `<span class="lottery-ball ${isMatched ? 'matched-highlight' : 'prediction-ball'}" style="margin: 1px; ${isMatched ? 'animation: pulse 1s infinite;' : ''}">${num}</span>`;
-                                }).join('')}
-                                ${pred.bonus_numbers && pred.bonus_numbers.length > 0 ? `<br><small><strong>Bonus:</strong></small> ${pred.bonus_numbers.map(num => {
-                                    const isMatched = matchedNumbers.bonus.includes(num);
-                                    return `<span class="lottery-ball ${isMatched ? 'matched-bonus-highlight' : 'prediction-bonus'}" style="margin: 1px; ${isMatched ? 'animation: pulse 1s infinite;' : ''}">${num}</span>`;
-                                }).join('')}` : ''}
-                            </div>
-                        </div>
-                        ${matchedNumbers.hasMatches ? `
-                            <div class="match-summary mt-2 p-2" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border-radius: 8px; border-left: 4px solid #28a745;">
-                                <small><strong style="color: #155724;">🎯 Match Summary:</strong></small><br>
-                                <small>${matchedNumbers.main.length > 0 ? `✓ ${matchedNumbers.main.length} main number${matchedNumbers.main.length > 1 ? 's' : ''} matched: ${matchedNumbers.main.join(', ')}` : '✗ No main numbers matched'}</small>
-                                ${matchedNumbers.bonus.length > 0 ? `<br><small>✓ ${matchedNumbers.bonus.length} bonus number matched: ${matchedNumbers.bonus.join(', ')}</small>` : pred.bonus_numbers && pred.bonus_numbers.length > 0 ? '<br><small>✗ No bonus numbers matched</small>' : ''}
-                            </div>
-                        ` : `
-                            <div class="no-match-summary mt-2 p-2" style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); border-radius: 8px; border-left: 4px solid #dc3545;">
-                                <small><strong style="color: #721c24;">No matches found</strong></small>
-                            </div>
-                        `}
+                    <div class="actual-vs-predicted mb-3" data-prediction-id="${pred.id}">
+                        <div class="loading-actual-numbers">Loading actual results...</div>
+                    </div>` : ''}
                     </div>
                 ` : ''}
                 
@@ -734,24 +710,38 @@ class PredictionsManager {
         return result;
     }
 
-    getActualNumbers(pred) {
-        // Extract actual numbers from validation data if available
+    async getActualNumbers(pred) {
+        // Get actual lottery numbers from database for this prediction
         const result = { main: [], bonus: [] };
         
-        if (pred.is_verified) {
-            // Use stored matched and unmatched numbers to reconstruct actual draw
-            const matched = pred.matched_main_numbers || [];
-            const matchedBonus = pred.matched_bonus_numbers || [];
-            
-            // Generate actual numbers that include the matched numbers plus additional numbers
-            result.main = this.generateActualDrawNumbers(pred.game_type, pred.predicted_numbers, matched, pred.id);
-            
-            if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
-                result.bonus = this.generateActualBonusNumbers(pred.game_type, pred.bonus_numbers, matchedBonus, pred.id);
+        if (pred.is_verified && pred.target_draw_date) {
+            try {
+                // Fetch actual lottery results from database for the target draw date
+                const actualResults = await this.fetchActualLotteryResults(pred.game_type, pred.target_draw_date);
+                if (actualResults) {
+                    result.main = actualResults.main_numbers || [];
+                    result.bonus = actualResults.bonus_numbers || [];
+                }
+            } catch (error) {
+                console.error('Error fetching actual lottery results:', error);
             }
         }
         
         return result;
+    }
+    
+    async fetchActualLotteryResults(gameType, targetDate) {
+        // Fetch actual lottery results from the database
+        try {
+            const response = await fetch(`/api/lottery-analysis/actual-results?game_type=${encodeURIComponent(gameType)}&date=${targetDate}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data;
+            }
+        } catch (error) {
+            console.error('Error fetching actual results:', error);
+        }
+        return null;
     }
     
     generateActualDrawNumbers(gameType, predictedNumbers, matchedNumbers, predictionId) {
@@ -818,6 +808,60 @@ class PredictionsManager {
             return [bonusNum];
         }
         return [];
+    }
+    
+    async loadActualNumbersForVerifiedPredictions(predictions) {
+        // Load actual numbers for each verified prediction
+        for (const pred of predictions) {
+            if (pred.is_verified) {
+                await this.loadActualNumbersForPrediction(pred);
+            }
+        }
+    }
+    
+    async loadActualNumbersForPrediction(pred) {
+        const container = document.querySelector(`[data-prediction-id="${pred.id}"]`);
+        if (!container) return;
+        
+        try {
+            const actualNumbers = await this.getActualNumbers(pred);
+            const matchedNumbers = this.getMatchedNumbers(pred);
+            
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-6">
+                        <small><strong>Actual Draw:</strong></small><br>
+                        ${actualNumbers.main.map(num => `<span class="lottery-ball actual-number" style="margin: 1px;">${num}</span>`).join('')}
+                        ${actualNumbers.bonus.length > 0 ? `<br><small><strong>Bonus:</strong></small> ${actualNumbers.bonus.map(num => `<span class="lottery-ball actual-bonus" style="margin: 1px;">${num}</span>`).join('')}` : ''}
+                    </div>
+                    <div class="col-6">
+                        <small><strong>Your Prediction:</strong></small><br>
+                        ${pred.predicted_numbers.map(num => {
+                            const isMatched = matchedNumbers.main.includes(num);
+                            return `<span class="lottery-ball ${isMatched ? 'matched-highlight' : 'prediction-ball'}" style="margin: 1px; ${isMatched ? 'animation: pulse 1s infinite;' : ''}">${num}</span>`;
+                        }).join('')}
+                        ${pred.bonus_numbers && pred.bonus_numbers.length > 0 ? `<br><small><strong>Bonus:</strong></small> ${pred.bonus_numbers.map(num => {
+                            const isMatched = matchedNumbers.bonus.includes(num);
+                            return `<span class="lottery-ball ${isMatched ? 'matched-bonus-highlight' : 'prediction-bonus'}" style="margin: 1px; ${isMatched ? 'animation: pulse 1s infinite;' : ''}">${num}</span>`;
+                        }).join('')}` : ''}
+                    </div>
+                </div>
+                ${matchedNumbers.hasMatches ? `
+                    <div class="match-summary mt-2 p-2" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border-radius: 8px; border-left: 4px solid #28a745;">
+                        <small><strong style="color: #155724;">🎯 Match Summary:</strong></small><br>
+                        <small>${matchedNumbers.main.length > 0 ? `✓ ${matchedNumbers.main.length} main number${matchedNumbers.main.length > 1 ? 's' : ''} matched: ${matchedNumbers.main.join(', ')}` : '✗ No main numbers matched'}</small>
+                        ${matchedNumbers.bonus.length > 0 ? `<br><small>✓ ${matchedNumbers.bonus.length} bonus number matched: ${matchedNumbers.bonus.join(', ')}</small>` : pred.bonus_numbers && pred.bonus_numbers.length > 0 ? '<br><small>✗ No bonus numbers matched</small>' : ''}
+                    </div>
+                ` : `
+                    <div class="no-match-summary mt-2 p-2" style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); border-radius: 8px; border-left: 4px solid #dc3545;">
+                        <small><strong style="color: #721c24;">No matches found</strong></small>
+                    </div>
+                `}
+            `;
+        } catch (error) {
+            console.error('Error loading actual numbers:', error);
+            container.innerHTML = '<small class="text-danger">Error loading actual results</small>';
+        }
     }
 
     async loadSystemStats() {
