@@ -124,7 +124,7 @@ This project is an AI-powered lottery intelligence platform for South African lo
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
 
-- **Frontend**: Responsive web interface with mobile-friendly design with PWA functionality. Visual consistency is maintained across all lottery ball displays through specific CSS classes.
+- **Frontend**: Responsive web interface with mobile-friendly design and PWA functionality. Visual consistency is maintained across all lottery ball displays through specific CSS classes.
 - **Backend**: Python Flask framework.
 - **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage. Strict adherence to authentic data.
 - **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and lottery prediction. This includes an `ai_lottery_processor.py` for data extraction and an `ai_lottery_predictor.py` for generating and validating predictions with deep data analysis.
