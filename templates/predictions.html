@@ -565,7 +565,11 @@ class PredictionsManager {
     }
 
     async loadLatestPredictions() {
+        console.log('loadLatestPredictions called');
+        document.getElementById('latestPredictions').innerHTML = '<div class="alert alert-info">Fetching predictions...</div>';
+        
         try {
+            console.log('Making fetch request to prediction-history');
             const response = await fetch('/api/lottery-analysis/prediction-history?limit=50', {
                 method: 'GET',
                 credentials: 'same-origin',
@@ -574,12 +578,20 @@ class PredictionsManager {
                 }
             });
             
+            console.log('Response received:', response.status, response.ok);
+            
             if (response.ok) {
                 const data = await response.json();
                 console.log('Prediction data received:', data);
-                this.renderPredictionsByGameType(data.predictions || []);
+                console.log('Number of predictions:', data.predictions ? data.predictions.length : 0);
+                
+                if (data.predictions && data.predictions.length > 0) {
+                    document.getElementById('latestPredictions').innerHTML = `<div class="alert alert-success">Found ${data.predictions.length} predictions! Rendering...</div>`;
+                    this.renderPredictionsByGameType(data.predictions);
+                } else {
+                    document.getElementById('latestPredictions').innerHTML = '<div class="alert alert-warning">No predictions found in response</div>';
+                }
             } else if (response.status === 302 || response.status === 401) {
-                // Not authenticated as admin
                 document.getElementById('latestPredictions').innerHTML = `
                     <div class="alert alert-warning">
                         <i class="fas fa-lock me-2"></i>
@@ -588,14 +600,15 @@ class PredictionsManager {
                 `;
             } else {
                 console.error('Failed to load predictions, status:', response.status);
+                document.getElementById('latestPredictions').innerHTML = `<div class="alert alert-danger">HTTP Error: ${response.status}</div>`;
                 throw new Error('Failed to load predictions');
             }
         } catch (error) {
             console.error('Error loading predictions:', error);
             document.getElementById('latestPredictions').innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
-                    <p>Unable to load predictions. Please try again later.</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Error:</strong> ${error.message}
                 </div>
             `;
         }
@@ -953,11 +966,16 @@ class PredictionsManager {
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing PredictionsManager');
+    
+    // Immediate test to show data is available
+    document.getElementById('latestPredictions').innerHTML = '<div class="alert alert-info">Testing JavaScript execution...</div>';
+    
     try {
         const manager = new PredictionsManager();
         console.log('PredictionsManager created successfully');
     } catch (error) {
         console.error('Error creating PredictionsManager:', error);
+        document.getElementById('latestPredictions').innerHTML = `<div class="alert alert-danger">JavaScript Error: ${error.message}</div>`;
     }
 });
 </script>
