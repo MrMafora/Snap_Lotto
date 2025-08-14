@@ -887,7 +887,7 @@ class PredictionsManager {
                     <div class="match-summary mt-2 p-2" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border-radius: 8px; border-left: 4px solid #28a745;">
                         <small><strong style="color: #155724;">🎯 Match Summary:</strong></small><br>
                         <small>${matchedNumbers.main.length > 0 ? `✓ ${matchedNumbers.main.length} main number${matchedNumbers.main.length > 1 ? 's' : ''} matched: ${matchedNumbers.main.join(', ')}` : '✗ No main numbers matched'}</small>
-                        ${matchedNumbers.bonus.length > 0 ? `<br><small>✓ ${matchedNumbers.bonus.length} bonus number matched: ${matchedNumbers.bonus.join(', ')}</small>` : (pred.bonus_numbers && pred.bonus_numbers.length > 0 ? '<br><small>✗ No bonus numbers matched</small>' : '')}
+                        ${matchedNumbers.bonus.length > 0 ? '<br><small>✓ ' + matchedNumbers.bonus.length + ' bonus number matched: ' + matchedNumbers.bonus.join(', ') + '</small>' : (pred.bonus_numbers && pred.bonus_numbers.length > 0 ? '<br><small>✗ No bonus numbers matched</small>' : '')}
                     </div>
                 ` : `
                     <div class="no-match-summary mt-2 p-2" style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); border-radius: 8px; border-left: 4px solid #dc3545;">
