@@ -847,6 +847,13 @@ class PredictionsManager {
         return [];
     }
     
+    renderPredictionNumbers(numbers, matchedNumbers, baseClass, matchedClass) {
+        return numbers.map(num => {
+            const isMatched = matchedNumbers.includes(num);
+            return '<span class="lottery-ball ' + (isMatched ? matchedClass : baseClass) + '" style="margin: 1px; ' + (isMatched ? 'animation: pulse 1s infinite;' : '') + '">' + num + '</span>';
+        }).join('');
+    }
+
     async loadActualNumbersForVerifiedPredictions(predictions) {
         // Load actual numbers for each verified prediction
         for (const pred of predictions) {
@@ -873,14 +880,8 @@ class PredictionsManager {
                     </div>
                     <div class="col-6">
                         <small><strong>Your Prediction:</strong></small><br>
-                        ${pred.predicted_numbers.map(num => {
-                            const isMatched = matchedNumbers.main.includes(num);
-                            return `<span class="lottery-ball ${isMatched ? 'matched-highlight' : 'prediction-ball'}" style="margin: 1px; ${isMatched ? 'animation: pulse 1s infinite;' : ''}">${num}</span>`;
-                        }).join('')}
-                        ${pred.bonus_numbers && pred.bonus_numbers.length > 0 ? `<br><small><strong>Bonus:</strong></small> ${pred.bonus_numbers.map(num => {
-                            const isMatched = matchedNumbers.bonus.includes(num);
-                            return `<span class="lottery-ball ${isMatched ? 'matched-bonus-highlight' : 'prediction-bonus'}" style="margin: 1px; ${isMatched ? 'animation: pulse 1s infinite;' : ''}">${num}</span>`;
-                        }).join('')}` : ''}
+                        ${this.renderPredictionNumbers(pred.predicted_numbers, matchedNumbers.main, 'prediction-ball', 'matched-highlight')}
+                        ${pred.bonus_numbers && pred.bonus_numbers.length > 0 ? '<br><small><strong>Bonus:</strong></small> ' + this.renderPredictionNumbers(pred.bonus_numbers, matchedNumbers.bonus, 'prediction-bonus', 'matched-bonus-highlight') : ''}
                     </div>
                 </div>
                 ${matchedNumbers.hasMatches ? `
@@ -968,14 +969,42 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing PredictionsManager');
     
     // Immediate test to show data is available
-    document.getElementById('latestPredictions').innerHTML = '<div class="alert alert-info">Testing JavaScript execution...</div>';
+    const testElement = document.getElementById('latestPredictions');
+    if (testElement) {
+        testElement.innerHTML = '<div class="alert alert-info">JavaScript executing... Initializing predictions manager...</div>';
+    }
     
     try {
         const manager = new PredictionsManager();
         console.log('PredictionsManager created successfully');
+        
+        // Test API access immediately
+        setTimeout(() => {
+            console.log('Testing API access...');
+            fetch('/api/lottery-analysis/prediction-history?limit=1')
+                .then(response => {
+                    console.log('API test response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API test data:', data);
+                    if (testElement) {
+                        testElement.innerHTML = '<div class="alert alert-success">API connection successful! Found ' + (data.predictions ? data.predictions.length : 0) + ' predictions. Loading full data...</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('API test failed:', error);
+                    if (testElement) {
+                        testElement.innerHTML = '<div class="alert alert-danger">API test failed: ' + error.message + '</div>';
+                    }
+                });
+        }, 1000);
+        
     } catch (error) {
         console.error('Error creating PredictionsManager:', error);
-        document.getElementById('latestPredictions').innerHTML = `<div class="alert alert-danger">JavaScript Error: ${error.message}</div>`;
+        if (testElement) {
+            testElement.innerHTML = '<div class="alert alert-danger">JavaScript Error: ' + error.message + '</div>';
+        }
     }
 });
 </script>
