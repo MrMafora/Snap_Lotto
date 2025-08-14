@@ -685,6 +685,192 @@ def get_system_metrics():
         logger.error(f"System metrics error: {e}")
         return jsonify({'error': 'Unable to load system metrics'}), 500
 
+@bp.route('/prediction-history')
+def prediction_history():
+    """Get historical AI predictions with optional limit"""
+    try:
+        import psycopg2
+        import os
+        from datetime import datetime
+        
+        limit = int(request.args.get('limit', 20))
+        logger.info(f"Getting prediction history (limit: {limit})")
+        
+        predictions = []
+        
+        with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+            with conn.cursor() as cur:
+                # Get recent predictions with all details
+                cur.execute("""
+                    SELECT id, game_type, predicted_numbers, bonus_numbers, 
+                           confidence_score, reasoning, created_at, is_verified,
+                           accuracy_score, match_details, validation_date
+                    FROM lottery_predictions 
+                    ORDER BY created_at DESC 
+                    LIMIT %s
+                """, (limit,))
+                
+                for row in cur.fetchall():
+                    prediction = {
+                        'id': row[0],
+                        'game_type': row[1],
+                        'predicted_numbers': row[2] if isinstance(row[2], list) else (json.loads(row[2]) if row[2] else []),
+                        'bonus_numbers': row[3] if isinstance(row[3], list) else (json.loads(row[3]) if row[3] else []),
+                        'confidence_score': float(row[4]) if row[4] else 0.0,
+                        'reasoning': row[5],
+                        'created_at': row[6].isoformat() if row[6] else None,
+                        'is_verified': row[7],
+                        'accuracy_score': float(row[8]) if row[8] else None,
+                        'match_details': row[9] if isinstance(row[9], dict) else (json.loads(row[9]) if row[9] else {}),
+                        'validation_date': row[10].isoformat() if row[10] else None
+                    }
+                    predictions.append(prediction)
+        
+        logger.info(f"Retrieved {len(predictions)} predictions")
+        
+        return jsonify({
+            'success': True,
+            'predictions': predictions,
+            'total_count': len(predictions)
+        })
+        
+    except Exception as e:
+        logger.error(f"Prediction history error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Unable to load prediction history',
+            'predictions': []
+        }), 500
+
+@bp.route('/system-metrics')
+def system_metrics():
+    """Get AI prediction system performance metrics - public endpoint"""
+    return get_system_metrics()
+
+@bp.route('/auto-validate', methods=['POST'])
+def auto_validate_predictions():
+    """Automatically validate pending predictions against actual results"""
+    try:
+        import psycopg2
+        import os
+        from datetime import datetime
+        
+        logger.info("Starting auto-validation of predictions")
+        
+        validation_results = {
+            'total_count': 0,
+            'validated_count': 0,
+            'errors': []
+        }
+        
+        with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+            with conn.cursor() as cur:
+                # Get unverified predictions
+                cur.execute("""
+                    SELECT id, game_type, predicted_numbers, bonus_numbers, created_at
+                    FROM lottery_predictions 
+                    WHERE is_verified = false
+                    ORDER BY created_at DESC
+                """)
+                
+                pending_predictions = cur.fetchall()
+                validation_results['total_count'] = len(pending_predictions)
+                
+                for pred_row in pending_predictions:
+                    pred_id, game_type, pred_numbers, bonus_nums, created_at = pred_row
+                    
+                    try:
+                        # Find matching lottery results for this prediction
+                        cur.execute("""
+                            SELECT main_numbers, bonus_numbers, draw_date, draw_number
+                            FROM lottery_results 
+                            WHERE lottery_type = %s 
+                            AND draw_date >= %s
+                            ORDER BY draw_date DESC
+                            LIMIT 5
+                        """, (game_type, created_at.date()))
+                        
+                        lottery_results = cur.fetchall()
+                        
+                        if lottery_results:
+                            # Compare against the most recent matching result
+                            actual_main, actual_bonus, draw_date, draw_number = lottery_results[0]
+                            
+                            # Parse predicted numbers
+                            if isinstance(pred_numbers, str):
+                                predicted_main = json.loads(pred_numbers)
+                            else:
+                                predicted_main = pred_numbers or []
+                                
+                            # Parse actual numbers  
+                            if isinstance(actual_main, str):
+                                actual_main = json.loads(actual_main)
+                            if isinstance(actual_bonus, str) and actual_bonus.startswith('{'):
+                                # Handle PostgreSQL array format
+                                inner = actual_bonus[1:-1].strip()
+                                actual_bonus = [int(x.strip()) for x in inner.split(',') if x.strip()] if inner else []
+                            elif isinstance(actual_bonus, str):
+                                try:
+                                    actual_bonus = json.loads(actual_bonus)
+                                except:
+                                    actual_bonus = []
+                            
+                            # Calculate matches
+                            main_matches = len(set(predicted_main) & set(actual_main))
+                            bonus_matches = 0
+                            if bonus_nums and actual_bonus:
+                                if isinstance(bonus_nums, str):
+                                    bonus_nums = json.loads(bonus_nums)
+                                bonus_matches = len(set(bonus_nums) & set(actual_bonus))
+                            
+                            # Calculate accuracy score (percentage of numbers matched)
+                            total_predicted = len(predicted_main) + (len(bonus_nums) if bonus_nums else 0)
+                            total_matched = main_matches + bonus_matches
+                            accuracy_score = (total_matched / total_predicted * 100) if total_predicted > 0 else 0
+                            
+                            match_details = {
+                                'main_matches': main_matches,
+                                'bonus_matches': bonus_matches,
+                                'total_matches': total_matched,
+                                'draw_date': str(draw_date),
+                                'draw_number': draw_number,
+                                'actual_numbers': actual_main,
+                                'actual_bonus': actual_bonus
+                            }
+                            
+                            # Update prediction with validation results
+                            cur.execute("""
+                                UPDATE lottery_predictions 
+                                SET is_verified = true,
+                                    accuracy_score = %s,
+                                    match_details = %s,
+                                    validation_date = %s
+                                WHERE id = %s
+                            """, (accuracy_score, json.dumps(match_details), datetime.now(), pred_id))
+                            
+                            validation_results['validated_count'] += 1
+                            
+                    except Exception as e:
+                        error_msg = f"Error validating prediction {pred_id}: {str(e)}"
+                        logger.error(error_msg)
+                        validation_results['errors'].append(error_msg)
+                
+                conn.commit()
+        
+        logger.info(f"Auto-validation complete: {validation_results['validated_count']}/{validation_results['total_count']} predictions validated")
+        
+        return jsonify({
+            'success': True,
+            'validation_results': validation_results
+        })
+        
+    except Exception as e:
+        logger.error(f"Auto-validation error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Auto-validation temporarily unavailable'
+        }), 500
+
 @bp.route('/validate-prediction', methods=['POST'])
 @require_admin
 def validate_prediction():
@@ -736,50 +922,7 @@ def get_accuracy_insights():
         logger.error(f"Error getting accuracy insights: {e}")
         return jsonify({'error': 'Failed to get insights'}), 500
 
-@bp.route('/auto-validate', methods=['POST'])
-def auto_validate_predictions():
-    """Automatically validate all pending predictions against available results"""
-    try:
-        # Get current validation status
-        import psycopg2
-        import os
-        
-        conn_string = os.environ.get('DATABASE_URL')
-        with psycopg2.connect(conn_string) as conn:
-            with conn.cursor() as cur:
-                # Count total predictions
-                cur.execute("SELECT COUNT(*) FROM lottery_predictions")
-                total_count = cur.fetchone()[0]
-                
-                # Count validated predictions
-                cur.execute("""
-                    SELECT COUNT(*) FROM lottery_predictions 
-                    WHERE validation_status = 'validated'
-                """)
-                validated_count = cur.fetchone()[0]
-                
-                # Count pending predictions
-                cur.execute("""
-                    SELECT COUNT(*) FROM lottery_predictions 
-                    WHERE validation_status = 'pending' OR validation_status IS NULL
-                """)
-                pending_count = cur.fetchone()[0]
-        
-        results = {
-            'total_count': total_count,
-            'validated_count': validated_count,
-            'pending_count': pending_count,
-            'message': f'Validation complete! Checked {total_count} predictions, validated {validated_count} against actual results.'
-        }
-        
-        return jsonify({
-            'success': True,
-            'validation_results': results
-        })
-        
-    except Exception as e:
-        logger.error(f"Error in auto-validation: {e}")
-        return jsonify({'error': 'Auto-validation failed'}), 500
+# Duplicate auto-validate endpoint removed - only one needed above
 
 @bp.route('/actual-results')
 def get_actual_lottery_results():
