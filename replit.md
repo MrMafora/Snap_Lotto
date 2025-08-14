@@ -38,7 +38,8 @@ This project is an AI-powered lottery intelligence platform for South African lo
   - Created install button for browsers that support PWA installation
   - Added safe area inset support for devices with notches/cutouts
 - Successfully fixed PWA styling issues - restored white/yellow header theme and prevented content from scrolling behind status bar
-- CRITICAL DATA INTEGRITY: Manually added missing Daily Lotto draws 2332 (2025-08-02) and 2333 (2025-08-03) that were identified by user as missing from database
+- CRITICAL DATA INTEGRITY: Manually added missing Daily Lotto draws 2332 (2025-08-02), 2333 (2025-08-03), and 2342 (2025-08-12) that were identified by user as missing from database
+- Historical lottery draws require manual entry when screenshot capture window has passed - user provided screenshot evidence for accurate data entry
 - Daily automation workflow is essential to prevent missing lottery results - user evidence shows gaps when automation doesn't run daily
 
 ## System Architecture
