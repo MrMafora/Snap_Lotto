@@ -156,7 +156,7 @@
         margin-top: 8px;
     }
     
-    .lottery-ball-compact, .lottery-ball-actual-compact, .lottery-ball-comparison-compact {
+    .lottery-ball-compact {
         width: 35px;
         height: 35px;
         border-radius: 50%;
@@ -169,18 +169,11 @@
         margin: 2px;
     }
     
-    .lottery-ball-compact, .lottery-ball-comparison-compact {
+    .lottery-ball-compact {
         background: #dc3545;
     }
     
-    .lottery-ball-actual-compact {
-        background: #6c757d;
-    }
-    
-    .lottery-ball-comparison-compact.matched {
-        background: #28a745;
-        box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
-    }
+
     
     .lottery-ball-bonus-compact {
         width: 30px;
@@ -200,54 +193,7 @@
         text-align: center;
     }
     
-    .match-summary-compact {
-        text-align: center;
-        padding: 6px;
-        border-radius: 6px;
-        font-size: 0.8rem;
-    }
-    
-    .match-summary-compact.success {
-        background: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-    
-    .match-summary-compact.no-match {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-    
-    .match-badge-compact {
-        background: #ffc107;
-        color: #212529;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-size: 0.7rem;
-        font-weight: 600;
-    }
-    
-    .accuracy-compact {
-        text-align: center;
-    }
-    
-    .accuracy-badge-compact {
-        background: #007bff;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        margin: 0 2px;
-    }
-    
-    .accuracy-percent-compact {
-        font-weight: bold;
-        font-size: 0.8rem;
-        color: #495057;
-        margin-top: 4px;
-    }
+
     
     .pending-status-compact {
         text-align: center;
@@ -1434,7 +1380,7 @@ window.addEventListener('load', function() {
                 }
                 html += '</div>';
                 
-                // Bonus numbers
+                // Bonus numbers if they exist
                 if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
                     html += '<div class="bonus-compact mt-2">';
                     html += '<strong>Bonus:</strong> ';
@@ -1448,14 +1394,14 @@ window.addEventListener('load', function() {
                 }
                 html += '</div>';
                 
-                // Pending validation status (matching reference image)
-                html += '<div class="pending-status-compact mt-3">';
+                // Status
+                html += '<div class="pending-status-compact">';
                 html += '<i class="fas fa-clock text-warning me-1"></i>';
                 html += '<span class="text-warning">Pending validation</span>';
                 html += '</div>';
                 
                 // Date
-                html += '<div class="date-compact mt-2">';
+                html += '<div class="date-compact">';
                 const dateStr = new Date(pred.created_at).toLocaleDateString();
                 html += dateStr + ' • ' + dateStr;
                 html += '</div>';
