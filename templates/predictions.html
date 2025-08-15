@@ -41,6 +41,64 @@
         padding: 20px;
         margin-bottom: 15px;
         background: #f8fafc;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .prediction-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .game-type-section {
+        margin-bottom: 30px;
+    }
+    
+    .predictions-grid {
+        display: grid;
+        gap: 15px;
+    }
+    
+    .verification-status {
+        margin-top: 10px;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .verification-status.verified {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .verification-status.pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+    
+    .confidence-badge.high {
+        background: #28a745;
+    }
+    
+    .confidence-badge.medium {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .confidence-badge.low {
+        background: #dc3545;
+    }
+    
+    .bonus-numbers {
+        border-top: 1px solid #e5e7eb;
+        padding-top: 10px;
+    }
+    
+    .bonus-label {
+        font-weight: 600;
+        color: #6c757d;
     }
     
     .prediction-header {
@@ -1133,26 +1191,79 @@ window.addEventListener('load', function() {
             .then(data => {
                 console.log('IMMEDIATE: Got predictions:', data);
                 if (data.success && data.predictions && data.predictions.length > 0) {
-                    let html = '<div class="predictions-list">';
-                    data.predictions.forEach(p => {
-                        html += '<div class="prediction-card mb-3">';
-                        html += '<div class="prediction-header">';
-                        html += '<span class="game-type">' + p.game_type + '</span>';
-                        html += '<span class="confidence-badge">' + Math.round(p.confidence_score * 100) + '% Confidence</span>';
-                        html += '</div>';
-                        html += '<div class="prediction-numbers">';
-                        p.predicted_numbers.forEach(n => {
-                            html += '<span class="lottery-ball">' + n + '</span> ';
-                        });
-                        if (p.bonus_numbers && p.bonus_numbers.length > 0) {
-                            html += '<br><small>Bonus: </small>';
-                            p.bonus_numbers.forEach(n => {
-                                html += '<span class="lottery-ball bonus-ball">' + n + '</span> ';
-                            });
+                    // Group predictions by game type
+                    const grouped = {};
+                    data.predictions.forEach(pred => {
+                        if (!grouped[pred.game_type]) {
+                            grouped[pred.game_type] = [];
                         }
-                        html += '</div></div>';
+                        grouped[pred.game_type].push(pred);
                     });
-                    html += '</div>';
+                    
+                    let html = '';
+                    
+                    // Display each game type group
+                    for (const [gameType, preds] of Object.entries(grouped)) {
+                        if (preds.length === 0) {
+                            html += '<div class="game-type-section mb-4">';
+                            html += '<h5 class="mb-2">' + gameType + ' <span class="badge bg-secondary ms-2">0</span></h5>';
+                            html += '<div class="empty-state">';
+                            html += '<i class="fas fa-robot fa-2x mb-3"></i>';
+                            html += '<p>No predictions yet. Generate your first AI prediction above!</p>';
+                            html += '</div>';
+                            html += '</div>';
+                            continue;
+                        }
+                        
+                        html += '<div class="game-type-section mb-4">';
+                        html += '<h5 class="mb-2">' + gameType + ' <span class="badge bg-primary ms-2">' + preds.length + '</span></h5>';
+                        html += '<div class="predictions-grid">';
+                        
+                        preds.forEach(pred => {
+                            const confidenceClass = pred.confidence_score > 0.4 ? 'high' : pred.confidence_score > 0.2 ? 'medium' : 'low';
+                            
+                            html += '<div class="prediction-card" data-prediction-id="' + pred.id + '">';
+                            html += '<div class="prediction-header">';
+                            html += '<div class="prediction-meta">';
+                            html += '<span class="confidence-badge ' + confidenceClass + '">';
+                            html += Math.round(pred.confidence_score * 100) + '% Confidence';
+                            html += '</span>';
+                            html += '<small class="prediction-date">' + new Date(pred.created_at).toLocaleDateString() + '</small>';
+                            html += '</div>';
+                            html += '</div>';
+                            
+                            html += '<div class="prediction-numbers">';
+                            pred.predicted_numbers.forEach(num => {
+                                html += '<span class="lottery-ball prediction-ball">' + num + '</span>';
+                            });
+                            
+                            if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
+                                html += '<div class="bonus-numbers mt-2">';
+                                html += '<small class="bonus-label">Bonus:</small> ';
+                                pred.bonus_numbers.forEach(num => {
+                                    html += '<span class="lottery-ball prediction-bonus">' + num + '</span>';
+                                });
+                                html += '</div>';
+                            }
+                            html += '</div>';
+                            
+                            if (pred.is_verified) {
+                                html += '<div class="verification-status verified">';
+                                html += '<i class="fas fa-check-circle me-1"></i>Verified';
+                                html += '</div>';
+                            } else {
+                                html += '<div class="verification-status pending">';
+                                html += '<i class="fas fa-clock me-1"></i>Pending Verification';
+                                html += '</div>';
+                            }
+                            
+                            html += '</div>';
+                        });
+                        
+                        html += '</div>';
+                        html += '</div>';
+                    }
+                    
                     predDiv.innerHTML = html;
                 } else {
                     predDiv.innerHTML = '<div class="alert alert-warning">No predictions available</div>';
@@ -1170,10 +1281,22 @@ window.addEventListener('load', function() {
                 console.log('IMMEDIATE: Got stats:', data);
                 if (data.success) {
                     statDiv.innerHTML = '<div class="stats-grid">' +
-                        '<div class="stat-item"><div class="stat-value">' + (data.total_predictions || 0) + '</div><div class="stat-label">Total Predictions</div></div>' +
-                        '<div class="stat-item"><div class="stat-value">' + (data.recent_predictions_30d || 0) + '</div><div class="stat-label">Last 30 Days</div></div>' +
-                        '<div class="stat-item"><div class="stat-value">' + (data.average_confidence || 0) + '%</div><div class="stat-label">Avg Confidence</div></div>' +
-                        '<div class="stat-item"><div class="stat-value">' + Math.round(data.verification_rate || 0) + '%</div><div class="stat-label">Verification Rate</div></div>' +
+                        '<div class="stat-item">' +
+                        '<div class="stat-value">' + (data.total_predictions || 0) + '</div>' +
+                        '<div class="stat-label">Total Predictions</div>' +
+                        '</div>' +
+                        '<div class="stat-item">' +
+                        '<div class="stat-value">' + (data.recent_predictions_30d || 0) + '</div>' +
+                        '<div class="stat-label">Last 30 Days</div>' +
+                        '</div>' +
+                        '<div class="stat-item">' +
+                        '<div class="stat-value">' + Math.round(data.average_confidence || 0) + '%</div>' +
+                        '<div class="stat-label">Avg Confidence</div>' +
+                        '</div>' +
+                        '<div class="stat-item">' +
+                        '<div class="stat-value">' + Math.round(data.verification_rate || 0) + '%</div>' +
+                        '<div class="stat-label">Verification Rate</div>' +
+                        '</div>' +
                         '</div>';
                 }
             })
