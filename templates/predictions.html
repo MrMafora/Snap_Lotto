@@ -121,6 +121,139 @@
         margin-bottom: 40px;
     }
     
+    .prediction-card-compact {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        height: 100%;
+        font-size: 0.9rem;
+    }
+    
+    .confidence-badge-top {
+        text-align: center;
+        background: #ffc107;
+        color: #212529;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+    }
+    
+    .predicted-compact, .actual-draw-compact {
+        margin-bottom: 8px;
+    }
+    
+    .numbers-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: center;
+    }
+    
+    .lottery-ball-compact, .lottery-ball-actual-compact, .lottery-ball-comparison-compact {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.75rem;
+        color: white;
+    }
+    
+    .lottery-ball-compact, .lottery-ball-comparison-compact {
+        background: #dc3545;
+    }
+    
+    .lottery-ball-actual-compact {
+        background: #6c757d;
+    }
+    
+    .lottery-ball-comparison-compact.matched {
+        background: #28a745;
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
+    }
+    
+    .lottery-ball-bonus-compact {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #dc3545;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.7rem;
+    }
+    
+    .bonus-compact {
+        text-align: center;
+    }
+    
+    .match-summary-compact {
+        text-align: center;
+        padding: 6px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+    }
+    
+    .match-summary-compact.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .match-summary-compact.no-match {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .match-badge-compact {
+        background: #ffc107;
+        color: #212529;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .accuracy-compact {
+        text-align: center;
+    }
+    
+    .accuracy-badge-compact {
+        background: #007bff;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin: 0 2px;
+    }
+    
+    .accuracy-percent-compact {
+        font-weight: bold;
+        font-size: 0.8rem;
+        color: #495057;
+        margin-top: 4px;
+    }
+    
+    .pending-status-compact {
+        text-align: center;
+        font-size: 0.8rem;
+    }
+    
+    .date-compact {
+        text-align: center;
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
     .verification-section {
         border-top: 1px solid #e9ecef;
         padding-top: 15px;
@@ -1234,13 +1367,13 @@ window.addEventListener('load', function() {
         console.log('displayPredictions called with:', predictions.length, 'predictions');
         let html = '';
         
-        // Group by game type and limit to 2 per type
+        // Group by game type and limit to 3 per type
         const grouped = {};
         predictions.forEach(pred => {
             if (!grouped[pred.game_type]) {
                 grouped[pred.game_type] = [];
             }
-            if (grouped[pred.game_type].length < 2) {
+            if (grouped[pred.game_type].length < 3) {
                 grouped[pred.game_type].push(pred);
             }
         });
@@ -1263,62 +1396,95 @@ window.addEventListener('load', function() {
             html += '<span class="badge bg-primary">' + preds.length + '</span>';
             html += '</div>';
             
+            // Row of 3 predictions horizontally
             html += '<div class="row g-3">';
             
-            preds.forEach(pred => {
+            preds.forEach((pred, index) => {
                 const confidencePercent = Math.round(pred.confidence_score * 100);
                 
-                html += '<div class="col-md-6">';
-                html += '<div class="prediction-horizontal-card">';
+                html += '<div class="col-md-4">';
+                html += '<div class="prediction-card-compact">';
                 
-                // Confidence badge with verification icon
-                html += '<div class="confidence-header">';
+                // Confidence badge
+                html += '<div class="confidence-badge-top">';
                 if (pred.is_verified) {
-                    html += '<i class="fas fa-check-circle text-success me-2"></i>';
+                    html += '<i class="fas fa-check-circle text-success me-1"></i>';
                 }
-                html += '<span class="confidence-percent">' + confidencePercent + '% Confidence</span>';
+                html += confidencePercent + '% Confidence';
                 html += '</div>';
                 
-                // Main numbers
-                html += '<div class="predicted-section">';
+                // Predicted section
+                html += '<div class="predicted-compact">';
                 html += '<strong>Predicted:</strong>';
-                html += '<div class="predicted-numbers mt-2">';
-                
-                console.log('Processing prediction numbers:', pred.predicted_numbers);
+                html += '<div class="numbers-row mt-1">';
                 
                 let numbers = pred.predicted_numbers;
                 if (Array.isArray(numbers)) {
                     numbers.forEach(num => {
-                        html += '<span class="lottery-ball-horizontal">' + parseInt(num) + '</span> ';
+                        html += '<span class="lottery-ball-compact">' + parseInt(num) + '</span>';
                     });
-                } else {
-                    console.log('Unexpected number format:', typeof numbers, numbers);
                 }
-                html += '</div>';
                 html += '</div>';
                 
                 // Bonus numbers
                 if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
-                    html += '<div class="bonus-section mt-3">';
+                    html += '<div class="bonus-compact mt-2">';
                     html += '<strong>Bonus:</strong> ';
-                    
                     let bonusNumbers = pred.bonus_numbers;
                     if (Array.isArray(bonusNumbers)) {
                         bonusNumbers.forEach(num => {
-                            html += '<span class="lottery-ball-bonus">' + parseInt(num) + '</span>';
+                            html += '<span class="lottery-ball-bonus-compact">' + parseInt(num) + '</span>';
                         });
                     }
                     html += '</div>';
                 }
-                
-                // Status
-                html += '<div class="prediction-status mt-3">';
-                html += '<i class="fas fa-clock text-warning me-1"></i>';
-                html += '<span class="text-warning">Pending validation</span>';
                 html += '</div>';
                 
+                // If verified, show actual draw comparison
+                if (pred.is_verified && pred.actual_numbers) {
+                    html += '<div class="actual-draw-compact mt-3">';
+                    html += '<strong>Actual Draw:</strong>';
+                    html += '<div class="numbers-row mt-1">';
+                    pred.actual_numbers.forEach(num => {
+                        html += '<span class="lottery-ball-actual-compact">' + num + '</span>';
+                    });
+                    html += '</div>';
+                    
+                    html += '<strong>Your Prediction:</strong>';
+                    html += '<div class="numbers-row mt-1">';
+                    numbers.forEach(num => {
+                        const isMatch = pred.actual_numbers.includes(num);
+                        html += '<span class="lottery-ball-comparison-compact ' + (isMatch ? 'matched' : '') + '">' + parseInt(num) + '</span>';
+                    });
+                    html += '</div>';
+                    
+                    // Match summary
+                    const mainMatches = numbers.filter(num => pred.actual_numbers.includes(num)).length;
+                    if (mainMatches > 0) {
+                        html += '<div class="match-summary-compact success mt-2">';
+                        html += '<i class="fas fa-check-circle me-1"></i>Match Summary:';
+                        html += '<div class="mt-1"><span class="match-badge-compact">' + mainMatches + ' Main</span></div>';
+                        html += '</div>';
+                    } else {
+                        html += '<div class="match-summary-compact no-match mt-2">No matches found</div>';
+                    }
+                    
+                    // Accuracy
+                    html += '<div class="accuracy-compact mt-2">';
+                    html += '<span class="accuracy-badge-compact">' + mainMatches + ' Main</span>';
+                    html += '<span class="accuracy-badge-compact">No prize</span>';
+                    const accuracy = Math.round((mainMatches / numbers.length) * 100);
+                    html += '<div class="accuracy-percent-compact">' + accuracy + '% Accuracy</div>';
+                    html += '</div>';
+                } else {
+                    html += '<div class="pending-status-compact mt-3">';
+                    html += '<i class="fas fa-clock text-warning me-1"></i>';
+                    html += '<span class="text-warning">Pending validation</span>';
+                    html += '</div>';
+                }
+                
                 // Date
-                html += '<div class="prediction-date-small mt-2">';
+                html += '<div class="date-compact mt-2">';
                 const dateStr = new Date(pred.created_at).toLocaleDateString();
                 html += dateStr + ' • ' + dateStr;
                 html += '</div>';
