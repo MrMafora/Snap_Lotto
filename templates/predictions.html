@@ -982,48 +982,206 @@ class PredictionsManager {
     }
 }
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing PredictionsManager');
+// Initialize when page loads - simplified version
+window.addEventListener('load', function() {
+    console.log('Window loaded - starting predictions initialization');
     
-    // Immediate test to show data is available
-    const testElement = document.getElementById('latestPredictions');
-    if (testElement) {
-        testElement.innerHTML = '<div class="alert alert-info">JavaScript executing... Initializing predictions manager...</div>';
-    }
-    
-    try {
-        const manager = new PredictionsManager();
-        console.log('PredictionsManager created successfully');
+    // Direct API call without complex class initialization
+    function loadPredictions() {
+        console.log('loadPredictions() called');
+        const predictionsDiv = document.getElementById('latestPredictions');
+        const statsDiv = document.getElementById('systemStats');
         
-        // Test API access immediately
-        setTimeout(() => {
-            console.log('Testing API access...');
-            fetch('/api/lottery-analysis/prediction-history?limit=1')
-                .then(response => {
-                    console.log('API test response status:', response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('API test data:', data);
-                    if (testElement) {
-                        testElement.innerHTML = '<div class="alert alert-success">API connection successful! Found ' + (data.predictions ? data.predictions.length : 0) + ' predictions. Loading full data...</div>';
-                    }
-                })
-                .catch(error => {
-                    console.error('API test failed:', error);
-                    if (testElement) {
-                        testElement.innerHTML = '<div class="alert alert-danger">API test failed: ' + error.message + '</div>';
-                    }
-                });
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Error creating PredictionsManager:', error);
-        if (testElement) {
-            testElement.innerHTML = '<div class="alert alert-danger">JavaScript Error: ' + error.message + '</div>';
+        if (predictionsDiv) {
+            predictionsDiv.innerHTML = '<div class="alert alert-info">Loading predictions data...</div>';
         }
+        
+        // Load predictions
+        fetch('/api/lottery-analysis/prediction-history?limit=50')
+            .then(response => {
+                console.log('Predictions API response:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Predictions data:', data);
+                if (data.success && data.predictions && data.predictions.length > 0) {
+                    displayPredictions(data.predictions);
+                } else {
+                    predictionsDiv.innerHTML = '<div class="alert alert-warning">No predictions found</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Predictions load error:', error);
+                predictionsDiv.innerHTML = '<div class="alert alert-danger">Failed to load predictions</div>';
+            });
+            
+        // Load stats
+        fetch('/api/lottery-analysis/system-metrics')
+            .then(response => {
+                console.log('Stats API response:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Stats data:', data);
+                if (data.success) {
+                    displayStats(data);
+                }
+            })
+            .catch(error => {
+                console.error('Stats load error:', error);
+                statsDiv.innerHTML = '<div class="alert alert-danger">Failed to load statistics</div>';
+            });
     }
+    
+    function displayPredictions(predictions) {
+        const container = document.getElementById('latestPredictions');
+        let html = '';
+        
+        // Group by game type
+        const grouped = {};
+        predictions.forEach(pred => {
+            if (!grouped[pred.game_type]) {
+                grouped[pred.game_type] = [];
+            }
+            grouped[pred.game_type].push(pred);
+        });
+        
+        // Display each game type
+        for (const [gameType, preds] of Object.entries(grouped)) {
+            html += '<div class="mb-4"><h5>' + gameType + ' (' + preds.length + ')</h5>';
+            
+            preds.forEach(pred => {
+                html += '<div class="prediction-card">';
+                html += '<div class="prediction-header">';
+                html += '<span class="game-type">' + pred.game_type + '</span>';
+                html += '<span class="confidence-badge">' + Math.round(pred.confidence_score * 100) + '% Confidence</span>';
+                html += '</div>';
+                html += '<div class="prediction-numbers">';
+                pred.predicted_numbers.forEach(num => {
+                    html += '<span class="lottery-ball">' + num + '</span>';
+                });
+                if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
+                    html += '<br><small>Bonus:</small> ';
+                    pred.bonus_numbers.forEach(num => {
+                        html += '<span class="lottery-ball bonus-ball">' + num + '</span>';
+                    });
+                }
+                html += '</div>';
+                html += '<small>Generated: ' + new Date(pred.created_at).toLocaleDateString() + '</small>';
+                html += '</div>';
+            });
+            
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    function displayStats(stats) {
+        const container = document.getElementById('systemStats');
+        container.innerHTML = '<div class="stats-grid">' +
+            '<div class="stat-item"><div class="stat-value">' + (stats.total_predictions || 0) + '</div><div class="stat-label">Total Predictions</div></div>' +
+            '<div class="stat-item"><div class="stat-value">' + (stats.recent_predictions_30d || 0) + '</div><div class="stat-label">Last 30 Days</div></div>' +
+            '<div class="stat-item"><div class="stat-value">' + (stats.average_confidence || 0) + '%</div><div class="stat-label">Avg Confidence</div></div>' +
+            '<div class="stat-item"><div class="stat-value">' + Math.round(stats.verification_rate || 0) + '%</div><div class="stat-label">Verification Rate</div></div>' +
+            '</div>';
+    }
+    
+    // Initialize PredictionsManager for button functionality
+    try {
+        window.predictionsManager = new PredictionsManager();
+        console.log('PredictionsManager created for buttons');
+    } catch (error) {
+        console.error('Could not create PredictionsManager:', error);
+    }
+    
+    // Load data immediately
+    loadPredictions();
 });
+</script>
+
+<!-- Force immediate execution with inline script -->
+<script>
+(function() {
+    console.log('IMMEDIATE: Starting predictions page initialization');
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPredictions);
+    } else {
+        // DOM is already ready
+        initPredictions();
+    }
+    
+    function initPredictions() {
+        console.log('IMMEDIATE: DOM ready, loading predictions');
+        
+        // Update UI immediately
+        const predDiv = document.getElementById('latestPredictions');
+        const statDiv = document.getElementById('systemStats');
+        
+        if (predDiv) {
+            predDiv.innerHTML = '<div class="alert alert-info">Fetching predictions from server...</div>';
+        }
+        if (statDiv) {
+            statDiv.innerHTML = '<div class="alert alert-info">Loading statistics...</div>';
+        }
+        
+        // Fetch predictions
+        fetch('/api/lottery-analysis/prediction-history?limit=50')
+            .then(r => r.json())
+            .then(data => {
+                console.log('IMMEDIATE: Got predictions:', data);
+                if (data.success && data.predictions && data.predictions.length > 0) {
+                    let html = '<div class="predictions-list">';
+                    data.predictions.forEach(p => {
+                        html += '<div class="prediction-card mb-3">';
+                        html += '<div class="prediction-header">';
+                        html += '<span class="game-type">' + p.game_type + '</span>';
+                        html += '<span class="confidence-badge">' + Math.round(p.confidence_score * 100) + '% Confidence</span>';
+                        html += '</div>';
+                        html += '<div class="prediction-numbers">';
+                        p.predicted_numbers.forEach(n => {
+                            html += '<span class="lottery-ball">' + n + '</span> ';
+                        });
+                        if (p.bonus_numbers && p.bonus_numbers.length > 0) {
+                            html += '<br><small>Bonus: </small>';
+                            p.bonus_numbers.forEach(n => {
+                                html += '<span class="lottery-ball bonus-ball">' + n + '</span> ';
+                            });
+                        }
+                        html += '</div></div>';
+                    });
+                    html += '</div>';
+                    predDiv.innerHTML = html;
+                } else {
+                    predDiv.innerHTML = '<div class="alert alert-warning">No predictions available</div>';
+                }
+            })
+            .catch(err => {
+                console.error('IMMEDIATE: Predictions error:', err);
+                predDiv.innerHTML = '<div class="alert alert-danger">Error loading predictions</div>';
+            });
+            
+        // Fetch stats
+        fetch('/api/lottery-analysis/system-metrics')
+            .then(r => r.json())
+            .then(data => {
+                console.log('IMMEDIATE: Got stats:', data);
+                if (data.success) {
+                    statDiv.innerHTML = '<div class="stats-grid">' +
+                        '<div class="stat-item"><div class="stat-value">' + (data.total_predictions || 0) + '</div><div class="stat-label">Total Predictions</div></div>' +
+                        '<div class="stat-item"><div class="stat-value">' + (data.recent_predictions_30d || 0) + '</div><div class="stat-label">Last 30 Days</div></div>' +
+                        '<div class="stat-item"><div class="stat-value">' + (data.average_confidence || 0) + '%</div><div class="stat-label">Avg Confidence</div></div>' +
+                        '<div class="stat-item"><div class="stat-value">' + Math.round(data.verification_rate || 0) + '%</div><div class="stat-label">Verification Rate</div></div>' +
+                        '</div>';
+                }
+            })
+            .catch(err => {
+                console.error('IMMEDIATE: Stats error:', err);
+                statDiv.innerHTML = '<div class="alert alert-danger">Error loading statistics</div>';
+            });
+    }
+})();
 </script>
 {% endblock %}
