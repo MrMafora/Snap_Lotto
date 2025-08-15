@@ -1,0 +1,122 @@
+/* Compact prediction lottery ball styles */
+.lottery-ball-compact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 2px;
+    text-align: center;
+    line-height: 1;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lottery-ball-bonus-compact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    background-color: #ffc107;
+    color: #212529;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 2px;
+    text-align: center;
+    line-height: 1;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.numbers-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.prediction-card-compact {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.confidence-badge-top {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.predicted-compact {
+    flex-grow: 1;
+}
+
+.bonus-compact {
+    margin-top: 8px;
+}
+
+.pending-status-compact {
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.date-compact {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.game-type-section {
+    margin-bottom: 40px;
+}
+
+.game-type-section h4 {
+    color: #495057;
+    font-weight: 600;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .lottery-ball-compact,
+    .lottery-ball-bonus-compact {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+        margin: 1px;
+    }
+    
+    .prediction-card-compact {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .lottery-ball-compact,
+    .lottery-ball-bonus-compact {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+    }
+    
+    .numbers-row {
+        gap: 2px;
+    }
+}

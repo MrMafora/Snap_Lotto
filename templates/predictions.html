@@ -6,6 +6,7 @@
 <meta name="description" content="AI-powered lottery predictions using advanced pattern analysis for South African lotteries.">
 <meta name="keywords" content="AI predictions, lottery analysis, South African lottery, LOTTO, POWERBALL, DAILY LOTTO">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery-results-fix.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/predictions-compact.css') }}">
 <style>
     /* Clean, modern design focused on clarity */
     .predictions-container {
@@ -1356,7 +1357,7 @@ window.addEventListener('load', function() {
             preds.forEach((pred, index) => {
                 const confidencePercent = Math.round(pred.confidence_score * 100);
                 
-                html += '<div class="col-md-4">';
+                html += '<div class="col-lg-4 col-md-6 col-12">';
                 html += '<div class="prediction-card-compact">';
                 
                 // Confidence badge
