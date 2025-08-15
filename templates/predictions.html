@@ -1193,7 +1193,7 @@ window.addEventListener('load', function() {
         }
         
         // Load predictions
-        fetch('/api/lottery-analysis/prediction-history?limit=50')
+        fetch('/api/lottery-analysis/prediction-history?limit=15')
             .then(response => {
                 console.log('Predictions API response:', response.status);
                 return response.json();
@@ -1231,46 +1231,108 @@ window.addEventListener('load', function() {
     
     function displayPredictions(predictions) {
         const container = document.getElementById('latestPredictions');
+        console.log('displayPredictions called with:', predictions.length, 'predictions');
         let html = '';
         
-        // Group by game type
+        // Group by game type and limit to 2 per type
         const grouped = {};
         predictions.forEach(pred => {
             if (!grouped[pred.game_type]) {
                 grouped[pred.game_type] = [];
             }
-            grouped[pred.game_type].push(pred);
+            if (grouped[pred.game_type].length < 2) {
+                grouped[pred.game_type].push(pred);
+            }
         });
         
-        // Display each game type
+        console.log('Grouped predictions:', grouped);
+        
+        // Display each game type using horizontal card layout
         for (const [gameType, preds] of Object.entries(grouped)) {
-            html += '<div class="mb-4"><h5>' + gameType + ' (' + preds.length + ')</h5>';
+            if (preds.length === 0) {
+                html += '<div class="no-predictions-message">';
+                html += '<h5>' + gameType + '</h5>';
+                html += '<p>No predictions available for this game type</p>';
+                html += '</div>';
+                continue;
+            }
+            
+            html += '<div class="game-type-section mb-5">';
+            html += '<div class="d-flex align-items-center mb-3">';
+            html += '<h4 class="me-3 mb-0">' + gameType + '</h4>';
+            html += '<span class="badge bg-primary">' + preds.length + '</span>';
+            html += '</div>';
+            
+            html += '<div class="row g-3">';
             
             preds.forEach(pred => {
-                html += '<div class="prediction-card">';
-                html += '<div class="prediction-header">';
-                html += '<span class="game-type">' + pred.game_type + '</span>';
-                html += '<span class="confidence-badge">' + Math.round(pred.confidence_score * 100) + '% Confidence</span>';
+                const confidencePercent = Math.round(pred.confidence_score * 100);
+                
+                html += '<div class="col-md-6">';
+                html += '<div class="prediction-horizontal-card">';
+                
+                // Confidence badge with verification icon
+                html += '<div class="confidence-header">';
+                if (pred.is_verified) {
+                    html += '<i class="fas fa-check-circle text-success me-2"></i>';
+                }
+                html += '<span class="confidence-percent">' + confidencePercent + '% Confidence</span>';
                 html += '</div>';
-                html += '<div class="prediction-numbers">';
-                pred.predicted_numbers.forEach(num => {
-                    html += '<span class="lottery-ball">' + num + '</span>';
-                });
-                if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
-                    html += '<br><small>Bonus:</small> ';
-                    pred.bonus_numbers.forEach(num => {
-                        html += '<span class="lottery-ball bonus-ball">' + num + '</span>';
+                
+                // Main numbers
+                html += '<div class="predicted-section">';
+                html += '<strong>Predicted:</strong>';
+                html += '<div class="predicted-numbers mt-2">';
+                
+                console.log('Processing prediction numbers:', pred.predicted_numbers);
+                
+                let numbers = pred.predicted_numbers;
+                if (Array.isArray(numbers)) {
+                    numbers.forEach(num => {
+                        html += '<span class="lottery-ball-horizontal">' + parseInt(num) + '</span> ';
                     });
+                } else {
+                    console.log('Unexpected number format:', typeof numbers, numbers);
                 }
                 html += '</div>';
-                html += '<small>Generated: ' + new Date(pred.created_at).toLocaleDateString() + '</small>';
+                html += '</div>';
+                
+                // Bonus numbers
+                if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
+                    html += '<div class="bonus-section mt-3">';
+                    html += '<strong>Bonus:</strong> ';
+                    
+                    let bonusNumbers = pred.bonus_numbers;
+                    if (Array.isArray(bonusNumbers)) {
+                        bonusNumbers.forEach(num => {
+                            html += '<span class="lottery-ball-bonus">' + parseInt(num) + '</span>';
+                        });
+                    }
+                    html += '</div>';
+                }
+                
+                // Status
+                html += '<div class="prediction-status mt-3">';
+                html += '<i class="fas fa-clock text-warning me-1"></i>';
+                html += '<span class="text-warning">Pending validation</span>';
+                html += '</div>';
+                
+                // Date
+                html += '<div class="prediction-date-small mt-2">';
+                const dateStr = new Date(pred.created_at).toLocaleDateString();
+                html += dateStr + ' • ' + dateStr;
+                html += '</div>';
+                
+                html += '</div>';
                 html += '</div>';
             });
             
             html += '</div>';
+            html += '</div>';
         }
         
         container.innerHTML = html;
+        console.log('Container updated with HTML length:', html.length);
     }
     
     function displayStats(stats) {
@@ -1382,8 +1444,19 @@ window.addEventListener('load', function() {
                             html += '<div class="predicted-section">';
                             html += '<strong>Predicted:</strong>';
                             html += '<div class="predicted-numbers mt-2">';
-                            pred.predicted_numbers.forEach(num => {
-                                html += '<span class="lottery-ball-horizontal">' + num + '</span>';
+                            
+                            // Handle different data formats
+                            let numbers = pred.predicted_numbers;
+                            if (typeof numbers === 'string') {
+                                // If it's a string like "12192835471", split into individual numbers
+                                numbers = numbers.match(/.{1,2}/g) || [];
+                            } else if (Array.isArray(numbers)) {
+                                // If it's already an array, use as is
+                                numbers = numbers;
+                            }
+                            
+                            numbers.forEach(num => {
+                                html += '<span class="lottery-ball-horizontal">' + parseInt(num) + '</span> ';
                             });
                             html += '</div>';
                             html += '</div>';
@@ -1392,8 +1465,17 @@ window.addEventListener('load', function() {
                             if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
                                 html += '<div class="bonus-section mt-3">';
                                 html += '<strong>Bonus:</strong> ';
-                                pred.bonus_numbers.forEach(num => {
-                                    html += '<span class="lottery-ball-bonus">' + num + '</span>';
+                                
+                                let bonusNumbers = pred.bonus_numbers;
+                                if (typeof bonusNumbers === 'string') {
+                                    // Convert string to individual numbers
+                                    bonusNumbers = [bonusNumbers];
+                                } else if (Array.isArray(bonusNumbers)) {
+                                    bonusNumbers = bonusNumbers;
+                                }
+                                
+                                bonusNumbers.forEach(num => {
+                                    html += '<span class="lottery-ball-bonus">' + parseInt(num) + '</span>';
                                 });
                                 html += '</div>';
                             }
