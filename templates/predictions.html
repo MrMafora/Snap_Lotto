@@ -126,42 +126,47 @@
         border: 1px solid #e9ecef;
         border-radius: 8px;
         padding: 15px;
-        height: 100%;
+        height: auto;
         font-size: 0.9rem;
+        text-align: center;
     }
     
     .confidence-badge-top {
-        text-align: center;
+        display: inline-flex;
+        align-items: center;
         background: #ffc107;
         color: #212529;
-        padding: 4px 8px;
-        border-radius: 12px;
+        padding: 4px 12px;
+        border-radius: 15px;
         font-weight: 600;
-        font-size: 0.85rem;
-        margin-bottom: 10px;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+        justify-content: center;
     }
     
-    .predicted-compact, .actual-draw-compact {
-        margin-bottom: 8px;
+    .predicted-compact {
+        margin-bottom: 15px;
     }
     
     .numbers-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
+        gap: 3px;
         justify-content: center;
+        margin-top: 8px;
     }
     
     .lottery-ball-compact, .lottery-ball-actual-compact, .lottery-ball-comparison-compact {
-        width: 28px;
-        height: 28px;
+        width: 35px;
+        height: 35px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 0.75rem;
+        font-size: 0.9rem;
         color: white;
+        margin: 2px;
     }
     
     .lottery-ball-compact, .lottery-ball-comparison-compact {
@@ -178,8 +183,8 @@
     }
     
     .lottery-ball-bonus-compact {
-        width: 24px;
-        height: 24px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
         background: #dc3545;
         color: white;
@@ -187,7 +192,8 @@
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 0.7rem;
+        font-size: 0.8rem;
+        margin: 2px;
     }
     
     .bonus-compact {
@@ -245,13 +251,15 @@
     
     .pending-status-compact {
         text-align: center;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
+        margin-top: 15px;
     }
     
     .date-compact {
         text-align: center;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: #6c757d;
+        margin-top: 10px;
     }
     
     .verification-section {
@@ -1440,48 +1448,11 @@ window.addEventListener('load', function() {
                 }
                 html += '</div>';
                 
-                // If verified, show actual draw comparison
-                if (pred.is_verified && pred.actual_numbers) {
-                    html += '<div class="actual-draw-compact mt-3">';
-                    html += '<strong>Actual Draw:</strong>';
-                    html += '<div class="numbers-row mt-1">';
-                    pred.actual_numbers.forEach(num => {
-                        html += '<span class="lottery-ball-actual-compact">' + num + '</span>';
-                    });
-                    html += '</div>';
-                    
-                    html += '<strong>Your Prediction:</strong>';
-                    html += '<div class="numbers-row mt-1">';
-                    numbers.forEach(num => {
-                        const isMatch = pred.actual_numbers.includes(num);
-                        html += '<span class="lottery-ball-comparison-compact ' + (isMatch ? 'matched' : '') + '">' + parseInt(num) + '</span>';
-                    });
-                    html += '</div>';
-                    
-                    // Match summary
-                    const mainMatches = numbers.filter(num => pred.actual_numbers.includes(num)).length;
-                    if (mainMatches > 0) {
-                        html += '<div class="match-summary-compact success mt-2">';
-                        html += '<i class="fas fa-check-circle me-1"></i>Match Summary:';
-                        html += '<div class="mt-1"><span class="match-badge-compact">' + mainMatches + ' Main</span></div>';
-                        html += '</div>';
-                    } else {
-                        html += '<div class="match-summary-compact no-match mt-2">No matches found</div>';
-                    }
-                    
-                    // Accuracy
-                    html += '<div class="accuracy-compact mt-2">';
-                    html += '<span class="accuracy-badge-compact">' + mainMatches + ' Main</span>';
-                    html += '<span class="accuracy-badge-compact">No prize</span>';
-                    const accuracy = Math.round((mainMatches / numbers.length) * 100);
-                    html += '<div class="accuracy-percent-compact">' + accuracy + '% Accuracy</div>';
-                    html += '</div>';
-                } else {
-                    html += '<div class="pending-status-compact mt-3">';
-                    html += '<i class="fas fa-clock text-warning me-1"></i>';
-                    html += '<span class="text-warning">Pending validation</span>';
-                    html += '</div>';
-                }
+                // Pending validation status (matching reference image)
+                html += '<div class="pending-status-compact mt-3">';
+                html += '<i class="fas fa-clock text-warning me-1"></i>';
+                html += '<span class="text-warning">Pending validation</span>';
+                html += '</div>';
                 
                 // Date
                 html += '<div class="date-compact mt-2">';
