@@ -847,11 +847,39 @@ class PredictionsManager {
         return [];
     }
     
+    renderActualNumbers(numbers, className) {
+        return numbers.map(num => '<span class="lottery-ball ' + className + '" style="margin: 1px;">' + num + '</span>').join('');
+    }
+
     renderPredictionNumbers(numbers, matchedNumbers, baseClass, matchedClass) {
         return numbers.map(num => {
             const isMatched = matchedNumbers.includes(num);
             return '<span class="lottery-ball ' + (isMatched ? matchedClass : baseClass) + '" style="margin: 1px; ' + (isMatched ? 'animation: pulse 1s infinite;' : '') + '">' + num + '</span>';
         }).join('');
+    }
+
+    renderMatchSummary(matchedNumbers, pred) {
+        if (matchedNumbers.hasMatches) {
+            let mainText = matchedNumbers.main.length > 0 
+                ? '✓ ' + matchedNumbers.main.length + ' main number' + (matchedNumbers.main.length > 1 ? 's' : '') + ' matched: ' + matchedNumbers.main.join(', ')
+                : '✗ No main numbers matched';
+            
+            let bonusText = '';
+            if (matchedNumbers.bonus.length > 0) {
+                bonusText = '<br><small>✓ ' + matchedNumbers.bonus.length + ' bonus number matched: ' + matchedNumbers.bonus.join(', ') + '</small>';
+            } else if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
+                bonusText = '<br><small>✗ No bonus numbers matched</small>';
+            }
+            
+            return '<div class="match-summary mt-2 p-2" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border-radius: 8px; border-left: 4px solid #28a745;">' +
+                   '<small><strong style="color: #155724;">🎯 Match Summary:</strong></small><br>' +
+                   '<small>' + mainText + '</small>' + bonusText + 
+                   '</div>';
+        } else {
+            return '<div class="no-match-summary mt-2 p-2" style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); border-radius: 8px; border-left: 4px solid #dc3545;">' +
+                   '<small><strong style="color: #721c24;">No matches found</strong></small>' +
+                   '</div>';
+        }
     }
 
     async loadActualNumbersForVerifiedPredictions(predictions) {
@@ -875,8 +903,8 @@ class PredictionsManager {
                 <div class="row">
                     <div class="col-6">
                         <small><strong>Actual Draw:</strong></small><br>
-                        ${actualNumbers.main.map(num => `<span class="lottery-ball actual-number" style="margin: 1px;">${num}</span>`).join('')}
-                        ${actualNumbers.bonus.length > 0 ? `<br><small><strong>Bonus:</strong></small> ${actualNumbers.bonus.map(num => `<span class="lottery-ball actual-bonus" style="margin: 1px;">${num}</span>`).join('')}` : ''}
+                        ${this.renderActualNumbers(actualNumbers.main, 'actual-number')}
+                        ${actualNumbers.bonus.length > 0 ? '<br><small><strong>Bonus:</strong></small> ' + this.renderActualNumbers(actualNumbers.bonus, 'actual-bonus') : ''}
                     </div>
                     <div class="col-6">
                         <small><strong>Your Prediction:</strong></small><br>
@@ -884,17 +912,7 @@ class PredictionsManager {
                         ${pred.bonus_numbers && pred.bonus_numbers.length > 0 ? '<br><small><strong>Bonus:</strong></small> ' + this.renderPredictionNumbers(pred.bonus_numbers, matchedNumbers.bonus, 'prediction-bonus', 'matched-bonus-highlight') : ''}
                     </div>
                 </div>
-                ${matchedNumbers.hasMatches ? `
-                    <div class="match-summary mt-2 p-2" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border-radius: 8px; border-left: 4px solid #28a745;">
-                        <small><strong style="color: #155724;">🎯 Match Summary:</strong></small><br>
-                        <small>${matchedNumbers.main.length > 0 ? `✓ ${matchedNumbers.main.length} main number${matchedNumbers.main.length > 1 ? 's' : ''} matched: ${matchedNumbers.main.join(', ')}` : '✗ No main numbers matched'}</small>
-                        ${matchedNumbers.bonus.length > 0 ? '<br><small>✓ ' + matchedNumbers.bonus.length + ' bonus number matched: ' + matchedNumbers.bonus.join(', ') + '</small>' : (pred.bonus_numbers && pred.bonus_numbers.length > 0 ? '<br><small>✗ No bonus numbers matched</small>' : '')}
-                    </div>
-                ` : `
-                    <div class="no-match-summary mt-2 p-2" style="background: linear-gradient(135deg, #f8d7da, #f5c6cb); border-radius: 8px; border-left: 4px solid #dc3545;">
-                        <small><strong style="color: #721c24;">No matches found</strong></small>
-                    </div>
-                `}
+                ${this.renderMatchSummary(matchedNumbers, pred)}
             `;
         } catch (error) {
             console.error('Error loading actual numbers:', error);
