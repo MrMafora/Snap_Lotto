@@ -1373,40 +1373,14 @@ window.addEventListener('load', function() {
                 html += '<div class="numbers-row mt-1">';
                 
                 let numbers = pred.predicted_numbers;
-                console.log('Raw predicted_numbers:', numbers, 'Type:', typeof numbers);
                 
-                // Handle different formats of numbers
-                if (typeof numbers === 'string') {
-                    // Check if it's a JSON array string like "[12,19,28,35,47]"
-                    if (numbers.startsWith('[') && numbers.endsWith(']')) {
-                        try {
-                            numbers = JSON.parse(numbers);
-                        } catch (e) {
-                            console.error('Failed to parse JSON array:', e);
-                            // Try to extract numbers from string
-                            numbers = numbers.replace(/[\[\]]/g, '').split(',').map(n => parseInt(n.trim()));
-                        }
-                    } else {
-                        // Handle concatenated string like "1219283547"
-                        // This needs to be split properly - for now just show error
-                        console.error('Numbers appear to be concatenated:', numbers);
-                        // Try to parse as array if possible
-                        try {
-                            numbers = JSON.parse(numbers);
-                        } catch (e) {
-                            numbers = [];
-                        }
-                    }
-                }
-                
+                // The API returns arrays directly, so just use them
                 if (Array.isArray(numbers) && numbers.length > 0) {
                     numbers.forEach(num => {
                         html += '<span class="lottery-ball-compact">' + parseInt(num) + '</span>';
                     });
                 } else {
-                    // Fallback: display the raw value to see what we're getting
-                    console.error('Could not parse numbers as array:', pred.predicted_numbers);
-                    html += '<span class="text-danger">Error displaying numbers</span>';
+                    console.error('Predicted numbers not an array:', numbers);
                 }
                 html += '</div>';
                 
@@ -1415,30 +1389,8 @@ window.addEventListener('load', function() {
                     html += '<div class="bonus-compact mt-2">';
                     html += '<strong>Bonus:</strong> ';
                     let bonusNumbers = pred.bonus_numbers;
-                    console.log('Raw bonus_numbers:', bonusNumbers, 'Type:', typeof bonusNumbers);
                     
-                    // Handle different formats of bonus numbers
-                    if (typeof bonusNumbers === 'string') {
-                        // Check if it's a JSON array string like "[8]"
-                        if (bonusNumbers.startsWith('[') && bonusNumbers.endsWith(']')) {
-                            try {
-                                bonusNumbers = JSON.parse(bonusNumbers);
-                            } catch (e) {
-                                console.error('Failed to parse bonus JSON array:', e);
-                                // Try to extract numbers from string
-                                bonusNumbers = bonusNumbers.replace(/[\[\]]/g, '').split(',').map(n => parseInt(n.trim()));
-                            }
-                        } else {
-                            // Try to parse as array if possible
-                            try {
-                                bonusNumbers = JSON.parse(bonusNumbers);
-                            } catch (e) {
-                                // Single number string
-                                bonusNumbers = [parseInt(bonusNumbers)];
-                            }
-                        }
-                    }
-                    
+                    // The API returns arrays directly, so just use them
                     if (Array.isArray(bonusNumbers) && bonusNumbers.length > 0) {
                         bonusNumbers.forEach(num => {
                             html += '<span class="lottery-ball-bonus-compact">' + parseInt(num) + '</span>';
