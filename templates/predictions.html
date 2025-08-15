@@ -121,6 +121,124 @@
         margin-bottom: 40px;
     }
     
+    .verification-section {
+        border-top: 1px solid #e9ecef;
+        padding-top: 15px;
+    }
+    
+    .actual-numbers, .prediction-comparison {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+    }
+    
+    .lottery-ball-actual, .lottery-ball-actual-bonus {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #6c757d;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+    
+    .lottery-ball-comparison, .lottery-ball-comparison-bonus {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #dc3545;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+    
+    .lottery-ball-comparison.matched, .lottery-ball-comparison-bonus.matched {
+        background: #28a745;
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+    }
+    
+    .match-summary {
+        text-align: center;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .match-summary.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .match-summary.no-match {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .match-badges {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+    }
+    
+    .match-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .match-badge.main {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .match-badge.bonus {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .accuracy-badges {
+        text-align: center;
+    }
+    
+    .accuracy-badge {
+        padding: 4px 8px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 0 2px;
+    }
+    
+    .accuracy-badge.main {
+        background: #007bff;
+        color: white;
+    }
+    
+    .accuracy-badge.bonus {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .accuracy-badge.no-prize {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .accuracy-percent {
+        font-weight: bold;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+    
     .prediction-header {
         display: flex;
         justify-content: space-between;
@@ -1252,8 +1370,11 @@ window.addEventListener('load', function() {
                             html += '<div class="col-md-4">';
                             html += '<div class="prediction-horizontal-card">';
                             
-                            // Confidence badge
+                            // Confidence badge with verification icon
                             html += '<div class="confidence-header">';
+                            if (pred.is_verified) {
+                                html += '<i class="fas fa-check-circle text-success me-2"></i>';
+                            }
                             html += '<span class="confidence-percent">' + confidencePercent + '% Confidence</span>';
                             html += '</div>';
                             
@@ -1277,11 +1398,93 @@ window.addEventListener('load', function() {
                                 html += '</div>';
                             }
                             
-                            // Status
-                            html += '<div class="prediction-status mt-3">';
-                            html += '<i class="fas fa-clock text-warning me-1"></i>';
-                            html += '<span class="text-warning">Pending validation</span>';
-                            html += '</div>';
+                            // Verification section
+                            if (pred.is_verified && pred.actual_numbers) {
+                                // Show actual vs predicted comparison
+                                html += '<div class="verification-section mt-3">';
+                                
+                                // Actual Draw
+                                html += '<div class="actual-draw mb-2">';
+                                html += '<strong>Actual Draw:</strong>';
+                                html += '<div class="actual-numbers mt-1">';
+                                pred.actual_numbers.forEach(num => {
+                                    html += '<span class="lottery-ball-actual">' + num + '</span>';
+                                });
+                                if (pred.actual_bonus && pred.actual_bonus.length > 0) {
+                                    html += '<div class="mt-1"><strong>Bonus:</strong> ';
+                                    pred.actual_bonus.forEach(num => {
+                                        html += '<span class="lottery-ball-actual-bonus">' + num + '</span>';
+                                    });
+                                    html += '</div>';
+                                }
+                                html += '</div>';
+                                html += '</div>';
+                                
+                                // Your Prediction
+                                html += '<div class="your-prediction mb-2">';
+                                html += '<strong>Your Prediction:</strong>';
+                                html += '<div class="prediction-comparison mt-1">';
+                                pred.predicted_numbers.forEach(num => {
+                                    const isMatch = pred.actual_numbers && pred.actual_numbers.includes(num);
+                                    html += '<span class="lottery-ball-comparison ' + (isMatch ? 'matched' : '') + '">' + num + '</span>';
+                                });
+                                if (pred.bonus_numbers && pred.bonus_numbers.length > 0) {
+                                    html += '<div class="mt-1"><strong>Bonus:</strong> ';
+                                    pred.bonus_numbers.forEach(num => {
+                                        const isMatch = pred.actual_bonus && pred.actual_bonus.includes(num);
+                                        html += '<span class="lottery-ball-comparison-bonus ' + (isMatch ? 'matched' : '') + '">' + num + '</span>';
+                                    });
+                                    html += '</div>';
+                                }
+                                html += '</div>';
+                                html += '</div>';
+                                
+                                // Match Summary
+                                const mainMatches = pred.predicted_numbers.filter(num => 
+                                    pred.actual_numbers && pred.actual_numbers.includes(num)
+                                ).length;
+                                const bonusMatches = pred.bonus_numbers ? pred.bonus_numbers.filter(num =>
+                                    pred.actual_bonus && pred.actual_bonus.includes(num)
+                                ).length : 0;
+                                
+                                if (mainMatches > 0 || bonusMatches > 0) {
+                                    html += '<div class="match-summary success">';
+                                    html += '<i class="fas fa-check-circle me-2"></i>Match Summary:';
+                                    html += '<div class="match-badges mt-1">';
+                                    if (mainMatches > 0) {
+                                        html += '<span class="match-badge main">' + mainMatches + ' Main</span>';
+                                    }
+                                    if (bonusMatches > 0) {
+                                        html += '<span class="match-badge bonus">Bonus</span>';
+                                    }
+                                    html += '</div>';
+                                    html += '</div>';
+                                } else {
+                                    html += '<div class="match-summary no-match">';
+                                    html += 'No matches found';
+                                    html += '</div>';
+                                }
+                                
+                                // Accuracy badges
+                                html += '<div class="accuracy-badges mt-2">';
+                                html += '<span class="accuracy-badge main">' + mainMatches + ' Main</span>';
+                                if (bonusMatches > 0) {
+                                    html += '<span class="accuracy-badge bonus">Bonus</span>';
+                                } else {
+                                    html += '<span class="accuracy-badge no-prize">No prize</span>';
+                                }
+                                const accuracy = pred.accuracy_score ? Math.round(pred.accuracy_score * 100) : Math.round((mainMatches / pred.predicted_numbers.length) * 100);
+                                html += '<div class="accuracy-percent mt-1">' + accuracy + '% Accuracy</div>';
+                                html += '</div>';
+                                
+                                html += '</div>';
+                            } else {
+                                // Pending validation
+                                html += '<div class="prediction-status mt-3">';
+                                html += '<i class="fas fa-clock text-warning me-1"></i>';
+                                html += '<span class="text-warning">Pending validation</span>';
+                                html += '</div>';
+                            }
                             
                             // Date
                             html += '<div class="prediction-date-small mt-2">';
