@@ -1185,19 +1185,22 @@ window.addEventListener('load', function() {
             statDiv.innerHTML = '<div class="alert alert-info">Loading statistics...</div>';
         }
         
-        // Fetch predictions
-        fetch('/api/lottery-analysis/prediction-history?limit=50')
+        // Fetch predictions - limit to fewer, more recent ones
+        fetch('/api/lottery-analysis/prediction-history?limit=15')
             .then(r => r.json())
             .then(data => {
                 console.log('IMMEDIATE: Got predictions:', data);
                 if (data.success && data.predictions && data.predictions.length > 0) {
-                    // Group predictions by game type
+                    // Group predictions by game type and limit to 2 most recent per game
                     const grouped = {};
                     data.predictions.forEach(pred => {
                         if (!grouped[pred.game_type]) {
                             grouped[pred.game_type] = [];
                         }
-                        grouped[pred.game_type].push(pred);
+                        // Only keep the 2 most recent predictions per game type
+                        if (grouped[pred.game_type].length < 2) {
+                            grouped[pred.game_type].push(pred);
+                        }
                     });
                     
                     let html = '';
@@ -1216,7 +1219,7 @@ window.addEventListener('load', function() {
                         }
                         
                         html += '<div class="game-type-section mb-4">';
-                        html += '<h5 class="mb-2">' + gameType + ' <span class="badge bg-primary ms-2">' + preds.length + '</span></h5>';
+                        html += '<h5 class="mb-2">' + gameType + ' <span class="badge bg-primary ms-2">' + preds.length + ' latest</span></h5>';
                         html += '<div class="predictions-grid">';
                         
                         preds.forEach(pred => {
