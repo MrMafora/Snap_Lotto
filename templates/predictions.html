@@ -1373,14 +1373,17 @@ window.addEventListener('load', function() {
                 html += '<div class="numbers-row mt-1">';
                 
                 let numbers = pred.predicted_numbers;
+                console.log('PREDICTION DEBUG:', pred.game_type, 'numbers:', numbers, 'type:', typeof numbers, 'isArray:', Array.isArray(numbers));
                 
                 // The API returns arrays directly, so just use them
                 if (Array.isArray(numbers) && numbers.length > 0) {
-                    numbers.forEach(num => {
+                    numbers.forEach((num, idx) => {
+                        console.log('Adding ball:', num, 'at index:', idx);
                         html += '<span class="lottery-ball-compact">' + parseInt(num) + '</span>';
                     });
                 } else {
                     console.error('Predicted numbers not an array:', numbers);
+                    html += '<span class="text-danger">Numbers error: ' + JSON.stringify(numbers) + '</span>';
                 }
                 html += '</div>';
                 
