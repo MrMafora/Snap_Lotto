@@ -1373,10 +1373,24 @@ window.addEventListener('load', function() {
                 html += '<div class="numbers-row mt-1">';
                 
                 let numbers = pred.predicted_numbers;
+                console.log('Raw predicted_numbers:', numbers, 'Type:', typeof numbers);
+                
+                // Parse numbers if they're a string
+                if (typeof numbers === 'string') {
+                    try {
+                        numbers = JSON.parse(numbers);
+                    } catch (e) {
+                        console.error('Failed to parse predicted_numbers:', e);
+                        numbers = [];
+                    }
+                }
+                
                 if (Array.isArray(numbers)) {
                     numbers.forEach(num => {
                         html += '<span class="lottery-ball-compact">' + parseInt(num) + '</span>';
                     });
+                } else {
+                    console.error('Numbers is not an array:', numbers);
                 }
                 html += '</div>';
                 
@@ -1385,6 +1399,18 @@ window.addEventListener('load', function() {
                     html += '<div class="bonus-compact mt-2">';
                     html += '<strong>Bonus:</strong> ';
                     let bonusNumbers = pred.bonus_numbers;
+                    console.log('Raw bonus_numbers:', bonusNumbers, 'Type:', typeof bonusNumbers);
+                    
+                    // Parse bonus numbers if they're a string
+                    if (typeof bonusNumbers === 'string') {
+                        try {
+                            bonusNumbers = JSON.parse(bonusNumbers);
+                        } catch (e) {
+                            console.error('Failed to parse bonus_numbers:', e);
+                            bonusNumbers = [];
+                        }
+                    }
+                    
                     if (Array.isArray(bonusNumbers)) {
                         bonusNumbers.forEach(num => {
                             html += '<span class="lottery-ball-bonus-compact">' + parseInt(num) + '</span>';
