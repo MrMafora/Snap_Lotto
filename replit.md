@@ -47,6 +47,7 @@ This project is an AI-powered lottery intelligence platform for South African lo
 - PREDICTION VALIDATION SYSTEM: Implemented comprehensive AI prediction accuracy tracking that compares predictions against actual results, calculates match percentages, determines prize tiers, maintains historical accuracy statistics for continuous algorithm improvement, and automatically generates new replacement predictions after validation
 - AUTOMATIC REPLACEMENT PREDICTIONS: When a prediction is validated against a draw result, the system automatically generates a new prediction for the next draw of the same game type to maintain continuous prediction coverage
 - DAILY LOTTO PREDICTION FIX (2025-08-20): Fixed target draw date calculation to use next day (daily draws) instead of next week for Daily Lotto predictions, ensuring accurate prediction timing for daily draws
+- DATA ANALYTICS STREAMLINED (2025-08-20): Completely removed "Numbers Not Drawn Recently" section from both backend API and frontend as user recognized all numbers will eventually be drawn in active lottery systems, leaving only Hot Numbers (most frequent) and Cold Numbers (least frequent) for cleaner, more focused analysis
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
