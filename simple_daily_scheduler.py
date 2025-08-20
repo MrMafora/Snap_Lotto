@@ -34,34 +34,89 @@ class SimpleLotteryScheduler:
         self.schedule_time = "22:30"  # 10:30 PM SA time
         
     def run_automation_now(self):
-        """Run the automation workflow immediately using existing working system"""
-        logger.info("🚀 Starting scheduled automation using working workflow...")
+        """Run the automation workflow using the SAME WORKING SYSTEM as manual button"""
+        logger.info("🚀 Starting scheduled automation using PROVEN WORKING SYSTEM...")
         
         start_time = datetime.now(SA_TIMEZONE)
         
         try:
-            # Import Flask app and working automation system
+            # Import Flask app and the SAME working system used by manual button
             sys.path.append('.')
             from app import app
-            from complete_automation_workflow import run_complete_automation
+            import glob
+            import os
             
-            logger.info(f"Calling existing automation workflow at {start_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            logger.info(f"Calling SAME automation system as manual button at {start_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
             
             # Run within Flask application context to ensure proper resource access
             with app.app_context():
-                # Set comprehensive environment variables for scheduled execution
-                os.environ['DISPLAY'] = ':0'
-                os.environ['XVFB_WHD'] = '1920x1080x24'
+                logger.info("=== USING SAME 4-STEP SYSTEM AS MANUAL BUTTON ===")
                 
-                # Ensure Chrome/Playwright can access display in daemon thread
-                os.environ['CHROME_BIN'] = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium'
+                # STEP 1: Delete existing screenshots first (same as manual button)
+                logger.info("Step 1: Clean up existing screenshots")
+                existing_screenshots = glob.glob('screenshots/*.png')
+                deleted_count = 0
                 
-                logger.info("🔧 Environment configured for scheduled execution")
-                logger.info(f"DISPLAY: {os.environ.get('DISPLAY')}")
-                logger.info(f"CHROME_BIN: {os.environ.get('CHROME_BIN')}")
+                for screenshot in existing_screenshots:
+                    try:
+                        os.remove(screenshot)
+                        deleted_count += 1
+                        logger.info(f"Deleted old screenshot: {screenshot}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete {screenshot}: {e}")
                 
-                # Call the working automation workflow with proper context
-                result = run_complete_automation()
+                logger.info(f"Step 1 Complete: Deleted {deleted_count} old screenshots")
+                
+                # STEP 2: Capture 6 fresh screenshots (same as manual button)
+                logger.info("Step 2: Capturing 6 fresh screenshots using WORKING system")
+                
+                try:
+                    from screenshot_capture import capture_all_lottery_screenshots
+                    capture_results = capture_all_lottery_screenshots()
+                    logger.info(f"Screenshot capture results: {capture_results}")
+                    
+                    # Verify we have exactly 6 screenshots
+                    screenshots = glob.glob('screenshots/*.png')
+                    logger.info(f"Step 2 Complete: Captured {len(screenshots)} fresh screenshots")
+                    
+                    if len(screenshots) < 6:
+                        error_msg = f'Expected 6 screenshots, only captured {len(screenshots)}'
+                        logger.error(error_msg)
+                        result = {'success': False, 'error': error_msg}
+                    else:
+                        # STEP 3: Extract data with AI and update database (same as manual button)
+                        logger.info("Step 3: Processing with AI using WORKING system")
+                        from ai_lottery_processor import CompleteLotteryProcessor
+                        
+                        processor = CompleteLotteryProcessor()
+                        workflow_result = processor.process_all_screenshots()
+                        
+                        logger.info(f"Step 3 Complete: AI processing result: {workflow_result}")
+                        
+                        # Check if processing was successful
+                        success = workflow_result.get('total_success', 0) > 0 or len(workflow_result.get('database_records', [])) > 0
+                        new_results_count = len(workflow_result.get('database_records', []))
+                        
+                        if success or new_results_count > 0:
+                            logger.info(f"Step 3 SUCCESS: Processed {workflow_result.get('total_processed', 0)} screenshots, extracted {new_results_count} new lottery results")
+                            result = {
+                                'success': True, 
+                                'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results",
+                                'screenshots_captured': len(screenshots),
+                                'new_results': new_results_count
+                            }
+                        else:
+                            logger.info(f"Step 3 COMPLETE: No new results found (all current). Processed: {workflow_result.get('total_processed', 0)}")
+                            result = {
+                                'success': True,
+                                'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results",
+                                'screenshots_captured': len(screenshots),
+                                'new_results': new_results_count
+                            }
+                            
+                except Exception as capture_error:
+                    logger.error(f"Step 2 failed - Screenshot capture error: {capture_error}")
+                    result = {'success': False, 'error': f'Screenshot capture failed: {capture_error}'}
             
             end_time = datetime.now(SA_TIMEZONE)
             duration_seconds = int((end_time - start_time).total_seconds())

@@ -41,6 +41,7 @@ This project is an AI-powered lottery intelligence platform for South African lo
 - CRITICAL DATA INTEGRITY: Manually added missing Daily Lotto draws 2332 (2025-08-02), 2333 (2025-08-03), and 2342 (2025-08-12) that were identified by user as missing from database
 - Historical lottery draws require manual entry when screenshot capture window has passed - user provided screenshot evidence for accurate data entry
 - Daily automation workflow is essential to prevent missing lottery results - user evidence shows gaps when automation doesn't run daily
+- CRITICAL FIX: Scheduler now uses same proven working system as manual button instead of separate unreliable code paths
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
