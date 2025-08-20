@@ -31,6 +31,7 @@ def setup_logging():
 def capture_fresh_screenshots(logger):
     """Capture fresh screenshots of all lottery types"""
     logger.info("Step 1: Starting fresh screenshot capture...")
+    start_capture_time = time.time()
     
     # Check if we have existing screenshots first
     screenshots_dir = 'screenshots'
@@ -66,18 +67,41 @@ def capture_fresh_screenshots(logger):
             browser = p.chromium.launch(
                 executable_path=browser_path,
                 headless=True,
-                args=['--no-sandbox', '--disable-dev-shm-usage']
+                args=[
+                    '--no-sandbox', 
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor',
+                    '--no-first-run',
+                    '--disable-extensions',
+                    '--disable-default-apps'
+                ]
             )
             
             page = browser.new_page(viewport={'width': 1920, 'height': 1080})
             
             for lottery_type, url in lottery_urls.items():
                 try:
+                    # Safety check - abort if taking too long
+                    if time.time() - start_capture_time > 300:  # 5 minutes max
+                        logger.warning("Screenshot capture taking too long, aborting remaining captures")
+                        break
+                        
                     logger.info(f"Capturing {lottery_type} from {url}")
                     
-                    # Navigate and wait for load - use domcontentloaded to avoid timeout issues
-                    page.goto(url, wait_until='domcontentloaded', timeout=60000)
-                    page.wait_for_timeout(5000)  # Wait longer for dynamic content
+                    # Navigate with shorter timeout and retry logic
+                    max_retries = 2
+                    for attempt in range(max_retries):
+                        try:
+                            page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                            page.wait_for_timeout(3000)  # Reduced wait time
+                            break
+                        except Exception as nav_error:
+                            if attempt == max_retries - 1:
+                                raise nav_error
+                            logger.warning(f"Retry {attempt + 1} for {lottery_type}: {str(nav_error)}")
+                            time.sleep(2)
                     
                     # Generate filename
                     safe_name = lottery_type.lower().replace(' ', '_').replace('+', '_plus')
@@ -98,6 +122,10 @@ def capture_fresh_screenshots(logger):
             
     except Exception as e:
         logger.error(f"Screenshot capture system failed: {str(e)}")
+        # If we had some partial success, return what we got
+        if captured_files:
+            logger.warning(f"Returning {len(captured_files)} partial screenshots due to error")
+            return captured_files
         return []
     
     logger.info(f"Screenshot capture complete: {len(captured_files)}/6 successful")
