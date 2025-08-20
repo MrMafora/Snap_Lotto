@@ -107,11 +107,12 @@ ANALYSIS REQUIREMENTS:
 
 GAME RULES:
 - {game_type}: Generate appropriate number of main numbers and bonus numbers based on game type
-- LOTTO: 6 main numbers (1-52)
-- LOTTO PLUS 1/2: 6 main numbers (1-52) 
+- LOTTO: 6 main numbers (1-52) + 1 bonus number (1-52)
+- LOTTO PLUS 1: 6 main numbers (1-52) + 1 bonus number (1-52)
+- LOTTO PLUS 2: 6 main numbers (1-52) + 1 bonus number (1-52)
 - POWERBALL: 5 main numbers (1-50) + 1 bonus (1-20)
 - POWERBALL PLUS: 5 main numbers (1-50) + 1 bonus (1-20)
-- DAILY LOTTO: 5 main numbers (1-36)
+- DAILY LOTTO: 5 main numbers (1-36), no bonus numbers
 
 RESPONSE FORMAT (JSON only):
 {{
