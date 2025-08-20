@@ -49,7 +49,16 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **Frontend**: Responsive web interface with mobile-friendly design and PWA functionality, ensuring visual consistency.
 -   **Backend**: Python Flask framework.
 -   **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage, adhering to authentic data.
--   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning (`ai_lottery_processor.py`), data extraction, pattern analysis, and lottery prediction (`ai_lottery_predictor.py`). The AI predictor analyzes all available lottery data, including prize distributions, financial patterns, and temporal correlations, to find algorithmic signatures.
+-   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning (`ai_lottery_processor.py`), data extraction, pattern analysis, and lottery prediction (`ai_lottery_predictor.py`). 
+
+    **Prediction Algorithm Details:**
+    - **Core Engine**: Google Gemini 2.5 Pro AI (not simple mathematical formulas)
+    - **Game-Specific Analysis**: Each lottery type uses customized analysis approach
+    - **6-Step Analysis Framework**: 1) Frequency patterns (hot/cold numbers), 2) Gap pattern analysis, 3) Mathematical relationships, 4) Temporal analysis, 5) Prize pattern correlation, 6) Statistical balance validation
+    - **Confidence Scoring**: AI generates 22-55% confidence scores based on pattern strength and statistical significance
+    - **Individual Game Rules**: LOTTO (6 main, 1-52), LOTTO PLUS 1/2 (6 main, 1-52), POWERBALL/PLUS (5 main 1-50 + 1 bonus 1-20), DAILY LOTTO (5 main, 1-36)
+    - **Analysis Methods**: "Hybrid Statistical Analysis", "Frequency and Gap Analysis", "Statistical Frequency and Pattern Analysis", "Blended Statistical Analysis"
+    - **Data Sources**: 15-50 recent draws per game, temporal patterns, prize progressions, rollover tracking
 -   **Automation Workflow**: A robust 4-step daily automation process utilizing Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification, with anti-detection measures.
 -   **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, centralized error handling, and admin-only access for sensitive AI features.
 -   **Performance**: Optimized database queries, critical performance indexes, and a cache manager. Decoupled card heights for optimal content display.
