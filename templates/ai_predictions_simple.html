@@ -171,58 +171,56 @@
     <!-- Predictions Content -->
     <div id="predictions-content">
         {% if predictions %}
-            <!-- Create a comprehensive grid for all predictions -->
-            <div class="all-predictions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; padding: 20px;">
+            <!-- Create a comprehensive list for all predictions -->
+            <div class="all-predictions-list" style="max-width: 1000px; margin: 0 auto; padding: 20px;">
                 {% for prediction in predictions %}
-                    <div class="game-section">
-                        <div class="game-header">
-                            <h2 class="game-title">{{ prediction.game_type }}</h2>
-                        </div>
-                        <div class="predictions-grid">
-                            <div class="prediction-card">
-                                <div class="confidence">{{ prediction.confidence }}% Confidence</div>
-                                
-                                <div class="numbers-container">
-                                    {% if prediction.main_numbers and prediction.main_numbers|length > 0 %}
-                                        <div class="numbers-row">
-                                            <!-- Main Numbers -->
-                                            {% for number in prediction.main_numbers %}
-                                                <div class="number-ball">{{ number }}</div>
-                                            {% endfor %}
-                                            
-                                            <!-- Bonus Numbers in same row -->
-                                            {% if prediction.bonus_numbers and prediction.bonus_numbers|length > 0 %}
-                                                <div style="margin: 0 10px; font-size: 1.5rem; color: #6c757d; display: flex; align-items: center;">+</div>
-                                                {% for number in prediction.bonus_numbers %}
-                                                    <div class="bonus-ball">{{ number }}</div>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
-                                    {% else %}
-                                        <div class="alert alert-warning">
-                                            No main numbers available
-                                        </div>
+                    <!-- Horizontal Game Row Layout -->
+                    <div class="game-row" style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; padding: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                            <!-- Game Title and Confidence -->
+                            <div style="flex: 0 0 auto;">
+                                <h3 style="margin: 0; font-size: 1.2rem; font-weight: 600; color: #1f2937;">{{ prediction.game_type }}</h3>
+                                <div style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-top: 5px;">{{ prediction.confidence }}% Confidence</div>
+                            </div>
+                            
+                            <!-- Numbers in Horizontal Row -->
+                            <div style="flex: 1; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 60px;">
+                                {% if prediction.main_numbers and prediction.main_numbers|length > 0 %}
+                                    <!-- Main Numbers -->
+                                    {% for number in prediction.main_numbers %}
+                                        <div class="number-ball">{{ number }}</div>
+                                    {% endfor %}
+                                    
+                                    <!-- Bonus Numbers in same row -->
+                                    {% if prediction.bonus_numbers and prediction.bonus_numbers|length > 0 %}
+                                        <div style="margin: 0 8px; font-size: 1.2rem; color: #6c757d; font-weight: bold;">+</div>
+                                        {% for number in prediction.bonus_numbers %}
+                                            <div class="bonus-ball">{{ number }}</div>
+                                        {% endfor %}
                                     {% endif %}
-                                </div>
-                                
-                                <div class="prediction-date">
-                                    Generated: {{ prediction.created_at.strftime('%Y-%m-%d') if prediction.created_at else 'Unknown' }}
-                                </div>
-                                
-                                {% if prediction.target_date %}
-                                    <div class="target-date">
-                                        Target Draw: {{ prediction.target_date.strftime('%Y-%m-%d') if prediction.target_date else 'TBD' }}
-                                    </div>
-                                {% endif %}
-                                
-                                {% if prediction.reasoning %}
-                                    <div class="reasoning">
-                                        <strong>AI Analysis:</strong><br>
-                                        {{ prediction.reasoning }}
-                                    </div>
+                                {% else %}
+                                    <div style="color: #dc3545; font-size: 0.9rem;">No numbers available</div>
                                 {% endif %}
                             </div>
+                            
+                            <!-- Generation Date -->
+                            <div style="flex: 0 0 auto; text-align: right; font-size: 0.8rem; color: #6c757d;">
+                                Generated: {{ prediction.created_at.strftime('%Y-%m-%d') if prediction.created_at else 'Unknown' }}<br>
+                                Target: {{ prediction.target_date.strftime('%Y-%m-%d') if prediction.target_date else 'TBD' }}
+                            </div>
                         </div>
+                        
+                        <!-- AI Analysis (collapsed by default) -->
+                        {% if prediction.reasoning %}
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+                                <details style="font-size: 0.85rem; color: #495057;">
+                                    <summary style="cursor: pointer; font-weight: 600; color: #007bff;">AI Analysis</summary>
+                                    <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #007bff;">
+                                        {{ prediction.reasoning }}
+                                    </div>
+                                </details>
+                            </div>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
