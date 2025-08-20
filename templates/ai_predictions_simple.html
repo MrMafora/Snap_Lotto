@@ -180,13 +180,17 @@
                             <div class="confidence">{{ prediction.confidence }}% Confidence</div>
                             
                             <div class="numbers-container">
-                                <div class="numbers-row">
-                                    {% for number in prediction.main_numbers %}
-                                        <div class="number-ball">{{ number }}</div>
-                                    {% endfor %}
-                                </div>
+                                {% if prediction.main_numbers and prediction.main_numbers|length > 0 %}
+                                    <div class="numbers-row">
+                                        {% for number in prediction.main_numbers %}
+                                            <div class="number-ball">{{ number }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning">No main numbers available</div>
+                                {% endif %}
                                 
-                                {% if prediction.bonus_numbers %}
+                                {% if prediction.bonus_numbers and prediction.bonus_numbers|length > 0 %}
                                     <div class="numbers-row">
                                         {% for number in prediction.bonus_numbers %}
                                             <div class="bonus-ball">{{ number }}</div>

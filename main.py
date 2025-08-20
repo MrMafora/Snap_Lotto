@@ -952,9 +952,9 @@ def predictions():
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
         
-        # Get the latest predictions grouped by game type
+        # Get the latest predictions grouped by game type - get multiple per game type for variety
         cur.execute("""
-            SELECT DISTINCT ON (game_type) 
+            SELECT 
                 game_type, 
                 predicted_numbers, 
                 bonus_numbers, 
@@ -965,7 +965,8 @@ def predictions():
                 prediction_method
             FROM lottery_predictions 
             WHERE validation_status = 'pending' OR validation_status IS NULL
-            ORDER BY game_type, created_at DESC
+            ORDER BY game_type ASC, confidence_score DESC, created_at DESC
+            LIMIT 18
         """)
         
         predictions_data = cur.fetchall()
