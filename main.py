@@ -989,6 +989,7 @@ def api_predictions():
     """API endpoint for fetching AI predictions"""
     try:
         import psycopg2
+        import json
         from psycopg2.extras import RealDictCursor
         
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
@@ -1006,12 +1007,29 @@ def api_predictions():
         
         predictions = []
         for row in cur.fetchall():
+            # Convert PostgreSQL array format {1,2,3} to JSON array [1,2,3]
+            main_numbers = []
+            if row['predicted_numbers']:
+                if isinstance(row['predicted_numbers'], list):
+                    main_numbers = row['predicted_numbers']
+                else:
+                    # Convert PostgreSQL array format to list
+                    main_numbers = row['predicted_numbers']
+            
+            bonus_numbers = []
+            if row['bonus_numbers']:
+                if isinstance(row['bonus_numbers'], list):
+                    bonus_numbers = row['bonus_numbers']
+                else:
+                    # Convert PostgreSQL array format to list
+                    bonus_numbers = row['bonus_numbers']
+            
             predictions.append({
                 'id': row['id'],
                 'game_type': row['game_type'],
-                'main_numbers': row['predicted_numbers'],
-                'bonus_numbers': row['bonus_numbers'],
-                'confidence': int(row['confidence_score']) if row['confidence_score'] else 0,
+                'main_numbers': json.dumps(main_numbers),  # Convert to JSON string
+                'bonus_numbers': json.dumps(bonus_numbers) if bonus_numbers else json.dumps([]),
+                'confidence': int(row['confidence_score'] * 100) if row['confidence_score'] else 0,  # Convert to percentage
                 'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                 'status': row['validation_status'],
                 'accuracy_score': row['accuracy_score'],
