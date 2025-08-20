@@ -146,6 +146,14 @@ RESPONSE FORMAT (JSON only):
     
     def save_prediction(self, game_type: str, prediction: Dict[str, Any]):
         """Save prediction to database"""
+        # Calculate next draw date based on game type
+        if game_type == 'DAILY LOTTO':
+            # Daily Lotto draws every day
+            next_draw_date = datetime.now().date() + timedelta(days=1)
+        else:
+            # Other lotteries draw weekly
+            next_draw_date = datetime.now().date() + timedelta(days=7)
+        
         with psycopg2.connect(self.connection_string) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -160,12 +168,12 @@ RESPONSE FORMAT (JSON only):
                     prediction['confidence_score'],
                     prediction['reasoning'],
                     prediction.get('method', 'Gemini AI Analysis'),
-                    datetime.now().date() + timedelta(days=7),  # Next week's draw
+                    next_draw_date,
                     datetime.now(),
                     'pending'
                 ))
                 conn.commit()
-                logger.info(f"Saved prediction for {game_type}")
+                logger.info(f"Saved prediction for {game_type} targeting {next_draw_date}")
     
     def generate_all_predictions(self):
         """Generate predictions for all game types"""
