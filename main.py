@@ -949,7 +949,7 @@ def predictions():
     """AI lottery predictions page - Public access"""
     try:
         # Connect to database and fetch latest predictions
-        conn = get_db_connection()
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
         
         # Get the latest predictions grouped by game type
