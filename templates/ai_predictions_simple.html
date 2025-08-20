@@ -53,9 +53,8 @@
     }
     
     .predictions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        gap: 20px;
+        display: flex;
+        justify-content: center;
         padding: 20px;
     }
     
@@ -88,6 +87,7 @@
         gap: 8px;
         margin-bottom: 10px;
         flex-wrap: wrap;
+        align-items: center;
     }
     
     .number-ball {
@@ -170,63 +170,61 @@
     <!-- Predictions Content -->
     <div id="predictions-content">
         {% if predictions %}
-            {% for prediction in predictions %}
-                <div class="game-section">
-                    <div class="game-header">
-                        <h2 class="game-title">{{ prediction.game_type }}</h2>
-                    </div>
-                    <div class="predictions-grid">
-                        <div class="prediction-card">
-                            <div class="confidence">{{ prediction.confidence }}% Confidence</div>
-                            
-                            <div class="numbers-container">
-                                <!-- Debug info -->
-                                <div class="text-muted small mb-2">
-                                    Main: {{ prediction.main_numbers|string }} ({{ prediction.main_numbers|length }} numbers)
+            <!-- Create a comprehensive grid for all predictions -->
+            <div class="all-predictions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; padding: 20px;">
+                {% for prediction in predictions %}
+                    <div class="game-section">
+                        <div class="game-header">
+                            <h2 class="game-title">{{ prediction.game_type }}</h2>
+                        </div>
+                        <div class="predictions-grid">
+                            <div class="prediction-card">
+                                <div class="confidence">{{ prediction.confidence }}% Confidence</div>
+                                
+                                <div class="numbers-container">
+                                    {% if prediction.main_numbers and prediction.main_numbers|length > 0 %}
+                                        <div class="numbers-row">
+                                            {% for number in prediction.main_numbers %}
+                                                <div class="number-ball">{{ number }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-warning">
+                                            No main numbers available
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if prediction.bonus_numbers and prediction.bonus_numbers|length > 0 %}
+                                        <div class="numbers-row mt-2">
+                                            {% for number in prediction.bonus_numbers %}
+                                                <div class="bonus-ball">{{ number }}</div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="bonus-label">Bonus Numbers</div>
+                                    {% endif %}
                                 </div>
                                 
-                                {% if prediction.main_numbers and prediction.main_numbers|length > 0 %}
-                                    <div class="numbers-row">
-                                        {% for number in prediction.main_numbers %}
-                                            <div class="number-ball">{{ number }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    <div class="alert alert-warning">
-                                        No main numbers available. Raw: {{ prediction.main_numbers|string }}
+                                <div class="prediction-date">
+                                    Generated: {{ prediction.created_at.strftime('%Y-%m-%d') if prediction.created_at else 'Unknown' }}
+                                </div>
+                                
+                                {% if prediction.target_date %}
+                                    <div class="target-date">
+                                        Target Draw: {{ prediction.target_date.strftime('%Y-%m-%d') if prediction.target_date else 'TBD' }}
                                     </div>
                                 {% endif %}
                                 
-                                {% if prediction.bonus_numbers and prediction.bonus_numbers|length > 0 %}
-                                    <div class="numbers-row mt-2">
-                                        {% for number in prediction.bonus_numbers %}
-                                            <div class="bonus-ball">{{ number }}</div>
-                                        {% endfor %}
+                                {% if prediction.reasoning %}
+                                    <div class="reasoning">
+                                        <strong>AI Analysis:</strong><br>
+                                        {{ prediction.reasoning }}
                                     </div>
-                                    <div class="bonus-label">Bonus Numbers</div>
                                 {% endif %}
                             </div>
-                            
-                            <div class="prediction-date">
-                                Generated: {{ prediction.created_at.strftime('%Y-%m-%d') if prediction.created_at else 'Unknown' }}
-                            </div>
-                            
-                            {% if prediction.target_date %}
-                                <div class="target-date">
-                                    Target Draw: {{ prediction.target_date.strftime('%Y-%m-%d') if prediction.target_date else 'TBD' }}
-                                </div>
-                            {% endif %}
-                            
-                            {% if prediction.reasoning %}
-                                <div class="reasoning">
-                                    <strong>AI Analysis:</strong><br>
-                                    {{ prediction.reasoning }}
-                                </div>
-                            {% endif %}
                         </div>
                     </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         {% else %}
             <div class="empty-state">
                 <i class="fas fa-brain fa-3x mb-3"></i>
