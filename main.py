@@ -947,7 +947,7 @@ def visualizations():
 @app.route('/predictions')
 def predictions():
     """AI lottery predictions page - Public access"""
-    return render_template('predictions.html')
+    return render_template('predictions_new.html')
 
 # Weekly predictions trigger - Admin Only
 @app.route('/trigger-weekly-predictions', methods=['POST'])
@@ -982,6 +982,59 @@ def trigger_weekly_predictions():
             'success': False,
             'error': 'Failed to start weekly predictions'
         }), 500
+
+# API endpoint to get predictions data
+@app.route('/api/predictions')
+def api_predictions():
+    """API endpoint for fetching AI predictions"""
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get latest predictions for each game type
+        cur.execute("""
+            SELECT id, game_type, predicted_numbers, bonus_numbers, confidence_score, 
+                   created_at, validation_status, accuracy_score, target_draw_date, 
+                   prediction_method, reasoning
+            FROM lottery_predictions 
+            ORDER BY created_at DESC 
+            LIMIT 50
+        """)
+        
+        predictions = []
+        for row in cur.fetchall():
+            predictions.append({
+                'id': row['id'],
+                'game_type': row['game_type'],
+                'main_numbers': row['predicted_numbers'],
+                'bonus_numbers': row['bonus_numbers'],
+                'confidence': int(row['confidence_score']) if row['confidence_score'] else 0,
+                'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                'status': row['validation_status'],
+                'accuracy_score': row['accuracy_score'],
+                'draw_date': row['target_draw_date'].isoformat() if row['target_draw_date'] else None,
+                'method': row['prediction_method'],
+                'reasoning': row['reasoning']
+            })
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'predictions': predictions
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching predictions: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'predictions': []
+        })
 
 # Scanner Landing Route
 @app.route('/scanner-landing')
