@@ -142,61 +142,7 @@ def frequency_analysis():
         # Get cold numbers (least frequent numbers that appear)
         cold_numbers = [num for num, freq in frequency.most_common()[-10:]]
         
-        # Get absent numbers (numbers not drawn recently)
-        # Get numbers from last 7 days to find truly "recent" numbers
-        recent_numbers = []
-        try:
-            with psycopg2.connect(connection_string) as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT main_numbers, bonus_numbers
-                        FROM lottery_results 
-                        WHERE draw_date >= CURRENT_DATE - INTERVAL '7 days'
-                        AND main_numbers IS NOT NULL
-                    """)
-                    recent_results = cur.fetchall()
-                    
-                    for row in recent_results:
-                        main_numbers, bonus_numbers = row
-                        
-                        # Parse main numbers
-                        if main_numbers:
-                            if isinstance(main_numbers, str):
-                                if main_numbers.startswith('[') and main_numbers.endswith(']'):
-                                    recent_numbers.extend(json.loads(main_numbers))
-                                elif main_numbers.startswith('{') and main_numbers.endswith('}'):
-                                    numbers_str = main_numbers.strip('{}')
-                                    if numbers_str:
-                                        recent_numbers.extend([int(x.strip()) for x in numbers_str.split(',')])
-                            elif isinstance(main_numbers, list):
-                                recent_numbers.extend(main_numbers)
-                        
-                        # Parse bonus numbers
-                        if bonus_numbers:
-                            if isinstance(bonus_numbers, str):
-                                if bonus_numbers.startswith('[') and bonus_numbers.endswith(']'):
-                                    recent_numbers.extend(json.loads(bonus_numbers))
-                                elif bonus_numbers.startswith('{') and bonus_numbers.endswith('}'):
-                                    bonus_str = bonus_numbers.strip('{}')
-                                    if bonus_str:
-                                        recent_numbers.extend([int(x.strip()) for x in bonus_str.split(',')])
-                            elif isinstance(bonus_numbers, list):
-                                recent_numbers.extend(bonus_numbers)
-        except Exception as e:
-            logger.warning(f"Could not fetch recent numbers: {e}")
-            recent_numbers = []
-        
-        # Find numbers not drawn in the last 7 days
-        all_possible_numbers = set(range(1, 53))  # SA lottery numbers typically 1-52
-        recent_numbers_set = set(recent_numbers)
-        absent_numbers = list(all_possible_numbers - recent_numbers_set)[:10]
-        
-        # If no numbers are truly absent in recent days, use the coldest numbers as "due numbers"
-        logger.info(f"DEBUG: Recent numbers found: {len(recent_numbers_set)}, Absent: {len(absent_numbers)}, Cold: {len(cold_numbers)}")
-        if not absent_numbers:
-            # Use the least frequent numbers as "numbers not drawn recently"
-            absent_numbers = cold_numbers[:10] if cold_numbers else []
-            logger.info(f"DEBUG: Using cold numbers as absent: {absent_numbers}")
+        # Remove absent numbers logic since all numbers will eventually be drawn in active lottery
         
         response = {
             'lottery_types': list(lottery_types),
@@ -213,7 +159,6 @@ def frequency_analysis():
             ],
             'hot_numbers': hot_numbers,
             'cold_numbers': cold_numbers,
-            'absent_numbers': absent_numbers,
             'message': 'Real-time analytics from authentic lottery database'
         }
         
