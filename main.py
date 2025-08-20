@@ -953,6 +953,7 @@ def predictions():
         cur = conn.cursor()
         
         # Get exactly 1 prediction per game type (best confidence, most recent)
+        # Custom ordering: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO
         cur.execute("""
             SELECT DISTINCT ON (game_type)
                 game_type, 
@@ -965,11 +966,23 @@ def predictions():
                 prediction_method
             FROM lottery_predictions 
             WHERE validation_status = 'pending' OR validation_status IS NULL
-            ORDER BY game_type ASC, confidence_score DESC, created_at DESC
-            LIMIT 6
+            ORDER BY game_type, confidence_score DESC, created_at DESC
         """)
         
-        predictions_data = cur.fetchall()
+        # Get all results first, then custom sort
+        all_predictions = cur.fetchall()
+        
+        # Define the desired order
+        game_order = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
+        
+        # Sort predictions by the custom order
+        predictions_data = []
+        for game in game_order:
+            for row in all_predictions:
+                if row[0] == game:  # game_type is first column
+                    predictions_data.append(row)
+                    break
+        
         predictions = []
         
         for row in predictions_data:
