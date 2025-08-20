@@ -128,6 +128,23 @@
         margin-top: 10px;
     }
     
+    .target-date {
+        font-size: 0.8rem;
+        color: #28a745;
+        margin-top: 5px;
+        font-weight: 600;
+    }
+    
+    .reasoning {
+        font-size: 0.85rem;
+        color: #495057;
+        margin-top: 15px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #007bff;
+    }
+    
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -152,118 +169,66 @@
 
     <!-- Predictions Content -->
     <div id="predictions-content">
-        <div class="loading">
-            <i class="fas fa-spinner fa-spin me-2"></i>Loading AI predictions...
-        </div>
+        {% if predictions %}
+            {% for prediction in predictions %}
+                <div class="game-section">
+                    <div class="game-header">
+                        <h2 class="game-title">{{ prediction.game_type }}</h2>
+                    </div>
+                    <div class="predictions-grid">
+                        <div class="prediction-card">
+                            <div class="confidence">{{ prediction.confidence }}% Confidence</div>
+                            
+                            <div class="numbers-container">
+                                <div class="numbers-row">
+                                    {% for number in prediction.main_numbers %}
+                                        <div class="number-ball">{{ number }}</div>
+                                    {% endfor %}
+                                </div>
+                                
+                                {% if prediction.bonus_numbers %}
+                                    <div class="numbers-row">
+                                        {% for number in prediction.bonus_numbers %}
+                                            <div class="bonus-ball">{{ number }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="bonus-label">Bonus Numbers</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="prediction-date">
+                                Generated: {{ prediction.created_at.strftime('%Y-%m-%d') if prediction.created_at else 'Unknown' }}
+                            </div>
+                            
+                            {% if prediction.target_date %}
+                                <div class="target-date">
+                                    Target Draw: {{ prediction.target_date.strftime('%Y-%m-%d') if prediction.target_date else 'TBD' }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if prediction.reasoning %}
+                                <div class="reasoning">
+                                    <strong>AI Analysis:</strong><br>
+                                    {{ prediction.reasoning }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-brain fa-3x mb-3"></i>
+                <h3>No AI Predictions Available</h3>
+                <p>AI predictions will appear here once they are generated.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    loadPredictions();
+    console.log('AI Predictions page loaded with {{ predictions|length }} predictions');
 });
-
-function loadPredictions() {
-    fetch('/api/predictions')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.predictions && data.predictions.length > 0) {
-                displayPredictions(data.predictions);
-            } else {
-                showEmptyState();
-            }
-        })
-        .catch(error => {
-            console.error('Error loading predictions:', error);
-            showEmptyState();
-        });
-}
-
-function displayPredictions(predictions) {
-    // Group predictions by game type
-    const gameTypes = {};
-    predictions.forEach(prediction => {
-        if (!gameTypes[prediction.game_type]) {
-            gameTypes[prediction.game_type] = [];
-        }
-        gameTypes[prediction.game_type].push(prediction);
-    });
-    
-    let html = '';
-    
-    // Display each game type section
-    Object.keys(gameTypes).forEach(gameType => {
-        const gamePredictions = gameTypes[gameType];
-        
-        html += `
-            <div class="game-section">
-                <div class="game-header">
-                    <h2 class="game-title">${gameType}</h2>
-                </div>
-                <div class="predictions-grid">
-        `;
-        
-        gamePredictions.forEach(prediction => {
-            html += createPredictionCard(prediction);
-        });
-        
-        html += `
-                </div>
-            </div>
-        `;
-    });
-    
-    document.getElementById('predictions-content').innerHTML = html;
-}
-
-function createPredictionCard(prediction) {
-    const mainNumbers = JSON.parse(prediction.main_numbers || '[]');
-    const bonusNumbers = JSON.parse(prediction.bonus_numbers || '[]');
-    
-    let mainNumbersHtml = '';
-    mainNumbers.forEach(num => {
-        mainNumbersHtml += `<div class="number-ball">${num}</div>`;
-    });
-    
-    let bonusHtml = '';
-    if (bonusNumbers && bonusNumbers.length > 0) {
-        bonusNumbers.forEach(num => {
-            bonusHtml += `<div class="bonus-ball">${num}</div>`;
-        });
-        bonusHtml = `
-            <div class="numbers-row">
-                ${bonusHtml}
-            </div>
-            <div class="bonus-label">Bonus Numbers</div>
-        `;
-    }
-    
-    const date = new Date(prediction.created_at).toLocaleDateString();
-    
-    return `
-        <div class="prediction-card">
-            <div class="confidence">${prediction.confidence}% Confidence</div>
-            
-            <div class="numbers-container">
-                <div class="numbers-row">
-                    ${mainNumbersHtml}
-                </div>
-                ${bonusHtml}
-            </div>
-            
-            <div class="prediction-date">Generated: ${date}</div>
-        </div>
-    `;
-}
-
-function showEmptyState() {
-    document.getElementById('predictions-content').innerHTML = `
-        <div class="empty-state">
-            <i class="fas fa-brain fa-3x mb-3"></i>
-            <h3>No AI Predictions Available</h3>
-            <p>AI predictions will appear here once they are generated.</p>
-        </div>
-    `;
-}
 </script>
 {% endblock %}

@@ -943,11 +943,87 @@ def visualizations():
                              latest_draw_date=datetime.now(),
                              lottery_types=['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO'])
 
-# Predictions Route - Admin Only
+# Predictions Route - Public Access
 @app.route('/predictions')
 def predictions():
     """AI lottery predictions page - Public access"""
-    return render_template('ai_predictions_simple.html')
+    try:
+        # Connect to database and fetch latest predictions
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Get the latest predictions grouped by game type
+        cur.execute("""
+            SELECT DISTINCT ON (game_type) 
+                game_type, 
+                predicted_numbers, 
+                bonus_numbers, 
+                confidence_score, 
+                reasoning, 
+                target_draw_date, 
+                created_at,
+                prediction_method
+            FROM lottery_predictions 
+            WHERE validation_status = 'pending' OR validation_status IS NULL
+            ORDER BY game_type, created_at DESC
+        """)
+        
+        predictions_data = cur.fetchall()
+        predictions = []
+        
+        for row in predictions_data:
+            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method = row
+            
+            # Parse the PostgreSQL arrays
+            import json
+            import re
+            
+            # Convert PostgreSQL array format to Python list
+            if predicted_nums:
+                # Handle both {1,2,3} and [1,2,3] formats
+                nums_str = str(predicted_nums)
+                if nums_str.startswith('{') and nums_str.endswith('}'):
+                    # PostgreSQL array format
+                    nums_str = nums_str[1:-1]  # Remove braces
+                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                else:
+                    # JSON format
+                    main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+            else:
+                main_numbers = []
+            
+            # Parse bonus numbers similarly
+            if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                bonus_str = str(bonus_nums)
+                if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                    bonus_str = bonus_str[1:-1]
+                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                else:
+                    bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
+            else:
+                bonus_numbers = []
+            
+            predictions.append({
+                'game_type': game_type,
+                'main_numbers': sorted(main_numbers) if main_numbers else [],
+                'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                'confidence': round(confidence * 100) if confidence else 0,
+                'reasoning': reasoning[:200] + '...' if reasoning and len(reasoning) > 200 else reasoning,
+                'target_date': target_date,
+                'created_at': created_at,
+                'method': method
+            })
+        
+        cur.close()
+        conn.close()
+        
+        logger.info(f"Loaded {len(predictions)} AI predictions for display")
+        
+        return render_template('ai_predictions_simple.html', predictions=predictions)
+        
+    except Exception as e:
+        logger.error(f"Error loading predictions: {e}")
+        return render_template('ai_predictions_simple.html', predictions=[])
 
 # Weekly predictions trigger - Admin Only
 @app.route('/trigger-weekly-predictions', methods=['POST'])
