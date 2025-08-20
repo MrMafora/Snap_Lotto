@@ -180,6 +180,11 @@
                             <div class="confidence">{{ prediction.confidence }}% Confidence</div>
                             
                             <div class="numbers-container">
+                                <!-- Debug info -->
+                                <div class="text-muted small mb-2">
+                                    Main: {{ prediction.main_numbers|string }} ({{ prediction.main_numbers|length }} numbers)
+                                </div>
+                                
                                 {% if prediction.main_numbers and prediction.main_numbers|length > 0 %}
                                     <div class="numbers-row">
                                         {% for number in prediction.main_numbers %}
@@ -187,11 +192,13 @@
                                         {% endfor %}
                                     </div>
                                 {% else %}
-                                    <div class="alert alert-warning">No main numbers available</div>
+                                    <div class="alert alert-warning">
+                                        No main numbers available. Raw: {{ prediction.main_numbers|string }}
+                                    </div>
                                 {% endif %}
                                 
                                 {% if prediction.bonus_numbers and prediction.bonus_numbers|length > 0 %}
-                                    <div class="numbers-row">
+                                    <div class="numbers-row mt-2">
                                         {% for number in prediction.bonus_numbers %}
                                             <div class="bonus-ball">{{ number }}</div>
                                         {% endfor %}
