@@ -947,7 +947,7 @@ def visualizations():
 @app.route('/predictions')
 def predictions():
     """AI lottery predictions page - Public access"""
-    return render_template('predictions_new.html')
+    return render_template('ai_predictions_simple.html')
 
 # Weekly predictions trigger - Admin Only
 @app.route('/trigger-weekly-predictions', methods=['POST'])

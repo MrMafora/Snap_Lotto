@@ -345,11 +345,6 @@
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center py-2 px-2" href="/visualizations"><i class="fas fa-chart-bar me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Analytics</a>
                     </li>
-                    {% if current_user.is_authenticated and current_user.is_admin %}
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/predictions"><i class="fas fa-brain me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> AI Predictions</a>
-                    </li>
-                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center py-2 px-2 {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}" href="/scanner-landing"><i class="fas fa-ticket-alt me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Scanner</a>
                     </li>
@@ -364,6 +359,7 @@
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 {% if current_user.is_admin %}
                                 <li><a class="dropdown-item" href="{{ url_for('admin') }}"><i class="fas fa-shield-alt me-2"></i> Admin Dashboard</a></li>
+                                <li><a class="dropdown-item" href="/predictions"><i class="fas fa-brain me-2"></i> AI Predictions</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 {% endif %}
                                 <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
