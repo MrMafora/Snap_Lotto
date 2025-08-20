@@ -350,46 +350,7 @@ window.renderHotColdNumbers = function(frequencyData) {
             }, 100);
         }
         
-        // Update Numbers Not Drawn Recently section
-        const absentNumbersContainer = document.getElementById('absentNumbersContainer');
-        console.log('CHART RENDERER: Found absentNumbersContainer:', !!absentNumbersContainer);
-        
-        if (absentNumbersContainer && coldNumbers.length > 0) {
-            let absentHTML = '';
-            
-            // Show the 5 least frequent numbers as "not drawn recently"
-            const absentNumbers = coldNumbers.slice(0, 5);
-            absentNumbers.forEach((item, index) => {
-                absentHTML += `
-                    <div class="absent-number-item interactive-number me-1 mb-1" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer; display: inline-block !important;">
-                        <span class="lottery-ball lottery-ball-green" style="display: inline-flex !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; align-items: center !important; justify-content: center !important; font-weight: bold !important; font-size: 16px !important; color: white !important; background-color: var(--lottery-green) !important;">
-                            <span class="number">${item.number}</span>
-                        </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${item.frequency}x</small>
-                    </div>
-                `;
-            });
-            
-            console.log('CHART RENDERER: Setting absentNumbersContainer innerHTML');
-            absentNumbersContainer.innerHTML = absentHTML;
-            console.log('CHART RENDERER: After setting HTML, absent container children count:', absentNumbersContainer.children.length);
-            
-            // Add click event listeners to absent numbers
-            setTimeout(() => {
-                absentNumbersContainer.querySelectorAll('.interactive-number').forEach(element => {
-                    element.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const number = parseInt(this.getAttribute('data-number'));
-                        const frequency = parseInt(this.getAttribute('data-frequency'));
-                        console.log('Absent number clicked:', number, frequency);
-                        if (typeof window.highlightNumber === 'function') {
-                            window.highlightNumber(number, frequency);
-                        }
-                    });
-                });
-            }, 100);
-        }
+
         
     } catch (error) {
         console.error('Error rendering hot/cold numbers:', error);

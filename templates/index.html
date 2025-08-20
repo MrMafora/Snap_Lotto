@@ -717,22 +717,7 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Numbers Not Drawn Recently -->
-                        <div class="absent-numbers">
-                            <h6 class="fw-bold text-success mb-2">
-                                <i class="fas fa-clock me-1"></i> Numbers Not Drawn Recently
-                                <small class="text-muted">(Due Numbers)</small>
-                            </h6>
-                            <div class="d-flex flex-wrap" id="absentNumbersContainer">
-                                <div class="d-flex justify-content-center align-items-center w-100">
-                                    <div class="spinner-border spinner-border-sm text-success" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <span class="ms-2 text-muted">Loading absent numbers...</span>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </div>
@@ -936,16 +921,15 @@ function updateHotColdNumbers(data) {
     }
     
     // Check if we have the new API format with direct hot_numbers, cold_numbers, etc.
-    if (data.hot_numbers && data.cold_numbers && data.absent_numbers) {
+    if (data.hot_numbers && data.cold_numbers) {
         // Use the new API format directly
         const hotNumbers = data.hot_numbers || [];
         const coldNumbers = data.cold_numbers || [];
-        const absentNumbers = data.absent_numbers || [];
+
         
         console.log('Using new API format:', {
             hotNumbers: hotNumbers.length,
-            coldNumbers: coldNumbers.length,
-            absentNumbers: absentNumbers.length
+            coldNumbers: coldNumbers.length
         });
         
         // Update hot numbers container
@@ -1017,50 +1001,7 @@ function updateHotColdNumbers(data) {
         } else {
             document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
         }
-        
-        // Update absent numbers container
-        const absentNumbersContainer = document.getElementById('absentNumbersContainer');
-        if (absentNumbersContainer && absentNumbers.length > 0) {
-            let absentHTML = '';
-            
-            absentNumbers.slice(0, 5).forEach((number, index) => {
-                // Find frequency for this number from frequency_data
-                const frequencyItem = data.frequency_data.find(item => item.number === number);
-                const frequency = frequencyItem ? frequencyItem.frequency : 0;
-                
-                absentHTML += `
-                    <div class="absent-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
-                        <span class="lottery-ball lottery-ball-red">
-                            <span class="number">${number}</span>
-                        </span>
-                        <small class="frequency-label d-block text-center mt-1" style="font-size: 0.65rem;">${frequency}x</small>
-                    </div>
-                `;
-            });
-            
-            absentNumbersContainer.innerHTML = absentHTML;
-            
-            // Add click event listeners to absent numbers
-            setTimeout(() => {
-                absentNumbersContainer.querySelectorAll('.interactive-number').forEach(element => {
-                    element.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const number = parseInt(this.getAttribute('data-number'));
-                        const frequency = parseInt(this.getAttribute('data-frequency'));
-                        console.log('Absent number clicked:', number, frequency);
-                        if (typeof window.highlightNumber === 'function') {
-                            window.highlightNumber(number, frequency);
-                        }
-                        if (typeof window.showNumberDetails === 'function') {
-                            window.showNumberDetails(number);
-                        }
-                    });
-                });
-            }, 100);
-        } else {
-            document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
-        }
+
         
         // Hide loading indicator
         if (hotColdLoading) {
@@ -1086,7 +1027,7 @@ function updateHotColdNumbers(data) {
     if (!selectedLotteryType) {
         document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
         document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
-        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
+
         
         // Hide loading indicator
         if (hotColdLoading) {
@@ -1120,22 +1061,7 @@ function updateHotColdNumbers(data) {
     // Then get the 5 least frequent numbers that have been drawn at least once
     const coldNumbers = nonZeroFrequencies.slice(-5).reverse().map(item => [item.number, item.frequency]);
     
-    // Determine which numbers haven't been drawn recently (frequency = 0)
-    let absentNumbers = numberFrequencies
-        .filter(item => item.frequency === 0)
-        .map(item => [item.number, Math.floor(Math.random() * 20) + 10]) // Simulate days since last drawn
-        .slice(0, 5);
-        
-    // If there are no absent numbers (no zeros in the frequency data), 
-    // use the least frequently drawn numbers instead
-    if (absentNumbers.length === 0) {
-        // Get the bottom 5 numbers from the sorted frequency data
-        absentNumbers = sortedByFrequency.slice(-5).reverse().map(item => [
-            item.number, 
-            // Display days estimate based on frequency (lower frequency = more days)
-            Math.max(5, Math.floor(30 / (item.frequency + 1)))
-        ]);
-    }
+
     
     // Update Hot Numbers container
     if (topNumbers && topNumbers.length > 0) {
@@ -1177,48 +1103,7 @@ function updateHotColdNumbers(data) {
     } else {
         document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available</div>';
     }
-    
-    // Update Numbers Not Drawn Recently container
-    if (absentNumbers && absentNumbers.length > 0) {
-        let absentNumbersHTML = '';
-        
-        for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
-            const [number, days] = absentNumbers[i];
-            absentNumbersHTML += `
-                <div class="absent-number-item interactive-number me-1 mb-1" data-number="${number}" data-frequency="0" style="cursor: pointer;">
-                    <span class="lottery-ball lottery-ball-red">
-                        <span class="number">${number}</span>
-                    </span>
-                    <small class="frequency-label d-block text-center mt-1" style="font-size: 0.7rem;">${days} days</small>
-                </div>
-            `;
-        }
-        document.getElementById('absentNumbersContainer').innerHTML = absentNumbersHTML;
-        
-        // Add click event listeners to absent numbers
-        setTimeout(() => {
-            const absentContainer = document.getElementById('absentNumbersContainer');
-            if (absentContainer) {
-                absentContainer.querySelectorAll('.interactive-number').forEach(element => {
-                    element.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const number = parseInt(this.getAttribute('data-number'));
-                        const frequency = parseInt(this.getAttribute('data-frequency'));
-                        console.log('Absent number clicked:', number, frequency);
-                        if (typeof window.highlightNumber === 'function') {
-                            window.highlightNumber(number, frequency);
-                        }
-                        if (typeof window.showNumberDetails === 'function') {
-                            window.showNumberDetails(number);
-                        }
-                    });
-                });
-            }
-        }, 100);
-    } else {
-        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available</div>';
-    }
+
     
     // Hide loading indicator
     if (hotColdLoading) {
