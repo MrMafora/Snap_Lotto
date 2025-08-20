@@ -430,6 +430,55 @@ tbody, td, th {
     border: 2px solid gold !important;
 }
 
+/* Predicted numbers display styles */
+.predicted-numbers-display {
+    margin: 8px 0;
+    padding: 8px 0;
+    border-top: 1px solid #e9ecef;
+}
+
+.predicted-label, .matched-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+    margin-right: 8px;
+}
+
+.predicted-ball-small, .matched-ball-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: bold;
+    margin: 0 3px 2px 0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background-color: #6c757d;
+    color: white;
+}
+
+.predicted-ball-small.matched {
+    background-color: #28a745;
+    border: 2px solid #1e7e34;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    animation: subtle-pulse 2s infinite;
+}
+
+.matched-ball-small {
+    background-color: #28a745;
+    border: 2px solid #1e7e34;
+    color: white;
+}
+
+@keyframes subtle-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
 @keyframes pulse-matched {
     0% {
         box-shadow: 0 0 10px gold, 0 0 5px yellow;

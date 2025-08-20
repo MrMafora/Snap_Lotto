@@ -157,6 +157,16 @@
                                 <i class="fas fa-brain"></i> AI Prediction Performance
                             </div>
                             <div class="validation-content">
+                                <!-- AI Predicted Numbers -->
+                                {% if validation_result.predicted_numbers and validation_result.predicted_numbers|length > 0 %}
+                                <div class="predicted-numbers-display mb-2">
+                                    <span class="predicted-label">AI Predicted Numbers:</span>
+                                    {% for num in validation_result.predicted_numbers %}
+                                        <span class="predicted-ball-small {% if num in validation_result.matched_numbers %}matched{% endif %}">{{ num }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
                                 <div class="validation-stats-horizontal">
                                     <div class="validation-stat-item">
                                         <span class="stat-label">Accuracy:</span>
