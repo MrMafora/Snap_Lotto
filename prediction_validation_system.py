@@ -221,7 +221,20 @@ class PredictionValidator:
                     prediction_id
                 ))
                 
+                # Also update with the specific draw number for display on result pages
+                cursor.execute("""
+                    UPDATE lottery_predictions 
+                    SET verified_draw_number = %s
+                    WHERE id = %s
+                """, (result['draw_number'], prediction_id))
+                
                 self.conn.commit()
+                
+                # Generate new prediction for this game type after successful validation
+                try:
+                    self._generate_replacement_prediction(prediction['game_type'])
+                except Exception as e:
+                    logger.error(f"Failed to generate replacement prediction for {prediction['game_type']}: {e}")
                 
                 return {
                     'success': True,
@@ -355,6 +368,26 @@ class PredictionValidator:
         except Exception as e:
             logger.error(f"Report generation error: {e}")
             return {'error': str(e)}
+    
+    def _generate_replacement_prediction(self, game_type: str):
+        """Generate a new prediction to replace the validated one"""
+        try:
+            # Import the prediction generator
+            from generate_ai_predictions import GeminiLotteryPredictor
+            
+            logger.info(f"Generating replacement prediction for {game_type}")
+            predictor = GeminiLotteryPredictor()
+            
+            # Generate single prediction for this game type
+            result = predictor.generate_single_prediction(game_type)
+            
+            if result.get('success'):
+                logger.info(f"Successfully generated replacement prediction for {game_type}")
+            else:
+                logger.error(f"Failed to generate replacement prediction: {result.get('error', 'Unknown error')}")
+                
+        except Exception as e:
+            logger.error(f"Error generating replacement prediction for {game_type}: {e}")
     
     def close(self):
         """Close database connection"""

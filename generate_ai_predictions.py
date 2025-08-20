@@ -211,6 +211,34 @@ RESPONSE FORMAT (JSON only):
         
         logger.info(f"Successfully generated {successful_predictions} predictions")
         return successful_predictions
+    
+    def generate_single_prediction(self, game_type: str) -> Dict[str, Any]:
+        """Generate a single prediction for a specific game type"""
+        try:
+            logger.info(f"Generating single prediction for {game_type}...")
+            
+            # Get historical data
+            game_data = self.get_game_data(game_type)
+            
+            if not game_data['draws']:
+                logger.warning(f"No data available for {game_type}")
+                return {'success': False, 'error': f'No data available for {game_type}'}
+            
+            # Generate AI prediction
+            prediction = self.analyze_with_gemini(game_data)
+            
+            if prediction:
+                # Save to database
+                self.save_prediction(game_type, prediction)
+                logger.info(f"Successfully generated and saved prediction for {game_type}")
+                return {'success': True, 'game_type': game_type, 'prediction': prediction}
+            else:
+                logger.error(f"Failed to generate prediction for {game_type}")
+                return {'success': False, 'error': f'Failed to generate prediction for {game_type}'}
+                
+        except Exception as e:
+            logger.error(f"Error generating single prediction for {game_type}: {e}")
+            return {'success': False, 'error': str(e)}
 
 def main():
     predictor = GeminiLotteryPredictor()

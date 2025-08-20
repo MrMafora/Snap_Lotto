@@ -140,17 +140,51 @@
                             {% for num in result.get_numbers_list() %}
                                 <span class="lottery-ball lottery-ball-lg lottery-ball-{{ 'red' if num <= 10 else 'yellow' if num <= 20 else 'green' if num <= 30 else 'blue' if num <= 40 else 'red' }}">{{ num }}</span>
                             {% endfor %}
+                            
+                            <!-- Bonus numbers in same row -->
+                            {% if result.get_bonus_numbers_list() %}
+                                <span style="margin: 0 10px; font-size: 1.2rem; color: #6c757d; font-weight: bold;">+</span>
+                                {% for num in result.get_bonus_numbers_list() %}
+                                    <span class="lottery-ball lottery-ball-lg lottery-ball-bonus">{{ num }}</span>
+                                {% endfor %}
+                            {% endif %}
                         </div>
                         
-                        {% if result.get_bonus_numbers_list() %}
-                            <div class="bonus-numbers mt-3">
-                                <span class="bonus-label">Bonus Number</span>
-                                <div class="bonus-container">
-                                    {% for num in result.get_bonus_numbers_list() %}
-                                        <span class="lottery-ball lottery-ball-lg lottery-ball-bonus">{{ num }}</span>
-                                    {% endfor %}
-                                </div>
+                        <!-- Prediction Validation Results Section -->
+                        {% if validation_result %}
+                        <div class="prediction-validation mt-3">
+                            <div class="validation-header">
+                                <i class="fas fa-brain"></i> AI Prediction Performance
                             </div>
+                            <div class="validation-content">
+                                <div class="validation-stats-horizontal">
+                                    <div class="validation-stat-item">
+                                        <span class="stat-label">Accuracy:</span>
+                                        <span class="stat-value accuracy-{{ 'good' if validation_result.accuracy_percentage >= 30 else 'fair' if validation_result.accuracy_percentage >= 15 else 'poor' }}">
+                                            {{ "%.0f"|format(validation_result.accuracy_percentage) }}%
+                                        </span>
+                                    </div>
+                                    <div class="validation-stat-item">
+                                        <span class="stat-label">Matches:</span>
+                                        <span class="stat-value">{{ validation_result.main_number_matches }}/{{ validation_result.predicted_numbers|length if validation_result.predicted_numbers else 'N/A' }}</span>
+                                    </div>
+                                    {% if validation_result.prize_tier %}
+                                    <div class="validation-stat-item">
+                                        <span class="stat-label">Prize Tier:</span>
+                                        <span class="stat-value prize-tier">{{ validation_result.prize_tier }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if validation_result.matched_numbers and validation_result.matched_numbers|length > 0 %}
+                                    <div class="matched-numbers-display mt-2">
+                                        <span class="matched-label">Matched Numbers:</span>
+                                        {% for num in validation_result.matched_numbers %}
+                                            <span class="matched-ball-small">{{ num }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -272,6 +306,90 @@
 
 .compact-prize-table th:last-child {
     padding: 6px 8px !important;
+}
+
+/* Prediction Validation Styles */
+.prediction-validation {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+}
+
+.validation-header {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.validation-stats-horizontal {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.validation-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.accuracy-good {
+    color: #28a745;
+}
+
+.accuracy-fair {
+    color: #ffc107;
+}
+
+.accuracy-poor {
+    color: #dc3545;
+}
+
+.prize-tier {
+    color: #28a745;
+}
+
+.matched-numbers-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.matched-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.matched-ball-small {
+    width: 24px;
+    height: 24px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.7rem;
 }
 </style>
 {% endblock %}

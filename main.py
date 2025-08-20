@@ -704,6 +704,49 @@ def draw_details(lottery_type, draw_number):
                         
                         logger.info(f"DRAW DETAILS: Found draw {draw_number} for {lottery_type}")
                     
+                    # Fetch validation data for this specific draw
+                    validation_result = None
+                    try:
+                        cur.execute("""
+                            SELECT predicted_numbers, bonus_numbers, main_number_matches, 
+                                   accuracy_percentage, prize_tier, matched_main_numbers, 
+                                   verified_at
+                            FROM lottery_predictions 
+                            WHERE game_type = %s 
+                            AND verified_draw_number = %s 
+                            AND is_verified = true
+                            ORDER BY verified_at DESC 
+                            LIMIT 1
+                        """, (lottery_type, draw_number))
+                        
+                        validation_row = cur.fetchone()
+                        if validation_row:
+                            validation_result = type('ValidationResult', (), {})()
+                            validation_result.predicted_numbers = validation_row[0]
+                            validation_result.bonus_numbers = validation_row[1]
+                            validation_result.main_number_matches = validation_row[2]
+                            validation_result.accuracy_percentage = float(validation_row[3]) if validation_row[3] else 0.0
+                            validation_result.prize_tier = validation_row[4]
+                            validation_result.matched_numbers = validation_row[5]
+                            validation_result.verified_at = validation_row[6]
+                            
+                            # Parse matched numbers if they're in PostgreSQL array format
+                            if validation_result.matched_numbers and isinstance(validation_result.matched_numbers, str):
+                                matched_str = str(validation_result.matched_numbers)
+                                if matched_str.startswith('{') and matched_str.endswith('}'):
+                                    matched_str = matched_str[1:-1]
+                                    validation_result.matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
+                                else:
+                                    try:
+                                        validation_result.matched_numbers = json.loads(validation_result.matched_numbers)
+                                    except:
+                                        validation_result.matched_numbers = []
+                            
+                            logger.info(f"DRAW DETAILS: Found validation data for draw {draw_number}")
+                    except Exception as val_e:
+                        logger.error(f"Failed to fetch validation data: {val_e}")
+                        validation_result = None
+                    
         except Exception as db_e:
             logger.error(f"Database connection failed: {db_e}")
             logger.error(traceback.format_exc())
@@ -726,7 +769,8 @@ def draw_details(lottery_type, draw_number):
         return render_template('draw_details.html', 
                              result=result,
                              display_name=display_name,
-                             lottery_type=lottery_type)
+                             lottery_type=lottery_type,
+                             validation_result=validation_result)
         
     except Exception as e:
         logger.error(f"Draw details error: {e}")
