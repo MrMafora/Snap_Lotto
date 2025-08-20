@@ -141,8 +141,8 @@
                                 <span class="lottery-ball lottery-ball-lg lottery-ball-{{ 'red' if num <= 10 else 'yellow' if num <= 20 else 'green' if num <= 30 else 'blue' if num <= 40 else 'red' }}">{{ num }}</span>
                             {% endfor %}
                             
-                            <!-- Bonus numbers in same row -->
-                            {% if result.get_bonus_numbers_list() %}
+                            <!-- Bonus numbers in same row (only for games that have bonus numbers) -->
+                            {% if result.get_bonus_numbers_list() and result.get_bonus_numbers_list()|length > 0 %}
                                 <span style="margin: 0 10px; font-size: 1.2rem; color: #6c757d; font-weight: bold;">+</span>
                                 {% for num in result.get_bonus_numbers_list() %}
                                     <span class="lottery-ball lottery-ball-lg lottery-ball-bonus">{{ num }}</span>
