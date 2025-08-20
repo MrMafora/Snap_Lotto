@@ -1541,7 +1541,8 @@ def admin_visualizations():
     if not current_user.is_admin:
         return redirect(url_for('index'))
     flash('Data Analytics & Visualizations - Advanced lottery data analysis tools', 'info')
-    return render_template('admin/lottery_analysis.html')
+    # Redirect to the public visualizations page but maintain admin context
+    return redirect(url_for('visualizations'))
 
 @app.route('/admin/ticket_scanner')
 @login_required

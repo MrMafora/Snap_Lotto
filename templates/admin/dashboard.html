@@ -120,10 +120,10 @@
                     <a href="{{ url_for('results') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-search me-2"></i> View All Results
                     </a>
-                    <a href="{{ url_for('visualizations') }}" class="list-group-item list-group-item-action">
+                    <a href="{{ url_for('admin_visualizations') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-chart-bar me-2"></i> Data Analytics
                     </a>
-                    <a href="/predictions?v=2" class="list-group-item list-group-item-action">
+                    <a href="{{ url_for('predictions') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-brain me-2"></i> Lottery Analysis Algorithm
                     </a>
                 </div>
