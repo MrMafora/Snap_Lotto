@@ -952,7 +952,7 @@ def predictions():
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
         
-        # Get the BEST prediction for each game type (highest confidence)
+        # Get exactly 1 prediction per game type (best confidence, most recent)
         cur.execute("""
             SELECT DISTINCT ON (game_type)
                 game_type, 
@@ -966,6 +966,7 @@ def predictions():
             FROM lottery_predictions 
             WHERE validation_status = 'pending' OR validation_status IS NULL
             ORDER BY game_type ASC, confidence_score DESC, created_at DESC
+            LIMIT 6
         """)
         
         predictions_data = cur.fetchall()
