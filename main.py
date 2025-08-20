@@ -952,7 +952,7 @@ def predictions():
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
         
-        # Get exactly 1 prediction per game type (best confidence, most recent)
+        # Get exactly 1 prediction per game type (best confidence, most recent) with validation data
         # Custom ordering: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO
         cur.execute("""
             SELECT DISTINCT ON (game_type)
@@ -963,9 +963,15 @@ def predictions():
                 reasoning, 
                 target_draw_date, 
                 created_at,
-                prediction_method
+                prediction_method,
+                is_verified,
+                main_number_matches,
+                accuracy_percentage,
+                prize_tier,
+                matched_main_numbers,
+                verified_at
             FROM lottery_predictions 
-            WHERE validation_status = 'pending' OR validation_status IS NULL
+            WHERE validation_status = 'pending' OR validation_status IS NULL OR is_verified = true
             ORDER BY game_type, confidence_score DESC, created_at DESC
         """)
         
@@ -986,7 +992,7 @@ def predictions():
         predictions = []
         
         for row in predictions_data:
-            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method = row
+            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at = row
             
             # Parse the PostgreSQL arrays
             import json
@@ -1017,6 +1023,16 @@ def predictions():
             else:
                 bonus_numbers = []
             
+            # Parse matched numbers if available
+            matched_numbers = []
+            if matched_nums and str(matched_nums) not in ['{}', '[]', 'None']:
+                matched_str = str(matched_nums)
+                if matched_str.startswith('{') and matched_str.endswith('}'):
+                    matched_str = matched_str[1:-1]
+                    matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
+                else:
+                    matched_numbers = json.loads(matched_nums) if isinstance(matched_nums, str) else matched_nums
+            
             predictions.append({
                 'game_type': game_type,
                 'main_numbers': sorted(main_numbers) if main_numbers else [],
@@ -1025,7 +1041,14 @@ def predictions():
                 'reasoning': reasoning[:200] + '...' if reasoning and len(reasoning) > 200 else reasoning,
                 'target_date': target_date,
                 'created_at': created_at,
-                'method': method
+                'method': method,
+                # Validation data
+                'is_verified': is_verified,
+                'main_number_matches': main_matches,
+                'accuracy_percentage': float(accuracy_pct) if accuracy_pct else None,
+                'prize_tier': prize_tier,
+                'matched_numbers': sorted(matched_numbers) if matched_numbers else [],
+                'verified_at': verified_at
             })
         
         cur.close()
