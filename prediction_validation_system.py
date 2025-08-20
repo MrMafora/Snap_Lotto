@@ -1,200 +1,430 @@
 #!/usr/bin/env python3
 """
-Prediction Validation System
-Automatically validates predictions against actual draw results and provides insights for improvement
+South African Lottery Prediction Validation System
+Compares AI predictions against actual lottery results and calculates accuracy metrics.
 """
 
-import logging
 import os
-import sys
+import logging
+import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from typing import List, Dict, Tuple, Optional
 import psycopg2
-from ai_lottery_predictor import AILotteryPredictor
-predictor = AILotteryPredictor()
+from psycopg2.extras import RealDictCursor
 
-# Configure logging
+# Set up logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('prediction_validation.log'),
-        logging.StreamHandler()
-    ]
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-class PredictionValidationSystem:
-    """Handles prediction validation against actual lottery results"""
-    
+class PredictionValidator:
     def __init__(self):
-        self.connection_string = os.environ.get('DATABASE_URL')
-    
-    def auto_validate_pending_predictions(self) -> Dict[str, Any]:
-        """Automatically validate predictions against available lottery results"""
-        logger.info("=== STARTING AUTOMATIC PREDICTION VALIDATION ===")
+        self.db_url = os.environ.get('DATABASE_URL')
+        if not self.db_url:
+            raise Exception("DATABASE_URL environment variable not set")
         
-        validation_results = {
-            'validated_count': 0,
-            'pending_count': 0,
-            'results': []
+        self.conn = None
+        self.connect_db()
+        
+    def connect_db(self):
+        """Connect to PostgreSQL database"""
+        try:
+            self.conn = psycopg2.connect(self.db_url)
+            logger.info("Database connection established")
+        except Exception as e:
+            logger.error(f"Database connection failed: {e}")
+            raise
+            
+    def calculate_prediction_accuracy(self, predicted_numbers: List[int], actual_numbers: List[int], 
+                                    predicted_bonus: List[int] = None, actual_bonus: List[int] = None) -> Dict:
+        """
+        Calculate detailed accuracy metrics for a prediction vs actual result
+        """
+        # Convert to sets for easier comparison
+        pred_set = set(predicted_numbers)
+        actual_set = set(actual_numbers)
+        
+        # Find matches
+        matched_main = list(pred_set.intersection(actual_set))
+        main_matches = len(matched_main)
+        
+        # Bonus number matches (for games like PowerBall)
+        bonus_matches = 0
+        matched_bonus = []
+        if predicted_bonus and actual_bonus:
+            pred_bonus_set = set(predicted_bonus)
+            actual_bonus_set = set(actual_bonus)
+            matched_bonus = list(pred_bonus_set.intersection(actual_bonus_set))
+            bonus_matches = len(matched_bonus)
+        
+        # Calculate accuracy percentage
+        total_possible_matches = len(actual_numbers)
+        accuracy_percentage = (main_matches / total_possible_matches) * 100
+        
+        # Determine prize tier based on matches
+        prize_tier = self.determine_prize_tier(main_matches, bonus_matches, len(actual_numbers))
+        
+        # Calculate overall accuracy score (0-100)
+        if predicted_bonus and actual_bonus:
+            # For bonus games, factor in bonus matches
+            total_possible = len(actual_numbers) + len(actual_bonus)
+            total_matches = main_matches + bonus_matches
+            accuracy_score = (total_matches / total_possible) * 100
+        else:
+            accuracy_score = accuracy_percentage
+            
+        return {
+            'main_number_matches': main_matches,
+            'bonus_number_matches': bonus_matches,
+            'matched_main_numbers': matched_main,
+            'matched_bonus_numbers': matched_bonus,
+            'accuracy_percentage': round(accuracy_percentage, 2),
+            'accuracy_score': round(accuracy_score, 2),
+            'prize_tier': prize_tier,
+            'validation_status': 'validated'
         }
-        
-        try:
-            with psycopg2.connect(self.connection_string) as conn:
-                with conn.cursor() as cur:
-                    # Get unvalidated predictions that should have results by now
-                    cur.execute("""
-                        SELECT p.id, p.game_type, p.predicted_numbers, p.bonus_numbers, 
-                               p.target_draw_date, p.created_at, p.confidence_score
-                        FROM lottery_predictions p
-                        WHERE p.is_verified = false 
-                        AND p.target_draw_date <= CURRENT_DATE
-                        ORDER BY p.target_draw_date DESC, p.created_at DESC
-                    """)
-                    
-                    pending_predictions = cur.fetchall()
-                    validation_results['pending_count'] = len(pending_predictions)
-                    
-                    for prediction in pending_predictions:
-                        pred_id, game_type, predicted_main, predicted_bonus, target_date, created_at, confidence = prediction
-                        
-                        # Find matching actual result
-                        actual_result = self.find_matching_draw_result(cur, game_type, target_date)
-                        
-                        if actual_result:
-                            actual_main, actual_bonus, draw_date = actual_result
-                            
-                            # Validate prediction
-                            validation = predictor.validate_prediction_against_draw(
-                                pred_id, actual_main, actual_bonus
-                            )
-                            
-                            if 'error' not in validation:
-                                validation_results['validated_count'] += 1
-                                validation_results['results'].append(validation)
-                                
-                                logger.info(f"✓ Validated {game_type} prediction {pred_id}: "
-                                          f"{validation['main_matches']} matches ({validation['accuracy_percentage']:.1f}%)")
-                            else:
-                                logger.error(f"Failed to validate prediction {pred_id}: {validation['error']}")
-                        else:
-                            logger.info(f"No matching result found for {game_type} prediction {pred_id} (target: {target_date})")
-            
-            logger.info(f"=== VALIDATION COMPLETE: {validation_results['validated_count']}/{validation_results['pending_count']} predictions validated ===")
-            
-        except Exception as e:
-            logger.error(f"Error in auto validation: {e}")
-            validation_results['error'] = str(e)
-        
-        return validation_results
     
-    def find_matching_draw_result(self, cursor, game_type: str, target_date) -> tuple:
-        """Find the actual lottery result that matches a prediction"""
-        try:
-            # Look for results within 7 days of target date
-            cursor.execute("""
-                SELECT main_numbers, bonus_numbers, draw_date
-                FROM lottery_results 
-                WHERE lottery_type = %s 
-                AND draw_date >= %s 
-                AND draw_date <= %s + INTERVAL '7 days'
-                ORDER BY ABS(EXTRACT(DAY FROM (draw_date - %s)))
-                LIMIT 1
-            """, (game_type, target_date, target_date, target_date))
-            
-            return cursor.fetchone()
-            
-        except Exception as e:
-            logger.error(f"Error finding matching draw result: {e}")
-            return None
+    def determine_prize_tier(self, main_matches: int, bonus_matches: int, total_main_numbers: int) -> str:
+        """
+        Determine prize tier based on number of matches
+        """
+        if total_main_numbers == 5:  # Daily Lotto
+            if main_matches == 5:
+                return "Division 1 (5 matches)"
+            elif main_matches == 4:
+                return "Division 2 (4 matches)"
+            elif main_matches == 3:
+                return "Division 3 (3 matches)"
+            elif main_matches == 2:
+                return "Division 4 (2 matches)"
+            else:
+                return "No Prize"
+                
+        elif total_main_numbers == 6:  # Lotto, Lotto Plus
+            if main_matches == 6:
+                return "Division 1 (6 matches)"
+            elif main_matches == 5:
+                return "Division 2 (5 matches)"
+            elif main_matches == 4:
+                return "Division 3 (4 matches)"
+            elif main_matches == 3:
+                return "Division 4 (3 matches)"
+            else:
+                return "No Prize"
+                
+        else:  # PowerBall (5 main + bonus)
+            if main_matches == 5 and bonus_matches == 1:
+                return "Division 1 (5+PB)"
+            elif main_matches == 5:
+                return "Division 2 (5)"
+            elif main_matches == 4 and bonus_matches == 1:
+                return "Division 3 (4+PB)"
+            elif main_matches == 4:
+                return "Division 4 (4)"
+            elif main_matches == 3 and bonus_matches == 1:
+                return "Division 5 (3+PB)"
+            elif main_matches == 3:
+                return "Division 6 (3)"
+            elif main_matches == 2 and bonus_matches == 1:
+                return "Division 7 (2+PB)"
+            elif main_matches == 1 and bonus_matches == 1:
+                return "Division 8 (1+PB)"
+            elif bonus_matches == 1:
+                return "Division 9 (PB only)"
+            else:
+                return "No Prize"
     
-    def get_validation_summary_report(self, days: int = 30) -> Dict[str, Any]:
-        """Generate a comprehensive validation summary report"""
+    def validate_prediction_against_result(self, prediction_id: int, lottery_result_id: int = None, 
+                                         draw_number: int = None, game_type: str = None) -> Dict:
+        """
+        Validate a specific prediction against lottery result
+        """
         try:
-            insights = predictor.get_prediction_accuracy_insights(days=days)
-            
-            report = {
-                'report_date': datetime.now().isoformat(),
-                'analysis_period': f"Last {days} days",
-                'summary': insights,
-                'recommendations': self.generate_improvement_recommendations(insights)
-            }
-            
-            return report
-            
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Get prediction details
+                cursor.execute("""
+                    SELECT * FROM lottery_predictions 
+                    WHERE id = %s
+                """, (prediction_id,))
+                
+                prediction = cursor.fetchone()
+                if not prediction:
+                    return {'error': f'Prediction {prediction_id} not found'}
+                
+                # Find matching lottery result
+                if lottery_result_id:
+                    cursor.execute("""
+                        SELECT * FROM lottery_results 
+                        WHERE id = %s
+                    """, (lottery_result_id,))
+                elif draw_number and game_type:
+                    # Map game type to lottery type
+                    lottery_type_map = {
+                        'DAILY LOTTO': 'DAILY LOTTO',
+                        'LOTTO': 'LOTTO',
+                        'LOTTO PLUS 1': 'LOTTO PLUS 1',
+                        'LOTTO PLUS 2': 'LOTTO PLUS 2',
+                        'POWERBALL': 'POWERBALL',
+                        'POWERBALL PLUS': 'POWERBALL PLUS'
+                    }
+                    
+                    cursor.execute("""
+                        SELECT * FROM lottery_results 
+                        WHERE draw_number = %s AND lottery_type = %s
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (draw_number, lottery_type_map.get(game_type, game_type)))
+                else:
+                    return {'error': 'Either lottery_result_id or draw_number+game_type must be provided'}
+                
+                result = cursor.fetchone()
+                if not result:
+                    return {'error': 'No matching lottery result found'}
+                
+                # Parse numbers from database
+                predicted_main = list(prediction['predicted_numbers'])
+                actual_main = json.loads(result['main_numbers']) if isinstance(result['main_numbers'], str) else list(result['main_numbers'])
+                
+                predicted_bonus = list(prediction['bonus_numbers']) if prediction['bonus_numbers'] else []
+                actual_bonus = json.loads(result['bonus_numbers']) if result['bonus_numbers'] and isinstance(result['bonus_numbers'], str) else (list(result['bonus_numbers']) if result['bonus_numbers'] else [])
+                
+                # Calculate accuracy
+                accuracy_data = self.calculate_prediction_accuracy(
+                    predicted_main, actual_main, predicted_bonus, actual_bonus
+                )
+                
+                # Update prediction record with validation results
+                cursor.execute("""
+                    UPDATE lottery_predictions 
+                    SET is_verified = true,
+                        verified_at = %s,
+                        main_number_matches = %s,
+                        bonus_number_matches = %s,
+                        matched_main_numbers = %s,
+                        matched_bonus_numbers = %s,
+                        accuracy_percentage = %s,
+                        accuracy_score = %s,
+                        prize_tier = %s,
+                        validation_status = %s
+                    WHERE id = %s
+                """, (
+                    datetime.now(),
+                    accuracy_data['main_number_matches'],
+                    accuracy_data['bonus_number_matches'],
+                    accuracy_data['matched_main_numbers'],
+                    accuracy_data['matched_bonus_numbers'],
+                    accuracy_data['accuracy_percentage'],
+                    accuracy_data['accuracy_score'],
+                    accuracy_data['prize_tier'],
+                    accuracy_data['validation_status'],
+                    prediction_id
+                ))
+                
+                self.conn.commit()
+                
+                return {
+                    'success': True,
+                    'prediction_id': prediction_id,
+                    'result_id': result['id'],
+                    'game_type': prediction['game_type'],
+                    'draw_number': result['draw_number'],
+                    'draw_date': str(result['draw_date']),
+                    'predicted_numbers': predicted_main,
+                    'actual_numbers': actual_main,
+                    'predicted_bonus': predicted_bonus,
+                    'actual_bonus': actual_bonus,
+                    **accuracy_data
+                }
+                
         except Exception as e:
-            logger.error(f"Error generating validation report: {e}")
+            logger.error(f"Validation error: {e}")
             return {'error': str(e)}
     
-    def generate_improvement_recommendations(self, insights: Dict[str, Any]) -> List[str]:
-        """Generate recommendations for improving prediction accuracy"""
-        recommendations = []
+    def validate_all_pending_predictions(self) -> List[Dict]:
+        """
+        Validate all pending predictions against available results
+        """
+        results = []
         
         try:
-            accuracy_stats = insights.get('accuracy_stats', [])
-            successful_numbers = insights.get('successful_numbers', [])
-            
-            if accuracy_stats:
-                # Find best and worst performing games
-                best_game = max(accuracy_stats, key=lambda x: x['avg_accuracy'])
-                worst_game = min(accuracy_stats, key=lambda x: x['avg_accuracy'])
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Get all unverified predictions
+                cursor.execute("""
+                    SELECT id, game_type, target_draw_date, created_at 
+                    FROM lottery_predictions 
+                    WHERE is_verified = false OR is_verified IS NULL
+                    ORDER BY created_at DESC
+                """)
                 
-                recommendations.append(f"Best performing game: {best_game['game_type']} ({best_game['avg_accuracy']:.1f}% accuracy)")
-                recommendations.append(f"Focus improvement on: {worst_game['game_type']} ({worst_game['avg_accuracy']:.1f}% accuracy)")
+                predictions = cursor.fetchall()
+                logger.info(f"Found {len(predictions)} pending predictions to validate")
                 
-                # Analyze confidence vs accuracy correlation
-                high_confidence_low_accuracy = [
-                    game for game in accuracy_stats 
-                    if game['avg_confidence'] > 0.4 and game['avg_accuracy'] < 20
-                ]
-                
-                if high_confidence_low_accuracy:
-                    recommendations.append("Consider reducing confidence scores for predictions that consistently underperform")
-                
-            if successful_numbers:
-                top_numbers = [str(num['number']) for num in successful_numbers[:5]]
-                recommendations.append(f"Numbers with highest success rate: {', '.join(top_numbers)}")
-                
-                # Look for patterns in successful numbers
-                hot_numbers = [num for num in successful_numbers if num['avg_matches_when_predicted'] > 1.5]
-                if hot_numbers:
-                    recommendations.append(f"Consider prioritizing these high-performing numbers in future predictions")
-            
-            # General recommendations
-            recommendations.extend([
-                "Validate predictions daily to maintain accurate performance metrics",
-                "Consider adjusting AI temperature based on game-specific accuracy patterns",
-                "Analyze number frequency patterns from recent draws for better predictions"
-            ])
-            
+                for prediction in predictions:
+                    # Find matching results based on game type and date
+                    lottery_type_map = {
+                        'DAILY LOTTO': 'DAILY LOTTO',
+                        'LOTTO': 'LOTTO',
+                        'LOTTO PLUS 1': 'LOTTO PLUS 1',
+                        'LOTTO PLUS 2': 'LOTTO PLUS 2',
+                        'POWERBALL': 'POWERBALL',
+                        'POWERBALL PLUS': 'POWERBALL PLUS'
+                    }
+                    
+                    cursor.execute("""
+                        SELECT id, draw_number, draw_date 
+                        FROM lottery_results 
+                        WHERE lottery_type = %s 
+                        AND draw_date >= %s
+                        ORDER BY draw_date ASC
+                        LIMIT 5
+                    """, (
+                        lottery_type_map.get(prediction['game_type'], prediction['game_type']),
+                        prediction['target_draw_date']
+                    ))
+                    
+                    available_results = cursor.fetchall()
+                    
+                    if available_results:
+                        # Use the first available result (closest to target date)
+                        result = available_results[0]
+                        validation_result = self.validate_prediction_against_result(
+                            prediction['id'], 
+                            draw_number=result['draw_number'],
+                            game_type=prediction['game_type']
+                        )
+                        results.append(validation_result)
+                        
+                        if validation_result.get('success'):
+                            logger.info(f"✅ Validated prediction {prediction['id']} against draw {result['draw_number']}")
+                        else:
+                            logger.warning(f"❌ Failed to validate prediction {prediction['id']}: {validation_result.get('error')}")
+                    else:
+                        logger.info(f"⏳ No results available yet for {prediction['game_type']} prediction {prediction['id']}")
+                        
         except Exception as e:
-            logger.error(f"Error generating recommendations: {e}")
-            recommendations.append("Error generating specific recommendations - review accuracy data manually")
-        
-        return recommendations
+            logger.error(f"Batch validation error: {e}")
+            
+        return results
+    
+    def generate_accuracy_report(self) -> Dict:
+        """
+        Generate comprehensive accuracy report for all validated predictions
+        """
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Overall statistics
+                cursor.execute("""
+                    SELECT 
+                        game_type,
+                        COUNT(*) as total_predictions,
+                        COUNT(CASE WHEN is_verified = true THEN 1 END) as validated_predictions,
+                        AVG(CASE WHEN is_verified = true THEN accuracy_score END) as avg_accuracy,
+                        MAX(CASE WHEN is_verified = true THEN accuracy_score END) as best_accuracy,
+                        COUNT(CASE WHEN prize_tier != 'No Prize' THEN 1 END) as winning_predictions
+                    FROM lottery_predictions 
+                    GROUP BY game_type
+                    ORDER BY game_type
+                """)
+                
+                game_stats = cursor.fetchall()
+                
+                # Recent validations
+                cursor.execute("""
+                    SELECT 
+                        game_type, accuracy_score, prize_tier, 
+                        main_number_matches, verified_at
+                    FROM lottery_predictions 
+                    WHERE is_verified = true 
+                    ORDER BY verified_at DESC 
+                    LIMIT 10
+                """)
+                
+                recent_validations = cursor.fetchall()
+                
+                return {
+                    'report_generated_at': datetime.now().isoformat(),
+                    'game_statistics': [dict(stat) for stat in game_stats],
+                    'recent_validations': [dict(val) for val in recent_validations],
+                    'summary': {
+                        'total_games': len(game_stats),
+                        'overall_avg_accuracy': round(sum(stat['avg_accuracy'] or 0 for stat in game_stats) / len(game_stats) if game_stats else 0, 2)
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Report generation error: {e}")
+            return {'error': str(e)}
+    
+    def close(self):
+        """Close database connection"""
+        if self.conn:
+            self.conn.close()
+            logger.info("Database connection closed")
 
 def main():
-    """Main execution function for validation system"""
+    """
+    Main function to run prediction validation
+    """
+    logger.info("=== STARTING PREDICTION VALIDATION SYSTEM ===")
+    
     try:
-        validator = PredictionValidationSystem()
+        validator = PredictionValidator()
         
-        # Run automatic validation
-        results = validator.auto_validate_pending_predictions()
+        # Validate all pending predictions
+        logger.info("Validating all pending predictions...")
+        validation_results = validator.validate_all_pending_predictions()
         
-        # Generate and log summary report
-        report = validator.get_validation_summary_report()
+        # Generate accuracy report
+        logger.info("Generating accuracy report...")
+        report = validator.generate_accuracy_report()
         
-        logger.info("=== VALIDATION SUMMARY ===")
-        for recommendation in report.get('recommendations', []):
-            logger.info(f"📝 {recommendation}")
+        # Print summary
+        print("\n" + "="*60)
+        print("PREDICTION VALIDATION SUMMARY")
+        print("="*60)
         
-        return 0
+        if validation_results:
+            successful = [r for r in validation_results if r.get('success')]
+            failed = [r for r in validation_results if not r.get('success')]
+            
+            print(f"✅ Successfully validated: {len(successful)} predictions")
+            print(f"❌ Failed validations: {len(failed)} predictions")
+            
+            # Show detailed results for successful validations
+            for result in successful:
+                if result.get('success'):
+                    print(f"\n🎯 {result['game_type']} Draw {result['draw_number']}:")
+                    print(f"   Predicted: {result['predicted_numbers']}")
+                    print(f"   Actual:    {result['actual_numbers']}")
+                    print(f"   Matches:   {result['main_number_matches']}/{len(result['actual_numbers'])} ({result['accuracy_percentage']}%)")
+                    print(f"   Prize:     {result['prize_tier']}")
+        
+        # Show accuracy report
+        if report and 'game_statistics' in report:
+            print("\n" + "="*60)
+            print("ACCURACY STATISTICS BY GAME")
+            print("="*60)
+            
+            for stat in report['game_statistics']:
+                print(f"\n{stat['game_type']}:")
+                print(f"  Total Predictions: {stat['total_predictions']}")
+                print(f"  Validated: {stat['validated_predictions']}")
+                print(f"  Average Accuracy: {stat['avg_accuracy']:.1f}%" if stat['avg_accuracy'] else "  Average Accuracy: N/A")
+                print(f"  Best Accuracy: {stat['best_accuracy']:.1f}%" if stat['best_accuracy'] else "  Best Accuracy: N/A")
+                print(f"  Winning Predictions: {stat['winning_predictions']}")
+        
+        validator.close()
+        
+        print(f"\n{'='*60}")
+        print("VALIDATION COMPLETE")
+        print(f"{'='*60}")
+        
+        return validation_results
         
     except Exception as e:
         logger.error(f"Validation system failed: {e}")
-        return 1
+        raise
 
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+    main()
