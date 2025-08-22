@@ -1227,6 +1227,97 @@ def api_predictions():
             'predictions': []
         })
 
+@app.route('/api/lottery-analysis/run-prediction-cycle', methods=['POST'])
+@login_required
+def run_prediction_cycle():
+    """Run validation-based prediction generation cycle"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        import psycopg2
+        from datetime import datetime, timedelta
+        from generate_ai_predictions import GeminiLotteryPredictor
+        
+        logger.info("Starting validation-based prediction cycle")
+        
+        # Connect to database
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+        cur = conn.cursor()
+        
+        # Find games that have been validated recently (last 24 hours)
+        cur.execute('''
+            SELECT DISTINCT game_type, verified_at 
+            FROM lottery_predictions 
+            WHERE is_verified = true 
+            AND verified_at >= %s
+            ORDER BY verified_at DESC
+        ''', (datetime.now() - timedelta(hours=24),))
+        
+        recent_validations = cur.fetchall()
+        logger.info(f"Found {len(recent_validations)} games validated in last 24 hours")
+        
+        # Get current pending predictions
+        cur.execute('''
+            SELECT game_type, created_at, target_draw_date 
+            FROM lottery_predictions 
+            WHERE validation_status = 'pending'
+            ORDER BY game_type
+        ''')
+        
+        pending_predictions = {row[0]: row for row in cur.fetchall()}
+        logger.info(f"Found pending predictions for: {list(pending_predictions.keys())}")
+        
+        # Determine which games need new predictions
+        games_needing_predictions = []
+        for game_type, verified_at in recent_validations:
+            # Check if this game has a fresh prediction (created after validation)
+            if game_type not in pending_predictions:
+                games_needing_predictions.append(game_type)
+                logger.info(f"{game_type} needs new prediction (no pending prediction)")
+            else:
+                pending_created_at = pending_predictions[game_type][1]
+                if pending_created_at < verified_at:
+                    games_needing_predictions.append(game_type)
+                    logger.info(f"{game_type} needs new prediction (pending is older than validation)")
+        
+        cur.close()
+        conn.close()
+        
+        # Generate predictions for validated games only
+        predictor = GeminiLotteryPredictor()
+        successful_predictions = 0
+        failed_predictions = []
+        
+        for game_type in games_needing_predictions:
+            logger.info(f'Generating prediction for {game_type}...')
+            result = predictor.generate_single_prediction(game_type)
+            
+            if result.get('success'):
+                successful_predictions += 1
+                logger.info(f'✅ Successfully generated prediction for {game_type}')
+            else:
+                failed_predictions.append(game_type)
+                logger.error(f'❌ Failed to generate prediction for {game_type}: {result.get("error")}')
+        
+        logger.info(f'Prediction cycle complete: {successful_predictions} successful, {len(failed_predictions)} failed')
+        
+        return jsonify({
+            'success': True,
+            'successful_predictions': successful_predictions,
+            'failed_predictions': failed_predictions,
+            'games_processed': games_needing_predictions,
+            'total_validated_games': len(recent_validations),
+            'message': f'Generated {successful_predictions} new predictions for validated games'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in prediction cycle: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 # Scanner Landing Route
 @app.route('/scanner-landing')
 def scanner_landing():
