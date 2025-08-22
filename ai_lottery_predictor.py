@@ -66,12 +66,12 @@ class AILotteryPredictor:
         except Exception as e:
             logger.error(f"Error initializing prediction tables: {e}")
     
-    def get_historical_data_for_prediction(self, game_type: str, days: int = 1095) -> Dict[str, Any]:
-        """Get extended historical data for advanced pattern analysis (3+ years)"""
+    def get_historical_data_for_prediction(self, game_type: str, days: int = 730) -> Dict[str, Any]:
+        """Get extended historical data for advanced pattern analysis (2 years)"""
         try:
             with psycopg2.connect(self.connection_string) as conn:
                 with conn.cursor() as cur:
-                    # Get extended historical data - 200+ draws for deep analysis
+                    # Get extended historical data - 100 draws for optimal AI processing
                     cur.execute("""
                         SELECT draw_number, draw_date, main_numbers, bonus_numbers,
                                prize_divisions, rollover_amount, estimated_jackpot,
@@ -83,7 +83,7 @@ class AILotteryPredictor:
                         WHERE game_type = %s 
                         AND draw_date >= %s
                         ORDER BY draw_date DESC 
-                        LIMIT 250
+                        LIMIT 100
                     """, (game_type, datetime.now().date() - timedelta(days=days)))
                     
                     results = cur.fetchall()
@@ -191,7 +191,7 @@ class AILotteryPredictor:
                     # Detect anomalies and pattern breaks
                     self._detect_anomalies(extended_data)
                     
-                    logger.info(f"Retrieved EXTENDED data for {game_type}: {len(extended_data['draws'])} draws with advanced pattern analysis")
+                    logger.info(f"Retrieved EXTENDED data for {game_type}: {len(extended_data['draws'])} draws (optimized for AI processing) with advanced pattern analysis")
                     return extended_data
                     
         except Exception as e:
@@ -374,9 +374,9 @@ class AILotteryPredictor:
             
             # Extract extended multi-timeframe data
             total_draws = len(historical_data.get('draws', []))
-            recent_draws = historical_data.get('draws', [])[:25]  # Expanded from 10 to 25
-            medium_term_draws = historical_data.get('draws', [])[25:100] if total_draws > 25 else []
-            long_term_draws = historical_data.get('draws', [])[100:] if total_draws > 100 else []
+            recent_draws = historical_data.get('draws', [])[:20]  # Most recent 20 draws
+            medium_term_draws = historical_data.get('draws', [])[20:60] if total_draws > 20 else []
+            long_term_draws = historical_data.get('draws', [])[60:] if total_draws > 60 else []
             
             # Extended frequency analysis - all numbers, not just top 20
             frequency_analysis = historical_data.get('frequency_analysis', {})
@@ -397,13 +397,13 @@ class AILotteryPredictor:
             
             === MULTI-TIMEFRAME ANALYSIS ===
             
-            RECENT DRAWS (Last 25 - Most Relevant):
-            {json.dumps(recent_draws[:15], indent=2)}
+            RECENT DRAWS (Last 20 - Most Relevant):
+            {json.dumps(recent_draws[:12], indent=2)}
             
-            MEDIUM-TERM PATTERN (Draws 26-100):
+            MEDIUM-TERM PATTERN (Draws 21-60):
             Total draws analyzed: {len(medium_term_draws)}
             
-            LONG-TERM HISTORICAL (100+ draws):
+            LONG-TERM HISTORICAL (60+ draws):
             Total historical draws: {len(long_term_draws)}
             
             === COMPREHENSIVE FREQUENCY ANALYSIS ===
@@ -436,7 +436,7 @@ class AILotteryPredictor:
             3. DROUGHT CYCLE EXPLOITATION: Consider numbers with extended absence periods for statistical reversion
             4. HOT/COLD TRANSITION ANALYSIS: Leverage numbers transitioning between frequency states
             5. ANOMALY-INFORMED PREDICTIONS: Use pattern break detection to avoid or favor certain combinations
-            6. MULTI-TIMEFRAME SYNTHESIS: Blend recent (25 draws), medium-term (75 draws), and long-term (100+ draws) patterns
+            6. MULTI-TIMEFRAME SYNTHESIS: Blend recent (20 draws), medium-term (40 draws), and long-term (40+ draws) patterns
             
             VARIATION SEED: {variation_seed}
             
