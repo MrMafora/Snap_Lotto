@@ -651,7 +651,7 @@ class AILotteryPredictor:
             RECENT PATTERNS: {json.dumps(recent_draws[:8], indent=1)}
             CYCLICAL: {historical_data.get('cyclical_patterns', {}).get('monthly_trends', {})}
             
-            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 60, "reasoning": "pattern analysis"}
+            Return JSON: {{"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 60, "reasoning": "pattern analysis"}}
             """
             
             response = self.client.models.generate_content(
@@ -706,7 +706,7 @@ class AILotteryPredictor:
             
             STRATEGY: Balance hot numbers (continuing trends) with cold numbers (due for reversion)
             
-            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 55, "reasoning": "frequency analysis"}
+            Return JSON: {{"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 55, "reasoning": "frequency analysis"}}
             """
             
             response = self.client.models.generate_content(
@@ -768,7 +768,7 @@ class AILotteryPredictor:
                 
                 APPROACH: Use statistical principles, normal distribution, and mathematical probability
                 
-                Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 50, "reasoning": "statistical regression"}
+                Return JSON: {{"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 50, "reasoning": "statistical regression"}}
                 """
                 
                 response = self.client.models.generate_content(
@@ -824,7 +824,7 @@ class AILotteryPredictor:
             STRATEGY: Generate numbers that avoid consecutive patterns, same-digit clusters, and statistical outliers
             Favor balanced, distributed selections
             
-            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 58, "reasoning": "anomaly avoidance"}
+            Return JSON: {{"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 58, "reasoning": "anomaly avoidance"}}
             """
             
             response = self.client.models.generate_content(
@@ -879,7 +879,7 @@ class AILotteryPredictor:
             STRATEGY: Synthesize frequency data, drought patterns, mathematical distribution, and transition analysis
             Balance recent trends with statistical reversion probability
             
-            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 62, "reasoning": "hybrid mathematical synthesis"}
+            Return JSON: {{"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 62, "reasoning": "hybrid mathematical synthesis"}}
             """
             
             response = self.client.models.generate_content(
