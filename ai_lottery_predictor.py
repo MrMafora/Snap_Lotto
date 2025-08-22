@@ -12,6 +12,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from collections import defaultdict, Counter
 from dataclasses import dataclass
+import statistics
+import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import Google Gemini
 from google import genai
@@ -29,6 +32,16 @@ class LotteryPrediction:
     prediction_method: str
     reasoning: str
     created_at: datetime
+    ensemble_composition: Optional[Dict[str, Any]] = None
+    model_weights: Optional[Dict[str, float]] = None
+
+@dataclass 
+class ModelPrediction:
+    model_name: str
+    predicted_numbers: List[int]
+    bonus_numbers: List[int]
+    confidence_score: float
+    reasoning: str
 
 class AILotteryPredictor:
     """Optimized AI Lottery Predictor with focused game-specific analysis"""
@@ -58,7 +71,26 @@ class AILotteryPredictor:
                             bonus_number_matches INTEGER DEFAULT 0,
                             accuracy_percentage DECIMAL(5,2),
                             prize_tier VARCHAR(50),
-                            validation_status VARCHAR(20) DEFAULT 'pending'
+                            validation_status VARCHAR(20) DEFAULT 'pending',
+                            ensemble_composition JSONB,
+                            model_weights JSONB
+                        );
+                        
+                        CREATE TABLE IF NOT EXISTS model_performance_tracking (
+                            id SERIAL PRIMARY KEY,
+                            model_name VARCHAR(100) NOT NULL,
+                            game_type VARCHAR(50) NOT NULL,
+                            prediction_date DATE NOT NULL,
+                            predicted_numbers INTEGER[] NOT NULL,
+                            bonus_numbers INTEGER[],
+                            confidence_score DECIMAL(5,4),
+                            accuracy_percentage DECIMAL(5,2),
+                            main_number_matches INTEGER DEFAULT 0,
+                            bonus_number_matches INTEGER DEFAULT 0,
+                            prize_tier VARCHAR(50),
+                            weight_used DECIMAL(5,4),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(model_name, game_type, prediction_date)
                         )
                     """)
                     conn.commit()
@@ -80,7 +112,7 @@ class AILotteryPredictor:
                                EXTRACT(QUARTER FROM draw_date) as quarter,
                                EXTRACT(YEAR FROM draw_date) as year
                         FROM lottery_results 
-                        WHERE game_type = %s 
+                        WHERE lottery_type = %s 
                         AND draw_date >= %s
                         ORDER BY draw_date DESC 
                         LIMIT 100
@@ -366,8 +398,554 @@ class AILotteryPredictor:
         
         return []
     
+    # ========== MULTI-MODEL ENSEMBLE SYSTEM ==========
+    
+    def generate_ensemble_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[LotteryPrediction]:
+        """Generate prediction using Multi-Model Ensemble - runs 5 AI models and combines results"""
+        try:
+            logger.info(f"🎯 Starting Multi-Model Ensemble prediction for {game_type}")
+            
+            # Get current model weights based on historical performance
+            model_weights = self._get_model_weights(game_type)
+            
+            # Run all 5 AI models in parallel
+            model_predictions = self._run_all_models_parallel(game_type, historical_data)
+            
+            if not model_predictions:
+                logger.error("No model predictions generated")
+                return None
+            
+            # Combine predictions using weighted voting
+            ensemble_result = self._combine_predictions_weighted_voting(model_predictions, model_weights, game_type)
+            
+            if ensemble_result:
+                # Store individual model performance for future weight adjustments
+                self._store_model_performances(model_predictions, game_type)
+                logger.info(f"✅ Ensemble prediction generated successfully for {game_type}")
+                
+            return ensemble_result
+            
+        except Exception as e:
+            logger.error(f"Error generating ensemble prediction: {e}")
+            return None
+    
+    def _get_model_weights(self, game_type: str) -> Dict[str, float]:
+        """Get model weights based on historical performance"""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor() as cur:
+                    # Get recent performance for each model
+                    cur.execute("""
+                        SELECT model_name, 
+                               AVG(accuracy_percentage) as avg_accuracy,
+                               COUNT(*) as prediction_count
+                        FROM model_performance_tracking 
+                        WHERE game_type = %s 
+                        AND prediction_date >= CURRENT_DATE - INTERVAL '30 days'
+                        GROUP BY model_name
+                    """, (game_type,))
+                    
+                    performance_data = cur.fetchall()
+                    
+                    if not performance_data:
+                        # Default equal weights for new games
+                        return {
+                            'pattern_analysis': 0.20,
+                            'frequency_analysis': 0.20,
+                            'statistical_regression': 0.20,
+                            'anomaly_detection': 0.20,
+                            'hybrid_mathematical': 0.20
+                        }
+                    
+                    # Calculate dynamic weights based on performance
+                    total_accuracy = sum(row[1] for row in performance_data if row[1])
+                    
+                    weights = {}
+                    for model_name, avg_accuracy, count in performance_data:
+                        if avg_accuracy and total_accuracy > 0:
+                            # Higher accuracy gets higher weight
+                            weight = (avg_accuracy / total_accuracy) * 0.8  # Base weight on accuracy
+                            weight += 0.04  # Minimum weight of 4% for each model
+                            weights[model_name] = weight
+                        else:
+                            weights[model_name] = 0.20
+                    
+                    # Ensure all 5 models have weights
+                    all_models = ['pattern_analysis', 'frequency_analysis', 'statistical_regression', 'anomaly_detection', 'hybrid_mathematical']
+                    for model in all_models:
+                        if model not in weights:
+                            weights[model] = 0.20
+                    
+                    # Normalize weights to sum to 1.0
+                    total_weight = sum(weights.values())
+                    if total_weight > 0:
+                        weights = {k: v/total_weight for k, v in weights.items()}
+                    
+                    logger.info(f"Model weights for {game_type}: {weights}")
+                    return weights
+                    
+        except Exception as e:
+            logger.error(f"Error getting model weights: {e}")
+            # Return default equal weights
+            return {
+                'pattern_analysis': 0.20,
+                'frequency_analysis': 0.20,
+                'statistical_regression': 0.20,
+                'anomaly_detection': 0.20,
+                'hybrid_mathematical': 0.20
+            }
+    
+    def _run_all_models_parallel(self, game_type: str, historical_data: Dict[str, Any]) -> List[ModelPrediction]:
+        """Run all 5 AI models in parallel for faster processing"""
+        predictions = []
+        
+        # Define all model functions
+        model_functions = [
+            ('pattern_analysis', self._generate_pattern_analysis_prediction),
+            ('frequency_analysis', self._generate_frequency_analysis_prediction),
+            ('statistical_regression', self._generate_statistical_regression_prediction),
+            ('anomaly_detection', self._generate_anomaly_detection_prediction),
+            ('hybrid_mathematical', self._generate_hybrid_mathematical_prediction)
+        ]
+        
+        # Run models in parallel using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(func, game_type, historical_data): model_name 
+                for model_name, func in model_functions
+            }
+            
+            for future in as_completed(futures):
+                model_name = futures[future]
+                try:
+                    prediction = future.result(timeout=60)  # 60 second timeout per model
+                    if prediction:
+                        predictions.append(prediction)
+                        logger.info(f"✅ {model_name} model completed")
+                    else:
+                        logger.warning(f"⚠️ {model_name} model returned no prediction")
+                except Exception as e:
+                    logger.error(f"❌ {model_name} model failed: {e}")
+        
+        logger.info(f"Completed {len(predictions)}/5 model predictions")
+        return predictions
+    
+    def _combine_predictions_weighted_voting(self, model_predictions: List[ModelPrediction], 
+                                            model_weights: Dict[str, float], game_type: str) -> Optional[LotteryPrediction]:
+        """Combine multiple model predictions using weighted voting"""
+        try:
+            if not model_predictions:
+                return None
+                
+            game_config = self.get_game_configuration(game_type)
+            
+            # Collect all number votes with weights
+            number_votes = defaultdict(float)
+            bonus_votes = defaultdict(float)
+            total_confidence = 0
+            ensemble_reasoning = []
+            
+            for prediction in model_predictions:
+                model_weight = model_weights.get(prediction.model_name, 0.20)
+                
+                # Weight main numbers
+                for number in prediction.predicted_numbers:
+                    number_votes[number] += model_weight * prediction.confidence_score
+                
+                # Weight bonus numbers
+                if prediction.bonus_numbers:
+                    for bonus in prediction.bonus_numbers:
+                        bonus_votes[bonus] += model_weight * prediction.confidence_score
+                
+                total_confidence += model_weight * prediction.confidence_score
+                ensemble_reasoning.append(f"{prediction.model_name}({model_weight:.2f}): {prediction.reasoning[:50]}...")
+            
+            # Select top-voted numbers
+            sorted_main_numbers = sorted(number_votes.items(), key=lambda x: x[1], reverse=True)
+            final_main_numbers = [num for num, vote in sorted_main_numbers[:game_config['main_count']]]
+            
+            final_bonus_numbers = []
+            if game_config['bonus_count'] > 0 and bonus_votes:
+                sorted_bonus_numbers = sorted(bonus_votes.items(), key=lambda x: x[1], reverse=True)
+                final_bonus_numbers = [num for num, vote in sorted_bonus_numbers[:game_config['bonus_count']]]
+            
+            # Create ensemble composition details
+            ensemble_composition = {
+                'models_used': [p.model_name for p in model_predictions],
+                'model_weights': model_weights,
+                'number_votes': dict(sorted_main_numbers[:10]),  # Top 10 voted numbers
+                'total_models': len(model_predictions)
+            }
+            
+            # Create final prediction
+            ensemble_prediction = LotteryPrediction(
+                game_type=game_type,
+                predicted_numbers=sorted(final_main_numbers),
+                bonus_numbers=sorted(final_bonus_numbers),
+                confidence_score=min(total_confidence / len(model_predictions), 1.0),
+                prediction_method="Multi_Model_Ensemble",
+                reasoning=f"Ensemble of {len(model_predictions)} models: " + "; ".join(ensemble_reasoning[:3]),
+                created_at=datetime.now(),
+                ensemble_composition=ensemble_composition,
+                model_weights=model_weights
+            )
+            
+            return ensemble_prediction
+            
+        except Exception as e:
+            logger.error(f"Error combining predictions: {e}")
+            return None
+    
+    def _store_model_performances(self, model_predictions: List[ModelPrediction], game_type: str):
+        """Store individual model predictions for future performance tracking"""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor() as cur:
+                    prediction_date = datetime.now().date()
+                    
+                    for prediction in model_predictions:
+                        cur.execute("""
+                            INSERT INTO model_performance_tracking 
+                            (model_name, game_type, prediction_date, predicted_numbers, 
+                             bonus_numbers, confidence_score, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (model_name, game_type, prediction_date) 
+                            DO UPDATE SET 
+                                predicted_numbers = EXCLUDED.predicted_numbers,
+                                bonus_numbers = EXCLUDED.bonus_numbers,
+                                confidence_score = EXCLUDED.confidence_score,
+                                created_at = EXCLUDED.created_at
+                        """, (
+                            prediction.model_name,
+                            game_type,
+                            prediction_date,
+                            prediction.predicted_numbers,
+                            prediction.bonus_numbers,
+                            prediction.confidence_score,
+                            datetime.now()
+                        ))
+                    
+                    conn.commit()
+                    logger.info(f"Stored {len(model_predictions)} model performances for {game_type}")
+                    
+        except Exception as e:
+            logger.error(f"Error storing model performances: {e}")
+    
+    # ========== INDIVIDUAL AI MODELS ==========
+    
+    def _generate_pattern_analysis_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[ModelPrediction]:
+        """Model 1: Pattern Analysis - Extended historical analysis approach"""
+        try:
+            game_config = self.get_game_configuration(game_type)
+            total_draws = len(historical_data.get('draws', []))
+            recent_draws = historical_data.get('draws', [])[:20]
+            
+            prompt = f"""
+            PATTERN ANALYSIS MODEL for {game_type} - {total_draws} draws analyzed
+            
+            GAME RULES: Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
+            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            
+            FOCUS: Pattern recognition, sequence analysis, cyclical trends
+            
+            RECENT PATTERNS: {json.dumps(recent_draws[:8], indent=1)}
+            CYCLICAL: {historical_data.get('cyclical_patterns', {}).get('monthly_trends', {})}
+            
+            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 60, "reasoning": "pattern analysis"}
+            """
+            
+            response = self.client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.6,
+                    max_output_tokens=512
+                )
+            )
+            
+            if response.text:
+                data = json.loads(response.text)
+                main_numbers = self.validate_numbers(data.get('main_numbers', []), game_config['main_count'], game_config['main_range'])
+                bonus_numbers = self.validate_numbers(data.get('bonus_numbers', []), game_config['bonus_count'], game_config['bonus_range']) if game_config['bonus_count'] > 0 else []
+                
+                return ModelPrediction(
+                    model_name='pattern_analysis',
+                    predicted_numbers=sorted(main_numbers),
+                    bonus_numbers=sorted(bonus_numbers),
+                    confidence_score=data.get('confidence_percentage', 60) / 100.0,
+                    reasoning=data.get('reasoning', 'Pattern analysis based prediction')
+                )
+                
+        except Exception as e:
+            logger.error(f"Pattern analysis model error: {e}")
+            return None
+    
+    def _generate_frequency_analysis_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[ModelPrediction]:
+        """Model 2: Pure Frequency Analysis - Focus on hot/cold numbers"""
+        try:
+            game_config = self.get_game_configuration(game_type)
+            frequency_analysis = historical_data.get('frequency_analysis', {})
+            
+            # Get hot and cold numbers
+            sorted_freq = sorted(frequency_analysis.items(), key=lambda x: x[1], reverse=True)
+            hot_numbers = [num for num, freq in sorted_freq[:15]]
+            cold_numbers = [num for num, freq in sorted_freq[-10:]]
+            
+            prompt = f"""
+            FREQUENCY ANALYSIS MODEL for {game_type}
+            
+            GAME RULES: Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
+            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            
+            FOCUS: Statistical frequency, hot/cold number theory, reversion analysis
+            
+            HOT NUMBERS (most frequent): {hot_numbers}
+            COLD NUMBERS (least frequent): {cold_numbers}
+            FREQUENCY DATA: {dict(sorted_freq[:20])}
+            
+            STRATEGY: Balance hot numbers (continuing trends) with cold numbers (due for reversion)
+            
+            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 55, "reasoning": "frequency analysis"}
+            """
+            
+            response = self.client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.7,
+                    max_output_tokens=512
+                )
+            )
+            
+            if response.text:
+                data = json.loads(response.text)
+                main_numbers = self.validate_numbers(data.get('main_numbers', []), game_config['main_count'], game_config['main_range'])
+                bonus_numbers = self.validate_numbers(data.get('bonus_numbers', []), game_config['bonus_count'], game_config['bonus_range']) if game_config['bonus_count'] > 0 else []
+                
+                return ModelPrediction(
+                    model_name='frequency_analysis',
+                    predicted_numbers=sorted(main_numbers),
+                    bonus_numbers=sorted(bonus_numbers),
+                    confidence_score=data.get('confidence_percentage', 55) / 100.0,
+                    reasoning=data.get('reasoning', 'Frequency-based statistical analysis')
+                )
+                
+        except Exception as e:
+            logger.error(f"Frequency analysis model error: {e}")
+            return None
+    
+    def _generate_statistical_regression_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[ModelPrediction]:
+        """Model 3: Statistical/Mathematical Regression - Pure probability approach"""
+        try:
+            game_config = self.get_game_configuration(game_type)
+            all_numbers = historical_data.get('all_numbers', [])
+            total_draws = len(historical_data.get('draws', []))
+            
+            # Calculate statistical metrics
+            if all_numbers:
+                avg_number = statistics.mean(all_numbers)
+                median_number = statistics.median(all_numbers)
+                
+                # Calculate expected frequencies
+                expected_freq = len(all_numbers) / game_config['main_range']
+                
+                prompt = f"""
+                STATISTICAL REGRESSION MODEL for {game_type}
+                
+                GAME RULES: Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
+                {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+                
+                FOCUS: Mathematical probability, statistical regression, uniform distribution theory
+                
+                STATISTICAL METRICS:
+                - Total draws analyzed: {total_draws}
+                - Average number: {avg_number:.2f}
+                - Median number: {median_number}
+                - Expected frequency per number: {expected_freq:.2f}
+                - Total number range: 1-{game_config['main_range']}
+                
+                APPROACH: Use statistical principles, normal distribution, and mathematical probability
+                
+                Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 50, "reasoning": "statistical regression"}
+                """
+                
+                response = self.client.models.generate_content(
+                    model="gemini-2.5-pro",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.4,  # Lower temperature for mathematical approach
+                        max_output_tokens=512
+                    )
+                )
+                
+                if response.text:
+                    data = json.loads(response.text)
+                    main_numbers = self.validate_numbers(data.get('main_numbers', []), game_config['main_count'], game_config['main_range'])
+                    bonus_numbers = self.validate_numbers(data.get('bonus_numbers', []), game_config['bonus_count'], game_config['bonus_range']) if game_config['bonus_count'] > 0 else []
+                    
+                    return ModelPrediction(
+                        model_name='statistical_regression',
+                        predicted_numbers=sorted(main_numbers),
+                        bonus_numbers=sorted(bonus_numbers),
+                        confidence_score=data.get('confidence_percentage', 50) / 100.0,
+                        reasoning=data.get('reasoning', 'Mathematical regression analysis')
+                    )
+            
+        except Exception as e:
+            logger.error(f"Statistical regression model error: {e}")
+            return None
+    
+    def _generate_anomaly_detection_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[ModelPrediction]:
+        """Model 4: Anomaly Detection - Focus on avoiding unusual patterns"""
+        try:
+            game_config = self.get_game_configuration(game_type)
+            anomaly_data = historical_data.get('anomaly_detection', {})
+            recent_draws = historical_data.get('draws', [])[:10]
+            
+            # Extract anomaly information
+            unusual_combinations = anomaly_data.get('unusual_combinations', [])
+            pattern_breaks = anomaly_data.get('pattern_breaks', [])
+            
+            prompt = f"""
+            ANOMALY DETECTION MODEL for {game_type}
+            
+            GAME RULES: Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
+            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            
+            FOCUS: Avoid anomalous patterns, predict statistically normal combinations
+            
+            RECENT DRAWS: {json.dumps(recent_draws[:5], indent=1)}
+            UNUSUAL COMBINATIONS DETECTED: {len(unusual_combinations)} anomalies
+            PATTERN BREAKS: {len(pattern_breaks)} breaks detected
+            
+            STRATEGY: Generate numbers that avoid consecutive patterns, same-digit clusters, and statistical outliers
+            Favor balanced, distributed selections
+            
+            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 58, "reasoning": "anomaly avoidance"}
+            """
+            
+            response = self.client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.5,
+                    max_output_tokens=512
+                )
+            )
+            
+            if response.text:
+                data = json.loads(response.text)
+                main_numbers = self.validate_numbers(data.get('main_numbers', []), game_config['main_count'], game_config['main_range'])
+                bonus_numbers = self.validate_numbers(data.get('bonus_numbers', []), game_config['bonus_count'], game_config['bonus_range']) if game_config['bonus_count'] > 0 else []
+                
+                return ModelPrediction(
+                    model_name='anomaly_detection',
+                    predicted_numbers=sorted(main_numbers),
+                    bonus_numbers=sorted(bonus_numbers),
+                    confidence_score=data.get('confidence_percentage', 58) / 100.0,
+                    reasoning=data.get('reasoning', 'Anomaly detection and avoidance')
+                )
+                
+        except Exception as e:
+            logger.error(f"Anomaly detection model error: {e}")
+            return None
+    
+    def _generate_hybrid_mathematical_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[ModelPrediction]:
+        """Model 5: Hybrid Mathematical - Combines multiple mathematical approaches"""
+        try:
+            game_config = self.get_game_configuration(game_type)
+            total_draws = len(historical_data.get('draws', []))
+            drought_cycles = historical_data.get('long_term_analysis', {}).get('number_drought_cycles', {})
+            hot_cold_transitions = historical_data.get('long_term_analysis', {}).get('hot_cold_transitions', [])
+            
+            prompt = f"""
+            HYBRID MATHEMATICAL MODEL for {game_type}
+            
+            GAME RULES: Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
+            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            
+            FOCUS: Hybrid approach combining frequency analysis, drought cycles, transitions, and mathematical balance
+            
+            ANALYSIS COMPONENTS:
+            - Total draws: {total_draws}
+            - Drought cycles: {dict(list(drought_cycles.items())[:10])}
+            - Hot/cold transitions: {len(hot_cold_transitions)} detected
+            - Mathematical range optimization: 1-{game_config['main_range']}
+            
+            STRATEGY: Synthesize frequency data, drought patterns, mathematical distribution, and transition analysis
+            Balance recent trends with statistical reversion probability
+            
+            Return JSON: {"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 62, "reasoning": "hybrid mathematical synthesis"}
+            """
+            
+            response = self.client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.6,
+                    max_output_tokens=512
+                )
+            )
+            
+            if response.text:
+                data = json.loads(response.text)
+                main_numbers = self.validate_numbers(data.get('main_numbers', []), game_config['main_count'], game_config['main_range'])
+                bonus_numbers = self.validate_numbers(data.get('bonus_numbers', []), game_config['bonus_count'], game_config['bonus_range']) if game_config['bonus_count'] > 0 else []
+                
+                return ModelPrediction(
+                    model_name='hybrid_mathematical',
+                    predicted_numbers=sorted(main_numbers),
+                    bonus_numbers=sorted(bonus_numbers),
+                    confidence_score=data.get('confidence_percentage', 62) / 100.0,
+                    reasoning=data.get('reasoning', 'Hybrid mathematical synthesis')
+                )
+                
+        except Exception as e:
+            logger.error(f"Hybrid mathematical model error: {e}")
+            return None
+    
+    def generate_prediction(self, game_type: str) -> Optional[LotteryPrediction]:
+        """Main prediction method - uses Multi-Model Ensemble with fallback to single model"""
+        try:
+            logger.info(f"🎯 Starting prediction generation for {game_type}")
+            
+            # Get historical data for prediction
+            historical_data = self.get_historical_data_for_prediction(game_type)
+            
+            if not historical_data or not historical_data.get('draws'):
+                logger.error(f"No historical data available for {game_type}")
+                return None
+                
+            # Try Multi-Model Ensemble first
+            logger.info("🔄 Attempting Multi-Model Ensemble prediction...")
+            ensemble_prediction = self.generate_ensemble_prediction(game_type, historical_data)
+            
+            if ensemble_prediction:
+                logger.info(f"✅ Ensemble prediction successful: {len(ensemble_prediction.ensemble_composition.get('models_used', []))} models")
+                return ensemble_prediction
+            
+            # Fallback to single model if ensemble fails
+            logger.warning("⚠️ Ensemble failed, falling back to single model")
+            single_prediction = self.generate_ai_prediction(game_type, historical_data)
+            
+            if single_prediction:
+                logger.info("✅ Single model fallback successful")
+                return single_prediction
+            
+            logger.error(f"❌ All prediction methods failed for {game_type}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error in main prediction generation: {e}")
+            return None
+    
     def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any], variation_seed: int = 1) -> Optional[LotteryPrediction]:
-        """Generate prediction with EXTENDED AI analysis - using 200+ draws"""
+        """Generate prediction with EXTENDED AI analysis - SINGLE MODEL (fallback method)"""
         try:
             # Get game configuration
             game_config = self.get_game_configuration(game_type)
@@ -538,7 +1116,7 @@ class AILotteryPredictor:
         return configs.get(game_type, configs['LOTTO'])
     
     def store_prediction_in_database(self, prediction: LotteryPrediction) -> bool:
-        """Store prediction in database"""
+        """Store prediction in database with ensemble support"""
         try:
             with psycopg2.connect(self.connection_string) as conn:
                 with conn.cursor() as cur:
@@ -548,8 +1126,8 @@ class AILotteryPredictor:
                         INSERT INTO lottery_predictions (
                             game_type, predicted_numbers, bonus_numbers, 
                             confidence_score, prediction_method, reasoning, 
-                            target_draw_date, created_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            target_draw_date, created_at, ensemble_composition, model_weights
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         prediction.game_type,
                         prediction.predicted_numbers,
@@ -558,10 +1136,12 @@ class AILotteryPredictor:
                         prediction.prediction_method,
                         prediction.reasoning,
                         next_draw,
-                        prediction.created_at
+                        prediction.created_at,
+                        json.dumps(prediction.ensemble_composition) if prediction.ensemble_composition else None,
+                        json.dumps(prediction.model_weights) if prediction.model_weights else None
                     ))
                     conn.commit()
-                    logger.info(f"✅ Stored prediction for {prediction.game_type}")
+                    logger.info(f"✅ Stored {prediction.prediction_method} prediction for {prediction.game_type}")
                     return True
         except Exception as e:
             logger.error(f"Error storing prediction: {e}")

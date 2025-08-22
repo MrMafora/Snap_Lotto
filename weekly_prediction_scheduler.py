@@ -115,15 +115,8 @@ class WeeklyPredictionScheduler:
                         
                         logger.info(f"Generating {game_type} Prediction #{i+1}/{predictions_to_generate}")
                         
-                        # Get historical data
-                        historical_data = predictor.get_historical_data_for_prediction(game_type, 365)
-                        
-                        # Generate AI prediction with unique variation
-                        prediction = predictor.generate_ai_prediction(
-                            game_type, 
-                            historical_data,
-                            variation_seed=variation_seed
-                        )
+                        # Generate prediction using Multi-Model Ensemble (with fallback to single model)
+                        prediction = predictor.generate_prediction(game_type)
                         
                         if prediction:
                             # Store prediction in database
@@ -134,11 +127,18 @@ class WeeklyPredictionScheduler:
                                     'prediction': i+1,
                                     'numbers': prediction.predicted_numbers,
                                     'bonus': getattr(prediction, 'bonus_numbers', []),
-                                    'confidence': prediction.confidence_score
+                                    'confidence': prediction.confidence_score,
+                                    'method': prediction.prediction_method,
+                                    'ensemble_models': len(prediction.ensemble_composition.get('models_used', [])) if prediction.ensemble_composition else 0
                                 })
                                 generated_count += 1
                                 total_generated += 1
-                                logger.info(f"✅ Stored {game_type} Prediction #{i+1}")
+                                ensemble_info = ""
+                                if prediction.prediction_method == "Multi_Model_Ensemble":
+                                    model_count = len(prediction.ensemble_composition.get('models_used', []))
+                                    ensemble_info = f" (Ensemble: {model_count} models)"
+                                
+                                logger.info(f"✅ Stored {game_type} {prediction.prediction_method} Prediction #{i+1}{ensemble_info}")
                             else:
                                 logger.error(f"❌ Failed to store {game_type} Prediction #{i+1}")
                         else:

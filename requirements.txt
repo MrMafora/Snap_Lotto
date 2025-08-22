@@ -40,3 +40,6 @@ pyjwt
 pyppeteer
 schedule
 google-genai
+openai
+pydantic
+anthropic
