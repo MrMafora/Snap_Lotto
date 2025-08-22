@@ -1004,6 +1004,14 @@ def visualizations():
 @app.route('/predictions')
 def predictions():
     """AI lottery predictions page - Public access"""
+    # Debug current user status
+    logger.info(f"PREDICTIONS DEBUG: current_user.is_authenticated = {current_user.is_authenticated}")
+    if current_user.is_authenticated:
+        logger.info(f"PREDICTIONS DEBUG: current_user.id = {current_user.id}")
+        logger.info(f"PREDICTIONS DEBUG: current_user.username = {current_user.username}")
+        logger.info(f"PREDICTIONS DEBUG: current_user.is_admin = {getattr(current_user, 'is_admin', 'NOT_FOUND')}")
+    else:
+        logger.info("PREDICTIONS DEBUG: User is not authenticated")
     try:
         # Connect to database and fetch latest predictions
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
