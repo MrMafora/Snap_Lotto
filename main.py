@@ -1124,7 +1124,11 @@ def predictions():
         
         logger.info(f"Loaded {len(predictions)} AI predictions for display")
         
-        return render_template('ai_predictions_simple.html', predictions=predictions)
+        return render_template('ai_predictions_simple.html', 
+                             predictions=predictions,
+                             debug_user_authenticated=current_user.is_authenticated,
+                             debug_user_admin=getattr(current_user, 'is_admin', False) if current_user.is_authenticated else False,
+                             debug_username=current_user.username if current_user.is_authenticated else 'Not logged in')
         
     except Exception as e:
         logger.error(f"Error loading predictions: {e}")

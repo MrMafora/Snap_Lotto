@@ -248,7 +248,50 @@
     <div class="page-header">
         <h1><i class="fas fa-brain me-2"></i>AI Lottery Predictions</h1>
         <p>Advanced AI analysis generates intelligent lottery number predictions for South African games</p>
+        
+        <!-- Debug Info (remove after testing) -->
+        <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem;">
+            <strong>Debug:</strong> User: {{ debug_username }} | Authenticated: {{ debug_user_authenticated }} | Admin: {{ debug_user_admin }}
+        </div>
     </div>
+
+    <!-- Admin Controls -->
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <div class="game-section">
+        <div class="game-header">
+            <h2 class="game-title">Admin Prediction Controls</h2>
+        </div>
+        <div class="predictions-grid" style="flex-direction: column; gap: 15px;">
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <button id="generateBtn" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-magic me-2"></i>Generate AI Prediction
+                </button>
+                <button id="weeklyBtn" style="background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-calendar-week me-2"></i>Generate Weekly Batch
+                </button>
+                <button id="validateBtn" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-check-double me-2"></i>Validate Predictions
+                </button>
+                <button id="runPredictionBtn" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-play-circle me-2"></i>Run Prediction
+                </button>
+            </div>
+            <div id="generationStatus" style="text-align: center; margin-top: 15px;"></div>
+        </div>
+    </div>
+    {% else %}
+    <div class="game-section">
+        <div class="game-header">
+            <h2 class="game-title">Admin Access Required</h2>
+        </div>
+        <div class="predictions-grid">
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; color: #92400e;">
+                <i class="fas fa-lock me-2"></i>
+                Admin access is required to generate AI predictions. Please contact an administrator.
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Predictions Content -->
     <div id="predictions-content">
@@ -368,6 +411,82 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('AI Predictions page loaded with {{ predictions|length }} predictions');
+    
+    // Run Prediction Button Handler
+    const runPredictionBtn = document.getElementById('runPredictionBtn');
+    if (runPredictionBtn) {
+        runPredictionBtn.addEventListener('click', runValidationBasedPredictions);
+    }
+    
+    // Other button handlers
+    const generateBtn = document.getElementById('generateBtn');
+    const weeklyBtn = document.getElementById('weeklyBtn');
+    const validateBtn = document.getElementById('validateBtn');
+    
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function() {
+            alert('Generate AI Prediction - Feature coming soon');
+        });
+    }
+    
+    if (weeklyBtn) {
+        weeklyBtn.addEventListener('click', function() {
+            alert('Generate Weekly Batch - Feature coming soon');
+        });
+    }
+    
+    if (validateBtn) {
+        validateBtn.addEventListener('click', function() {
+            alert('Validate Predictions - Feature coming soon');
+        });
+    }
 });
+
+// Run Prediction function
+async function runValidationBasedPredictions() {
+    const statusDiv = document.getElementById('generationStatus');
+    const button = document.getElementById('runPredictionBtn');
+    
+    // Disable button and show loading
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Running...';
+    statusDiv.innerHTML = '<div style="color: #007bff;"><i class="fas fa-clock me-2"></i>Starting validation-based prediction generation...</div>';
+    
+    try {
+        const response = await fetch('/api/lottery-analysis/run-prediction-cycle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            statusDiv.innerHTML = `<div style="color: #28a745;"><i class="fas fa-check-circle me-2"></i>${result.message}</div>`;
+            
+            // Show detailed results if available
+            if (result.predictions_generated && result.predictions_generated.length > 0) {
+                const gamesList = result.predictions_generated.join(', ');
+                statusDiv.innerHTML += `<div style="color: #6c757d; margin-top: 10px; font-size: 0.9rem;">Generated predictions for: ${gamesList}</div>`;
+            }
+            
+            // Refresh the page after 3 seconds to show new predictions
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } else {
+            statusDiv.innerHTML = `<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle me-2"></i>Error: ${result.error || 'Unknown error occurred'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error running predictions:', error);
+        statusDiv.innerHTML = '<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle me-2"></i>Network error. Please try again.</div>';
+    } finally {
+        // Re-enable button
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-play-circle me-2"></i>Run Prediction';
+    }
+}
 </script>
 {% endblock %}
