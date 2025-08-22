@@ -300,12 +300,16 @@
                                 </div>
                                 <div class="validation-stats">
                                     <div class="validation-stat">
-                                        {% if prediction.accuracy_percentage >= 30 %}
-                                            <div class="value accuracy-good">{{ "%.0f"|format(prediction.accuracy_percentage) }}%</div>
-                                        {% elif prediction.accuracy_percentage >= 15 %}
-                                            <div class="value accuracy-fair">{{ "%.0f"|format(prediction.accuracy_percentage) }}%</div>
+                                        {% if prediction.accuracy_percentage is not none %}
+                                            {% if prediction.accuracy_percentage >= 30 %}
+                                                <div class="value accuracy-good">{{ "%.0f"|format(prediction.accuracy_percentage) }}%</div>
+                                            {% elif prediction.accuracy_percentage >= 15 %}
+                                                <div class="value accuracy-fair">{{ "%.0f"|format(prediction.accuracy_percentage) }}%</div>
+                                            {% else %}
+                                                <div class="value accuracy-poor">{{ "%.0f"|format(prediction.accuracy_percentage) }}%</div>
+                                            {% endif %}
                                         {% else %}
-                                            <div class="value accuracy-poor">{{ "%.0f"|format(prediction.accuracy_percentage) }}%</div>
+                                            <div class="value accuracy-poor">0%</div>
                                         {% endif %}
                                         <div class="label">Accuracy</div>
                                     </div>
