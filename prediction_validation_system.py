@@ -288,9 +288,9 @@ class PredictionValidator:
                         SELECT id, draw_number, draw_date 
                         FROM lottery_results 
                         WHERE lottery_type = %s 
-                        AND draw_date >= %s
-                        ORDER BY draw_date ASC
-                        LIMIT 5
+                        AND draw_date <= %s
+                        ORDER BY draw_date DESC
+                        LIMIT 1
                     """, (
                         lottery_type_map.get(prediction['game_type'], prediction['game_type']),
                         prediction['target_draw_date']
