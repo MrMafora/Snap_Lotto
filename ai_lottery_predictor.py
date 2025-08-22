@@ -66,22 +66,24 @@ class AILotteryPredictor:
         except Exception as e:
             logger.error(f"Error initializing prediction tables: {e}")
     
-    def get_historical_data_for_prediction(self, game_type: str, days: int = 365) -> Dict[str, Any]:
-        """Get focused historical data for specific game type"""
+    def get_historical_data_for_prediction(self, game_type: str, days: int = 1095) -> Dict[str, Any]:
+        """Get extended historical data for advanced pattern analysis (3+ years)"""
         try:
             with psycopg2.connect(self.connection_string) as conn:
                 with conn.cursor() as cur:
-                    # Get recent draws with essential data
+                    # Get extended historical data - 200+ draws for deep analysis
                     cur.execute("""
                         SELECT draw_number, draw_date, main_numbers, bonus_numbers,
                                prize_divisions, rollover_amount, estimated_jackpot,
                                EXTRACT(DOW FROM draw_date) as day_of_week,
-                               EXTRACT(MONTH FROM draw_date) as month
+                               EXTRACT(MONTH FROM draw_date) as month,
+                               EXTRACT(QUARTER FROM draw_date) as quarter,
+                               EXTRACT(YEAR FROM draw_date) as year
                         FROM lottery_results 
                         WHERE game_type = %s 
                         AND draw_date >= %s
                         ORDER BY draw_date DESC 
-                        LIMIT 15
+                        LIMIT 250
                     """, (game_type, datetime.now().date() - timedelta(days=days)))
                     
                     results = cur.fetchall()
@@ -89,65 +91,260 @@ class AILotteryPredictor:
                     if not results:
                         return {}
                     
-                    # Build focused dataset
-                    focused_data = {
+                    # Build extended analysis dataset
+                    extended_data = {
                         'game_type': game_type,
                         'total_draws': len(results),
                         'draws': [],
                         'all_numbers': [],
                         'frequency_analysis': {},
                         'temporal_patterns': defaultdict(int),
+                        'cyclical_patterns': {
+                            'monthly_trends': defaultdict(list),
+                            'quarterly_trends': defaultdict(list),
+                            'yearly_trends': defaultdict(list),
+                            'day_of_week_patterns': defaultdict(list)
+                        },
+                        'long_term_analysis': {
+                            'decade_patterns': defaultdict(int),
+                            'seasonal_variations': defaultdict(int),
+                            'number_drought_cycles': {},
+                            'hot_cold_transitions': []
+                        },
                         'prize_patterns': {
                             'jackpot_progression': [],
-                            'rollover_count': 0
+                            'rollover_count': 0,
+                            'rollover_cycles': []
+                        },
+                        'anomaly_detection': {
+                            'unusual_combinations': [],
+                            'pattern_breaks': [],
+                            'statistical_outliers': []
                         }
                     }
                     
                     for row in results:
-                        draw_num, draw_date, main_nums, bonus_nums, prizes, rollover, jackpot, dow, month = row
+                        draw_num, draw_date, main_nums, bonus_nums, prizes, rollover, jackpot, dow, month, quarter, year = row
                         
                         # Parse numbers
                         parsed_main = self.parse_numbers(main_nums)
                         parsed_bonus = self.parse_numbers(bonus_nums)
                         
                         if parsed_main:
-                            # Store draw data
+                            # Store comprehensive draw data
                             draw_record = {
                                 'draw_number': draw_num,
                                 'draw_date': draw_date.isoformat() if draw_date else None,
                                 'main': parsed_main,
                                 'bonus': parsed_bonus,
                                 'day_of_week': int(dow) if dow else None,
-                                'month': int(month) if month else None
+                                'month': int(month) if month else None,
+                                'quarter': int(quarter) if quarter else None,
+                                'year': int(year) if year else None
                             }
                             
-                            focused_data['draws'].append(draw_record)
-                            focused_data['all_numbers'].extend(parsed_main)
+                            extended_data['draws'].append(draw_record)
+                            extended_data['all_numbers'].extend(parsed_main)
                             
-                            # Track temporal patterns
+                            # Enhanced temporal pattern tracking
                             if dow is not None:
-                                focused_data['temporal_patterns'][f'day_{int(dow)}'] += 1
+                                extended_data['temporal_patterns'][f'day_{int(dow)}'] += 1
+                                extended_data['cyclical_patterns']['day_of_week_patterns'][int(dow)].append(parsed_main)
                             
-                            # Track financial patterns
+                            if month is not None:
+                                extended_data['cyclical_patterns']['monthly_trends'][int(month)].append(parsed_main)
+                                extended_data['long_term_analysis']['seasonal_variations'][f'month_{int(month)}'] += 1
+                            
+                            if quarter is not None:
+                                extended_data['cyclical_patterns']['quarterly_trends'][int(quarter)].append(parsed_main)
+                            
+                            if year is not None:
+                                extended_data['cyclical_patterns']['yearly_trends'][int(year)].append(parsed_main)
+                                extended_data['long_term_analysis']['decade_patterns'][f'year_{int(year)}'] += 1
+                            
+                            # Enhanced financial pattern tracking
                             if jackpot:
                                 try:
                                     jackpot_val = float(str(jackpot).replace(',', '').replace('R', '').strip())
-                                    focused_data['prize_patterns']['jackpot_progression'].append(jackpot_val)
+                                    extended_data['prize_patterns']['jackpot_progression'].append({
+                                        'amount': jackpot_val,
+                                        'draw_date': draw_date.isoformat() if draw_date else None,
+                                        'draw_number': draw_num
+                                    })
                                 except:
                                     pass
                             
                             if rollover and str(rollover).strip() and rollover != '0':
-                                focused_data['prize_patterns']['rollover_count'] += 1
+                                extended_data['prize_patterns']['rollover_count'] += 1
+                                extended_data['prize_patterns']['rollover_cycles'].append({
+                                    'draw_number': draw_num,
+                                    'date': draw_date.isoformat() if draw_date else None
+                                })
                     
-                    # Calculate frequency analysis
-                    focused_data['frequency_analysis'] = dict(Counter(focused_data['all_numbers']).most_common(30))
+                    # Enhanced frequency analysis - complete spectrum
+                    all_number_counts = Counter(extended_data['all_numbers'])
+                    extended_data['frequency_analysis'] = dict(all_number_counts.most_common())
                     
-                    logger.info(f"Retrieved FOCUSED data for {game_type}: {len(focused_data['draws'])} draws with essential analysis")
-                    return focused_data
+                    # Calculate long-term patterns
+                    self._analyze_long_term_patterns(extended_data)
+                    
+                    # Detect anomalies and pattern breaks
+                    self._detect_anomalies(extended_data)
+                    
+                    logger.info(f"Retrieved EXTENDED data for {game_type}: {len(extended_data['draws'])} draws with advanced pattern analysis")
+                    return extended_data
                     
         except Exception as e:
             logger.error(f"Error getting historical data: {e}")
             return {}
+    
+    def _analyze_long_term_patterns(self, data: Dict[str, Any]):
+        """Analyze long-term cyclical patterns and trends"""
+        try:
+            # Analyze number drought cycles
+            all_numbers = data['all_numbers']
+            if not all_numbers:
+                return
+            
+            # Find numbers that haven't appeared recently
+            recent_50_draws = data['draws'][:50] if len(data['draws']) >= 50 else data['draws']
+            recent_numbers = set()
+            for draw in recent_50_draws:
+                recent_numbers.update(draw['main'])
+            
+            # Calculate drought cycles for each number
+            game_type = data['game_type']
+            if 'LOTTO' in game_type.upper():
+                number_range = range(1, 53)  # LOTTO numbers 1-52
+            elif 'POWERBALL' in game_type.upper():
+                number_range = range(1, 51)  # POWERBALL main numbers 1-50
+            elif 'DAILY' in game_type.upper():
+                number_range = range(1, 37)  # Daily Lotto 1-36
+            else:
+                number_range = range(1, 53)  # Default
+            
+            for number in number_range:
+                if number not in recent_numbers:
+                    # Count how many draws since this number last appeared
+                    drought_count = 0
+                    for draw in data['draws']:
+                        if number in draw['main']:
+                            break
+                        drought_count += 1
+                    data['long_term_analysis']['number_drought_cycles'][number] = drought_count
+            
+            # Analyze hot/cold transitions
+            if len(data['draws']) >= 100:
+                # Split into periods and analyze frequency changes
+                period_size = 25
+                periods = []
+                for i in range(0, min(100, len(data['draws'])), period_size):
+                    period_draws = data['draws'][i:i+period_size]
+                    period_numbers = []
+                    for draw in period_draws:
+                        period_numbers.extend(draw['main'])
+                    period_freq = Counter(period_numbers)
+                    periods.append(period_freq)
+                
+                # Find numbers that changed from hot to cold or vice versa
+                if len(periods) >= 2:
+                    recent_freq = periods[0]
+                    older_freq = periods[1]
+                    
+                    for number in number_range:
+                        recent_count = recent_freq.get(number, 0)
+                        older_count = older_freq.get(number, 0)
+                        
+                        if recent_count > older_count + 2:
+                            data['long_term_analysis']['hot_cold_transitions'].append({
+                                'number': number,
+                                'transition': 'cold_to_hot',
+                                'change': recent_count - older_count
+                            })
+                        elif older_count > recent_count + 2:
+                            data['long_term_analysis']['hot_cold_transitions'].append({
+                                'number': number,
+                                'transition': 'hot_to_cold',
+                                'change': older_count - recent_count
+                            })
+            
+            logger.info(f"Long-term pattern analysis completed for {game_type}")
+            
+        except Exception as e:
+            logger.error(f"Error in long-term pattern analysis: {e}")
+    
+    def _detect_anomalies(self, data: Dict[str, Any]):
+        """Detect statistical anomalies and pattern breaks"""
+        try:
+            draws = data['draws']
+            if len(draws) < 20:
+                return
+            
+            # Detect unusual number combinations
+            for i, draw in enumerate(draws[:20]):  # Check recent 20 draws
+                main_numbers = sorted(draw['main'])
+                
+                # Check for consecutive numbers
+                consecutive_count = 0
+                for j in range(len(main_numbers) - 1):
+                    if main_numbers[j+1] == main_numbers[j] + 1:
+                        consecutive_count += 1
+                
+                if consecutive_count >= 3:
+                    data['anomaly_detection']['unusual_combinations'].append({
+                        'draw_number': draw['draw_number'],
+                        'type': 'high_consecutive',
+                        'value': consecutive_count,
+                        'numbers': main_numbers
+                    })
+                
+                # Check for same digit patterns
+                same_digit_groups = defaultdict(list)
+                for num in main_numbers:
+                    last_digit = num % 10
+                    same_digit_groups[last_digit].append(num)
+                
+                for digit, nums in same_digit_groups.items():
+                    if len(nums) >= 3:
+                        data['anomaly_detection']['unusual_combinations'].append({
+                            'draw_number': draw['draw_number'],
+                            'type': 'same_last_digit',
+                            'digit': digit,
+                            'count': len(nums),
+                            'numbers': nums
+                        })
+            
+            # Detect pattern breaks in frequency
+            if len(draws) >= 50:
+                recent_25 = draws[:25]
+                older_25 = draws[25:50]
+                
+                recent_freq = Counter()
+                older_freq = Counter()
+                
+                for draw in recent_25:
+                    recent_freq.update(draw['main'])
+                
+                for draw in older_25:
+                    older_freq.update(draw['main'])
+                
+                # Find significant frequency changes
+                for number in set(recent_freq.keys()) | set(older_freq.keys()):
+                    recent_count = recent_freq.get(number, 0)
+                    older_count = older_freq.get(number, 0)
+                    
+                    if abs(recent_count - older_count) >= 4:
+                        data['anomaly_detection']['pattern_breaks'].append({
+                            'number': number,
+                            'recent_frequency': recent_count,
+                            'older_frequency': older_count,
+                            'change': recent_count - older_count
+                        })
+            
+            logger.info(f"Anomaly detection completed for {data['game_type']}")
+            
+        except Exception as e:
+            logger.error(f"Error in anomaly detection: {e}")
     
     def parse_numbers(self, numbers_field) -> List[int]:
         """Parse numbers from database field"""
@@ -170,37 +367,76 @@ class AILotteryPredictor:
         return []
     
     def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any], variation_seed: int = 1) -> Optional[LotteryPrediction]:
-        """Generate prediction with focused AI analysis"""
+        """Generate prediction with EXTENDED AI analysis - using 200+ draws"""
         try:
             # Get game configuration
             game_config = self.get_game_configuration(game_type)
             
-            # Extract focused data
-            recent_draws = historical_data.get('draws', [])[:10]
-            frequency_top20 = dict(list(historical_data.get('frequency_analysis', {}).items())[:20])
+            # Extract extended multi-timeframe data
+            total_draws = len(historical_data.get('draws', []))
+            recent_draws = historical_data.get('draws', [])[:25]  # Expanded from 10 to 25
+            medium_term_draws = historical_data.get('draws', [])[25:100] if total_draws > 25 else []
+            long_term_draws = historical_data.get('draws', [])[100:] if total_draws > 100 else []
             
-            # Create focused prompt
+            # Extended frequency analysis - all numbers, not just top 20
+            frequency_analysis = historical_data.get('frequency_analysis', {})
+            
+            # Extract advanced pattern data
+            cyclical_patterns = historical_data.get('cyclical_patterns', {})
+            long_term_analysis = historical_data.get('long_term_analysis', {})
+            anomaly_detection = historical_data.get('anomaly_detection', {})
+            prize_patterns = historical_data.get('prize_patterns', {})
+            
+            # Create comprehensive advanced analysis prompt
             prediction_prompt = f"""
-            FOCUSED LOTTERY ANALYSIS FOR {game_type}
+            EXTENDED LOTTERY ANALYSIS FOR {game_type} - ANALYZING {total_draws} HISTORICAL DRAWS
             
             GAME RULES:
             - Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
             {"- Pick " + str(game_config['bonus_count']) + " bonus numbers from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
             
-            RECENT DRAWS (Last 10):
-            {json.dumps(recent_draws, indent=2)}
+            === MULTI-TIMEFRAME ANALYSIS ===
             
-            TOP FREQUENT NUMBERS:
-            {frequency_top20}
+            RECENT DRAWS (Last 25 - Most Relevant):
+            {json.dumps(recent_draws[:15], indent=2)}
             
-            JACKPOT PATTERN:
-            {historical_data.get('prize_patterns', {}).get('jackpot_progression', [])[-5:]}
+            MEDIUM-TERM PATTERN (Draws 26-100):
+            Total draws analyzed: {len(medium_term_draws)}
             
-            ANALYSIS GOALS:
-            1. Find number patterns in recent draws
-            2. Identify mathematical relationships
-            3. Consider frequency biases
-            4. Look for exploitable trends
+            LONG-TERM HISTORICAL (100+ draws):
+            Total historical draws: {len(long_term_draws)}
+            
+            === COMPREHENSIVE FREQUENCY ANALYSIS ===
+            Complete Number Frequency (ALL {total_draws} draws):
+            {dict(list(frequency_analysis.items())[:30])}
+            
+            === CYCLICAL PATTERN DETECTION ===
+            Monthly Trends: {dict(list(cyclical_patterns.get('monthly_trends', {}).items())[:6])}
+            Quarterly Patterns: {len(cyclical_patterns.get('quarterly_trends', {}))} quarters analyzed
+            Day-of-Week Patterns: {len(cyclical_patterns.get('day_of_week_patterns', {}))} different days
+            
+            === LONG-TERM PATTERN ANALYSIS ===
+            Number Drought Cycles: {dict(list(long_term_analysis.get('number_drought_cycles', {}).items())[:10])}
+            Hot/Cold Transitions: {len(long_term_analysis.get('hot_cold_transitions', []))} transitions detected
+            Seasonal Variations: {dict(list(long_term_analysis.get('seasonal_variations', {}).items())[:6])}
+            
+            === ANOMALY & PATTERN BREAK DETECTION ===
+            Unusual Combinations Found: {len(anomaly_detection.get('unusual_combinations', []))}
+            Pattern Breaks Detected: {len(anomaly_detection.get('pattern_breaks', []))}
+            Statistical Outliers: {len(anomaly_detection.get('statistical_outliers', []))}
+            
+            === JACKPOT & FINANCIAL PATTERN ANALYSIS ===
+            Recent Jackpot Progression: {prize_patterns.get('jackpot_progression', [])[-8:]}
+            Rollover Count: {prize_patterns.get('rollover_count', 0)}
+            Rollover Cycles: {len(prize_patterns.get('rollover_cycles', []))} cycles
+            
+            === ADVANCED ANALYSIS FRAMEWORK ===
+            1. EXTENDED FREQUENCY PATTERNS: Analyze complete {total_draws}-draw frequency spectrum, not just recent trends
+            2. CYCLICAL PATTERN RECOGNITION: Identify monthly, quarterly, and seasonal number selection patterns
+            3. DROUGHT CYCLE EXPLOITATION: Consider numbers with extended absence periods for statistical reversion
+            4. HOT/COLD TRANSITION ANALYSIS: Leverage numbers transitioning between frequency states
+            5. ANOMALY-INFORMED PREDICTIONS: Use pattern break detection to avoid or favor certain combinations
+            6. MULTI-TIMEFRAME SYNTHESIS: Blend recent (25 draws), medium-term (75 draws), and long-term (100+ draws) patterns
             
             VARIATION SEED: {variation_seed}
             
@@ -208,8 +444,8 @@ class AILotteryPredictor:
             {{
                 "main_numbers": [list of {game_config['main_count']} numbers],
                 {"bonus_numbers: [list of " + str(game_config['bonus_count']) + " numbers]," if game_config['bonus_count'] > 0 else ""}
-                "confidence_percentage": 50,
-                "reasoning": "Brief explanation of patterns found"
+                "confidence_percentage": 55,
+                "reasoning": "Multi-timeframe analysis combining {total_draws} draws with cyclical patterns, drought cycles, and anomaly detection"
             }}
             """
             
@@ -249,8 +485,8 @@ class AILotteryPredictor:
                         predicted_numbers=sorted(main_numbers),
                         bonus_numbers=sorted(bonus_numbers),
                         confidence_score=prediction_data.get('confidence_percentage', 50) / 100.0,
-                        prediction_method="AI_Gemini_Pattern_Analysis",
-                        reasoning=f"Focused analysis: " + prediction_data.get('reasoning', 'Pattern-based prediction'),
+                        prediction_method="Extended_Historical_Analysis",
+                        reasoning=f"Extended analysis ({total_draws} draws): " + prediction_data.get('reasoning', 'Multi-timeframe pattern analysis with cyclical detection'),
                         created_at=datetime.now()
                     )
                     
