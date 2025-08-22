@@ -67,19 +67,22 @@ class SimpleLotteryScheduler:
                 
                 logger.info(f"Step 1 Complete: Deleted {deleted_count} old screenshots")
                 
-                # STEP 2: Capture 6 fresh screenshots (same as manual button)
-                logger.info("Step 2: Capturing 6 fresh screenshots using WORKING system")
+                # STEP 2: Capture 6 fresh screenshots using ROBUST WORKING system
+                logger.info("Step 2: Capturing 6 fresh screenshots using ROBUST WORKING system")
                 
                 try:
-                    from screenshot_capture import capture_all_lottery_screenshots
-                    capture_results = capture_all_lottery_screenshots()
-                    logger.info(f"Screenshot capture results: {capture_results}")
+                    from robust_screenshot_capture import robust_screenshot_capture
+                    import asyncio
                     
-                    # Verify we have exactly 6 screenshots
+                    # Run the robust capture system
+                    capture_count = asyncio.run(robust_screenshot_capture())
+                    logger.info(f"Robust screenshot capture completed: {capture_count}/6 successful")
+                    
+                    # Verify we have screenshots
                     screenshots = glob.glob('screenshots/*.png')
-                    logger.info(f"Step 2 Complete: Captured {len(screenshots)} fresh screenshots")
+                    logger.info(f"Step 2 Complete: Found {len(screenshots)} fresh screenshots on disk")
                     
-                    if len(screenshots) < 6:
+                    if capture_count < 6 and len(screenshots) < 6:
                         error_msg = f'Expected 6 screenshots, only captured {len(screenshots)}'
                         logger.error(error_msg)
                         result = {'success': False, 'error': error_msg}
