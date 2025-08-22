@@ -165,8 +165,8 @@
                                         <span class="predicted-ball-small {% if num in validation_result.matched_numbers %}matched{% endif %}">{{ num }}</span>
                                     {% endfor %}
                                     
-                                    <!-- Predicted bonus numbers for PowerBall games -->
-                                    {% if validation_result.predicted_bonus and validation_result.predicted_bonus|length > 0 %}
+                                    <!-- Predicted bonus numbers for PowerBall games only -->
+                                    {% if validation_result.predicted_bonus and validation_result.predicted_bonus|length > 0 and result.lottery_type in ['POWERBALL', 'POWERBALL PLUS'] %}
                                         <span style="margin: 0 8px; font-size: 0.9rem; color: #6c757d; font-weight: bold;">+</span>
                                         {% for num in validation_result.predicted_bonus %}
                                             <span class="predicted-ball-small predicted-bonus {% if validation_result.matched_bonus and num in validation_result.matched_bonus %}matched{% endif %}">{{ num }}</span>
