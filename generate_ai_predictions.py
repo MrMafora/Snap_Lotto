@@ -157,24 +157,55 @@ RESPONSE FORMAT (JSON only):
         
         with psycopg2.connect(self.connection_string) as conn:
             with conn.cursor() as cur:
+                # CRITICAL: Check for existing pending predictions first
                 cur.execute("""
-                    INSERT INTO lottery_predictions 
-                    (game_type, predicted_numbers, bonus_numbers, confidence_score, 
-                     reasoning, prediction_method, target_draw_date, created_at, validation_status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    game_type,
-                    prediction['predicted_numbers'],
-                    prediction.get('bonus_numbers', []),
-                    prediction['confidence_score'],
-                    prediction['reasoning'],
-                    prediction.get('method', 'Gemini AI Analysis'),
-                    next_draw_date,
-                    datetime.now(),
-                    'pending'
-                ))
+                    SELECT id FROM lottery_predictions 
+                    WHERE game_type = %s AND validation_status = 'pending'
+                """, (game_type,))
+                
+                existing_pending = cur.fetchone()
+                
+                if existing_pending:
+                    # Replace the existing pending prediction instead of creating a new one
+                    logger.info(f"Replacing existing pending prediction {existing_pending[0]} for {game_type}")
+                    cur.execute("""
+                        UPDATE lottery_predictions 
+                        SET predicted_numbers = %s, bonus_numbers = %s, confidence_score = %s,
+                            reasoning = %s, prediction_method = %s, target_draw_date = %s,
+                            created_at = %s
+                        WHERE id = %s
+                    """, (
+                        prediction['predicted_numbers'],
+                        prediction.get('bonus_numbers', []),
+                        prediction['confidence_score'],
+                        prediction['reasoning'],
+                        prediction.get('method', 'Gemini AI Analysis'),
+                        next_draw_date,
+                        datetime.now(),
+                        existing_pending[0]
+                    ))
+                    logger.info(f"Updated existing prediction for {game_type} targeting {next_draw_date}")
+                else:
+                    # No existing pending prediction, create a new one
+                    cur.execute("""
+                        INSERT INTO lottery_predictions 
+                        (game_type, predicted_numbers, bonus_numbers, confidence_score, 
+                         reasoning, prediction_method, target_draw_date, created_at, validation_status)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        game_type,
+                        prediction['predicted_numbers'],
+                        prediction.get('bonus_numbers', []),
+                        prediction['confidence_score'],
+                        prediction['reasoning'],
+                        prediction.get('method', 'Gemini AI Analysis'),
+                        next_draw_date,
+                        datetime.now(),
+                        'pending'
+                    ))
+                    logger.info(f"Created new prediction for {game_type} targeting {next_draw_date}")
+                
                 conn.commit()
-                logger.info(f"Saved prediction for {game_type} targeting {next_draw_date}")
     
     def generate_all_predictions(self):
         """Generate predictions for all game types"""
