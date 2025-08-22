@@ -591,6 +591,7 @@
     </div>
 
     <!-- Generate New Prediction -->
+    {% if current_user.is_authenticated and current_user.is_admin %}
     <div class="section-card">
         <div class="section-header">
             Generate New Prediction
@@ -634,6 +635,19 @@
             <div id="generationStatus"></div>
         </div>
     </div>
+    {% else %}
+    <div class="section-card">
+        <div class="section-header">
+            Admin Access Required
+        </div>
+        <div class="section-body">
+            <div class="alert alert-warning">
+                <i class="fas fa-lock me-2"></i>
+                Admin access is required to generate AI predictions. Please contact an administrator.
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Latest Predictions -->
     <div class="section-card">
