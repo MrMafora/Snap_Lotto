@@ -710,7 +710,7 @@ def draw_details(lottery_type, draw_number):
                         cur.execute("""
                             SELECT predicted_numbers, bonus_numbers, main_number_matches, 
                                    accuracy_percentage, prize_tier, matched_main_numbers, 
-                                   verified_at
+                                   matched_bonus_numbers, verified_at
                             FROM lottery_predictions 
                             WHERE game_type = %s 
                             AND verified_draw_number = %s 
@@ -723,12 +723,13 @@ def draw_details(lottery_type, draw_number):
                         if validation_row:
                             validation_result = type('ValidationResult', (), {})()
                             validation_result.predicted_numbers = validation_row[0]
-                            validation_result.bonus_numbers = validation_row[1]
+                            validation_result.predicted_bonus = validation_row[1]  # Template expects predicted_bonus
                             validation_result.main_number_matches = validation_row[2]
                             validation_result.accuracy_percentage = float(validation_row[3]) if validation_row[3] else 0.0
                             validation_result.prize_tier = validation_row[4]
                             validation_result.matched_numbers = validation_row[5]
-                            validation_result.verified_at = validation_row[6]
+                            validation_result.matched_bonus = validation_row[6]  # Add matched bonus numbers
+                            validation_result.verified_at = validation_row[7]
                             
                             # Parse matched numbers if they're in PostgreSQL array format
                             if validation_result.matched_numbers and isinstance(validation_result.matched_numbers, str):
@@ -741,6 +742,18 @@ def draw_details(lottery_type, draw_number):
                                         validation_result.matched_numbers = json.loads(validation_result.matched_numbers)
                                     except:
                                         validation_result.matched_numbers = []
+                            
+                            # Parse matched bonus numbers if they're in PostgreSQL array format
+                            if validation_result.matched_bonus and isinstance(validation_result.matched_bonus, str):
+                                matched_bonus_str = str(validation_result.matched_bonus)
+                                if matched_bonus_str.startswith('{') and matched_bonus_str.endswith('}'):
+                                    matched_bonus_str = matched_bonus_str[1:-1]
+                                    validation_result.matched_bonus = [int(x.strip()) for x in matched_bonus_str.split(',') if x.strip()]
+                                else:
+                                    try:
+                                        validation_result.matched_bonus = json.loads(validation_result.matched_bonus)
+                                    except:
+                                        validation_result.matched_bonus = []
                             
                             logger.info(f"DRAW DETAILS: Found validation data for draw {draw_number}")
                     except Exception as val_e:
