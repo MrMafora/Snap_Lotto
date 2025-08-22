@@ -31,7 +31,7 @@ class SimpleLotteryScheduler:
     def __init__(self):
         self.running = False
         self.thread = None
-        self.schedule_time = "22:30"  # 10:30 PM SA time
+        self.schedule_time = "23:45"  # 11:45 PM SA time - later to catch all daily results
         
     def run_automation_now(self):
         """Run the automation workflow using the SAME WORKING SYSTEM as manual button"""
@@ -196,12 +196,12 @@ class SimpleLotteryScheduler:
             return False
         
         logger.info("🎯 Starting simple lottery automation scheduler...")
-        logger.info(f"⏰ Daily automation scheduled for {self.schedule_time} South African time")
+        logger.info(f"⏰ Daily automation scheduled for {self.schedule_time} South African time (later timing to catch all daily results)")
         
         # Clear existing schedules
         schedule.clear()
         
-        # Schedule daily automation at 10:30 PM
+        # Schedule daily automation at 11:45 PM to ensure all results are available
         schedule.every().day.at(self.schedule_time).do(self.run_automation_now)
         
         # Start scheduler thread
