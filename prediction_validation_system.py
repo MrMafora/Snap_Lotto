@@ -230,11 +230,8 @@ class PredictionValidator:
                 
                 self.conn.commit()
                 
-                # Generate new prediction for this game type after successful validation
-                try:
-                    self._generate_replacement_prediction(prediction['game_type'])
-                except Exception as e:
-                    logger.error(f"Failed to generate replacement prediction for {prediction['game_type']}: {e}")
+                # Note: Replacement prediction generation moved to validate_all_pending_predictions 
+                # to only generate for game types that actually had new results validated
                 
                 return {
                     'success': True,
@@ -257,8 +254,10 @@ class PredictionValidator:
     def validate_all_pending_predictions(self) -> List[Dict]:
         """
         Validate all pending predictions against available results
+        Only generates replacement predictions for game types that had successful validations
         """
         results = []
+        successfully_validated_game_types = set()  # Track which game types had successful validations
         
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -309,11 +308,22 @@ class PredictionValidator:
                         results.append(validation_result)
                         
                         if validation_result.get('success'):
+                            # Track this game type for replacement prediction generation
+                            successfully_validated_game_types.add(prediction['game_type'])
                             logger.info(f"✅ Validated prediction {prediction['id']} against draw {result['draw_number']}")
                         else:
                             logger.warning(f"❌ Failed to validate prediction {prediction['id']}: {validation_result.get('error')}")
                     else:
                         logger.info(f"⏳ No results available yet for {prediction['game_type']} prediction {prediction['id']}")
+                
+                # Generate replacement predictions only for game types that had successful validations
+                logger.info(f"Generating replacement predictions for {len(successfully_validated_game_types)} game types with new results...")
+                for game_type in successfully_validated_game_types:
+                    try:
+                        logger.info(f"Generating replacement prediction for {game_type} (had successful validation)")
+                        self._generate_replacement_prediction(game_type)
+                    except Exception as e:
+                        logger.error(f"Failed to generate replacement prediction for {game_type}: {e}")
                         
         except Exception as e:
             logger.error(f"Batch validation error: {e}")
