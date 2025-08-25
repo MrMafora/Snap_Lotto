@@ -284,7 +284,7 @@ class PredictionValidator:
                     }
                     
                     cursor.execute("""
-                        SELECT id, draw_number, draw_date 
+                        SELECT id, draw_number, draw_date, created_at 
                         FROM lottery_results 
                         WHERE lottery_type = %s 
                         AND draw_date <= %s
@@ -308,22 +308,29 @@ class PredictionValidator:
                         results.append(validation_result)
                         
                         if validation_result.get('success'):
-                            # Track this game type for replacement prediction generation
-                            successfully_validated_game_types.add(prediction['game_type'])
-                            logger.info(f"✅ Validated prediction {prediction['id']} against draw {result['draw_number']}")
+                            # Only track for replacement generation if result is recent (added today)
+                            result_added_today = result['created_at'].date() == datetime.now().date()
+                            if result_added_today:
+                                successfully_validated_game_types.add(prediction['game_type'])
+                                logger.info(f"✅ Validated prediction {prediction['id']} against fresh draw {result['draw_number']} (added today)")
+                            else:
+                                logger.info(f"✅ Validated prediction {prediction['id']} against old draw {result['draw_number']} (no new prediction needed)")
                         else:
                             logger.warning(f"❌ Failed to validate prediction {prediction['id']}: {validation_result.get('error')}")
                     else:
                         logger.info(f"⏳ No results available yet for {prediction['game_type']} prediction {prediction['id']}")
                 
-                # Generate replacement predictions only for game types that had successful validations
-                logger.info(f"Generating replacement predictions for {len(successfully_validated_game_types)} game types with new results...")
-                for game_type in successfully_validated_game_types:
-                    try:
-                        logger.info(f"Generating replacement prediction for {game_type} (had successful validation)")
-                        self._generate_replacement_prediction(game_type)
-                    except Exception as e:
-                        logger.error(f"Failed to generate replacement prediction for {game_type}: {e}")
+                # Generate replacement predictions only for game types with fresh results from today
+                if successfully_validated_game_types:
+                    logger.info(f"Generating replacement predictions for {len(successfully_validated_game_types)} game types with fresh results from today...")
+                    for game_type in successfully_validated_game_types:
+                        try:
+                            logger.info(f"Generating replacement prediction for {game_type} (validated against fresh result)")
+                            self._generate_replacement_prediction(game_type)
+                        except Exception as e:
+                            logger.error(f"Failed to generate replacement prediction for {game_type}: {e}")
+                else:
+                    logger.info("🎯 No fresh results found today - no new predictions needed. All validations were against older results.")
                         
         except Exception as e:
             logger.error(f"Batch validation error: {e}")
