@@ -2763,15 +2763,22 @@ except ImportError as e:
 
 logger.info("All modules lazy-loaded successfully")
 
-# Initialize simple daily scheduler on startup
+# Initialize WORKER-SAFE scheduler for Gunicorn multi-process environment
 try:
-    from simple_daily_scheduler import start_scheduler
-    if start_scheduler():
-        logger.info("✅ Simple daily automation scheduler started on application startup")
+    from scheduler_fix import start_worker_safe_scheduler
+    if start_worker_safe_scheduler():
+        logger.info("✅ WORKER-SAFE: APScheduler started for daily automation at 23:45 SA time")
     else:
-        logger.warning("⚠️ Scheduler was already running or failed to start")
+        logger.warning("⚠️ WORKER-SAFE: Scheduler was already running or failed to start")
 except Exception as e:
-    logger.error(f"❌ Failed to start simple scheduler on startup: {e}")
+    logger.error(f"❌ WORKER-SAFE: Failed to start scheduler: {e}")
+    # Fallback to original scheduler
+    try:
+        from simple_daily_scheduler import start_scheduler
+        if start_scheduler():
+            logger.info("✅ FALLBACK: Simple scheduler started as backup")
+    except Exception as fallback_error:
+        logger.error(f"❌ FALLBACK: Both schedulers failed: {fallback_error}")
 
 if __name__ == '__main__':
     # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development
