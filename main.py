@@ -1242,92 +1242,58 @@ def api_predictions():
 @app.route('/api/lottery-analysis/run-prediction-cycle', methods=['POST'])
 @login_required
 def run_prediction_cycle():
-    """Run validation-based prediction generation cycle"""
+    """Run validation-driven prediction cycle using same logic as manual workflow"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
     
     try:
-        import psycopg2
-        from datetime import datetime, timedelta
-        from generate_ai_predictions import GeminiLotteryPredictor
+        from prediction_validation_system import PredictionValidator
         
-        logger.info("Starting validation-based prediction cycle")
+        logger.info("🎯 Starting validation-driven prediction cycle (same as manual workflow)")
         
-        # Connect to database
-        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
-        cur = conn.cursor()
+        # Use the exact same validator system we perfected manually
+        validator = PredictionValidator()
         
-        # Find games that have been validated recently (last 24 hours)
-        cur.execute('''
-            SELECT DISTINCT game_type, verified_at 
-            FROM lottery_predictions 
-            WHERE is_verified = true 
-            AND verified_at >= %s
-            ORDER BY verified_at DESC
-        ''', (datetime.now() - timedelta(hours=24),))
+        # Run validation against all pending predictions - follows fresh results principle
+        validation_results = validator.validate_all_pending_predictions()
         
-        recent_validations = cur.fetchall()
-        logger.info(f"Found {len(recent_validations)} games validated in last 24 hours")
+        # Close validator connection
+        validator.close()
         
-        # Get current pending predictions
-        cur.execute('''
-            SELECT game_type, created_at, target_draw_date 
-            FROM lottery_predictions 
-            WHERE validation_status = 'pending'
-            ORDER BY game_type
-        ''')
+        # Analyze results
+        successful_validations = [r for r in validation_results if r.get('success')]
+        failed_validations = [r for r in validation_results if not r.get('success')]
         
-        pending_predictions = {row[0]: row for row in cur.fetchall()}
-        logger.info(f"Found pending predictions for: {list(pending_predictions.keys())}")
-        
-        # Determine which games need new predictions
-        games_needing_predictions = []
-        for game_type, verified_at in recent_validations:
-            # Check if this game has a fresh prediction (created after validation)
-            if game_type not in pending_predictions:
-                games_needing_predictions.append(game_type)
-                logger.info(f"{game_type} needs new prediction (no pending prediction)")
-            else:
-                pending_created_at = pending_predictions[game_type][1]
-                if pending_created_at < verified_at:
-                    games_needing_predictions.append(game_type)
-                    logger.info(f"{game_type} needs new prediction (pending is older than validation)")
-        
-        cur.close()
-        conn.close()
-        
-        # Generate predictions for validated games only
-        predictor = GeminiLotteryPredictor()
-        successful_predictions = 0
-        failed_predictions = []
-        
-        for game_type in games_needing_predictions:
-            logger.info(f'Generating prediction for {game_type}...')
-            result = predictor.generate_single_prediction(game_type)
-            
+        # Extract validation details for response
+        validation_details = []
+        for result in successful_validations:
             if result.get('success'):
-                successful_predictions += 1
-                logger.info(f'✅ Successfully generated prediction for {game_type}')
-            else:
-                failed_predictions.append(game_type)
-                logger.error(f'❌ Failed to generate prediction for {game_type}: {result.get("error")}')
-        
-        logger.info(f'Prediction cycle complete: {successful_predictions} successful, {len(failed_predictions)} failed')
+                validation_details.append({
+                    'game_type': result['game_type'],
+                    'draw_number': result['draw_number'], 
+                    'accuracy_percentage': result['accuracy_percentage'],
+                    'main_number_matches': result['main_number_matches']
+                })
+                
+        logger.info(f'✅ Validation-driven cycle complete: {len(successful_validations)} successful, {len(failed_validations)} failed validations')
         
         return jsonify({
             'success': True,
-            'successful_predictions': successful_predictions,
-            'failed_predictions': failed_predictions,
-            'games_processed': games_needing_predictions,
-            'total_validated_games': len(recent_validations),
-            'message': f'Generated {successful_predictions} new predictions for validated games'
+            'workflow_type': 'validation_driven',
+            'total_validations': len(validation_results),
+            'successful_validations': len(successful_validations),
+            'failed_validations': len(failed_validations),
+            'validation_details': validation_details,
+            'message': f'Validated {len(successful_validations)} predictions. New predictions generated ONLY for games with fresh results from today.',
+            'principle': 'Only generate new predictions after validating against corresponding fresh draws'
         })
         
     except Exception as e:
-        logger.error(f"Error in prediction cycle: {e}")
+        logger.error(f"Error in validation-driven prediction cycle: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'workflow_type': 'validation_driven_failed'
         }), 500
 
 # Scanner Landing Route
