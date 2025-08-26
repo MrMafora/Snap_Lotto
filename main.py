@@ -520,6 +520,9 @@ def results(lottery_type=None):
                 logger.error(f"Failed to fetch prediction data: {e}")
                 predictions_data = {}
             
+            logger.info(f"FILTERED RESULTS DEBUG: Found {len(predictions_data)} prediction entries: {list(predictions_data.keys())}")
+            logger.info(f"FILTERED RESULTS DEBUG: Latest results keys: {list(latest_results.keys())}")
+            
             return render_template('results.html', 
                                  results=results, 
                                  latest_results=latest_results,
