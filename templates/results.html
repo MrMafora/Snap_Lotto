@@ -91,6 +91,54 @@
                                 {% endif %}
                             </div>
                             
+                            <!-- AI Prediction Display -->
+                            {% if predictions_data and lottery_type in predictions_data %}
+                                {% set prediction = predictions_data[lottery_type] %}
+                                <div class="ai-prediction-section mt-3 pt-3" style="border-top: 1px solid #dee2e6;">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="badge bg-primary" style="font-size: 0.75rem;">
+                                            <i class="fas fa-brain me-1"></i>AI Prediction
+                                        </span>
+                                        <span class="text-muted" style="font-size: 0.75rem;">
+                                            {{ prediction.confidence_score|round|int }}% Confidence
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="prediction-balls-container text-center">
+                                        {% for num in prediction.predicted_numbers %}
+                                            <span class="lottery-ball lottery-ball-prediction" style="
+                                                width: 28px; 
+                                                height: 28px; 
+                                                font-size: 0.75rem;
+                                                background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+                                                border: 1px solid #5f4bc6;
+                                                margin: 0 1px;
+                                            ">{{ num }}</span>
+                                        {% endfor %}
+                                        
+                                        {% if prediction.bonus_numbers %}
+                                            <span class="lottery-plus-sign" style="color: #6c5ce7; font-size: 0.75rem;">+</span>
+                                            {% for bonus in prediction.bonus_numbers %}
+                                                <span class="lottery-ball lottery-ball-prediction" style="
+                                                    width: 28px; 
+                                                    height: 28px; 
+                                                    font-size: 0.75rem;
+                                                    background: linear-gradient(135deg, #fd79a8, #fdcb6e);
+                                                    border: 1px solid #e84393;
+                                                    margin: 0 1px;
+                                                ">{{ bonus }}</span>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if prediction.linked_draw_id %}
+                                        <div class="text-muted text-center mt-2" style="font-size: 0.7rem;">
+                                            Linked to Draw #{{ prediction.linked_draw_id }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            
                         </div>
                         <div class="card-footer bg-white border-top-0">
                             <a href="{{ url_for('results', lottery_type=display_name) }}" class="btn btn-sm w-100" style="background-color: #c53030; color: white;">

@@ -466,9 +466,64 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
             
+            # Fetch prediction data for result cards
+            predictions_data = {}
+            try:
+                with psycopg2.connect(connection_string) as conn:
+                    with conn.cursor() as cur:
+                        # Get latest prediction for each game type that has pending status
+                        cur.execute("""
+                            SELECT DISTINCT ON (game_type)
+                                game_type, predicted_numbers, bonus_numbers, confidence_score,
+                                linked_draw_id, validation_status, created_at
+                            FROM lottery_predictions 
+                            WHERE validation_status = 'pending'
+                            ORDER BY game_type, created_at DESC
+                        """)
+                        
+                        for row in cur.fetchall():
+                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at = row
+                            
+                            # Parse PostgreSQL array format to Python list
+                            main_numbers = []
+                            if predicted_nums:
+                                nums_str = str(predicted_nums)
+                                if nums_str.startswith('{') and nums_str.endswith('}'):
+                                    nums_str = nums_str[1:-1]  # Remove braces
+                                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                                else:
+                                    try:
+                                        main_numbers = json.loads(predicted_nums)
+                                    except:
+                                        main_numbers = []
+                            
+                            bonus_numbers = []
+                            if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                                bonus_str = str(bonus_nums)
+                                if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                    bonus_str = bonus_str[1:-1]
+                                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                                else:
+                                    try:
+                                        bonus_numbers = json.loads(bonus_nums)
+                                    except:
+                                        bonus_numbers = []
+                            
+                            predictions_data[game_type] = {
+                                'predicted_numbers': main_numbers,
+                                'bonus_numbers': bonus_numbers,
+                                'confidence_score': confidence,
+                                'linked_draw_id': linked_draw_id,
+                                'status': status
+                            }
+            except Exception as e:
+                logger.error(f"Failed to fetch prediction data: {e}")
+                predictions_data = {}
+            
             return render_template('results.html', 
                                  results=results, 
                                  latest_results=latest_results,
+                                 predictions_data=predictions_data,
                                  lottery_types=lottery_types,
                                  lottery_type=lottery_type,
                                  display_name=lottery_type)
@@ -593,9 +648,64 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
             
+            # Fetch prediction data for result cards
+            predictions_data = {}
+            try:
+                with psycopg2.connect(connection_string) as conn:
+                    with conn.cursor() as cur:
+                        # Get latest prediction for each game type that has pending status
+                        cur.execute("""
+                            SELECT DISTINCT ON (game_type)
+                                game_type, predicted_numbers, bonus_numbers, confidence_score,
+                                linked_draw_id, validation_status, created_at
+                            FROM lottery_predictions 
+                            WHERE validation_status = 'pending'
+                            ORDER BY game_type, created_at DESC
+                        """)
+                        
+                        for row in cur.fetchall():
+                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at = row
+                            
+                            # Parse PostgreSQL array format to Python list
+                            main_numbers = []
+                            if predicted_nums:
+                                nums_str = str(predicted_nums)
+                                if nums_str.startswith('{') and nums_str.endswith('}'):
+                                    nums_str = nums_str[1:-1]  # Remove braces
+                                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                                else:
+                                    try:
+                                        main_numbers = json.loads(predicted_nums)
+                                    except:
+                                        main_numbers = []
+                            
+                            bonus_numbers = []
+                            if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                                bonus_str = str(bonus_nums)
+                                if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                    bonus_str = bonus_str[1:-1]
+                                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                                else:
+                                    try:
+                                        bonus_numbers = json.loads(bonus_nums)
+                                    except:
+                                        bonus_numbers = []
+                            
+                            predictions_data[game_type] = {
+                                'predicted_numbers': main_numbers,
+                                'bonus_numbers': bonus_numbers,
+                                'confidence_score': confidence,
+                                'linked_draw_id': linked_draw_id,
+                                'status': status
+                            }
+            except Exception as e:
+                logger.error(f"Failed to fetch prediction data: {e}")
+                predictions_data = {}
+            
             return render_template('results.html', 
                                  results=results,
                                  latest_results=latest_results,
+                                 predictions_data=predictions_data,
                                  lottery_types=lottery_types)
             
     except Exception as e:
