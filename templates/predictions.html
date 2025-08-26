@@ -1040,8 +1040,8 @@ class PredictionsManager {
             <div class="prediction-card" style="display: inline-block; width: 300px; margin: 0 10px 15px 0; vertical-align: top;">
                 <div class="prediction-header mb-2">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="confidence-badge ${pred.confidence_score > 0.4 ? 'high' : pred.confidence_score > 0.2 ? 'medium' : 'low'}">
-                            ${Math.round(pred.confidence_score * 100)}% Confidence
+                        <span class="confidence-badge ${pred.confidence_score > 40 ? 'high' : pred.confidence_score > 20 ? 'medium' : 'low'}">
+                            ${Math.round(pred.confidence_score)}% Confidence
                         </span>
                         ${pred.is_verified ? '<i class="fas fa-check-circle text-success" title="Validated"></i>' : '<i class="fas fa-clock text-warning" title="Pending"></i>'}
                     </div>
@@ -1432,7 +1432,7 @@ window.addEventListener('load', function() {
             html += '<div class="row g-3">';
             
             preds.forEach((pred, index) => {
-                const confidencePercent = Math.round(pred.confidence_score * 100);
+                const confidencePercent = Math.round(pred.confidence_score);
                 
                 html += '<div class="col-lg-4 col-md-4 col-12">';
                 html += '<div class="prediction-card-compact">';
@@ -1597,7 +1597,7 @@ window.addEventListener('load', function() {
                         html += '<div class="row g-3">';
                         
                         preds.forEach(pred => {
-                            const confidencePercent = Math.round(pred.confidence_score * 100);
+                            const confidencePercent = Math.round(pred.confidence_score);
                             
                             html += '<div class="col-md-4">';
                             html += '<div class="prediction-horizontal-card">';
