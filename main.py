@@ -877,6 +877,10 @@ def draw_details(lottery_type, draw_number):
                                         prediction_result.matched_bonus = []
                             
                             logger.info(f"DRAW DETAILS: Found prediction data linked to draw {draw_number}")
+                            logger.info(f"TEMPLATE DEBUG: validation_result will be: {prediction_result is not None}")
+                            if prediction_result:
+                                logger.info(f"TEMPLATE DEBUG: predicted_numbers = {prediction_result.predicted_numbers}")
+                                logger.info(f"TEMPLATE DEBUG: accuracy = {prediction_result.accuracy_percentage}")
                     except Exception as pred_e:
                         logger.error(f"Failed to fetch prediction data: {pred_e}")
                         prediction_result = None
@@ -900,6 +904,7 @@ def draw_details(lottery_type, draw_number):
         }
         display_name = DISPLAY_NAME_MAPPING.get(lottery_type, lottery_type)
         
+        logger.info(f"TEMPLATE RENDER: Passing validation_result={prediction_result is not None}")
         return render_template('draw_details.html', 
                              result=result,
                              display_name=display_name,
