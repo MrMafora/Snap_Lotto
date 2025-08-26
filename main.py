@@ -788,7 +788,7 @@ def draw_details(lottery_type, draw_number):
                              result=result,
                              display_name=display_name,
                              lottery_type=lottery_type,
-                             prediction_result=prediction_result)
+                             validation_result=prediction_result)
         
     except Exception as e:
         logger.error(f"Draw details error: {e}")
