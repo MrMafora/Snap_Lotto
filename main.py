@@ -704,78 +704,66 @@ def draw_details(lottery_type, draw_number):
                         
                         logger.info(f"DRAW DETAILS: Found draw {draw_number} for {lottery_type}")
                     
-                    # Fetch validation data for this specific draw
-                    validation_result = None
+                    # Fetch prediction data linked to this specific draw
+                    prediction_result = None
                     try:
-                        # First try matching by verified_draw_number
+                        # Look for predictions linked to this draw ID
                         cur.execute("""
                             SELECT predicted_numbers, bonus_numbers, main_number_matches, 
                                    accuracy_percentage, prize_tier, matched_main_numbers, 
-                                   matched_bonus_numbers, verified_at
+                                   matched_bonus_numbers, created_at, confidence_score,
+                                   validation_status, prediction_method, reasoning
                             FROM lottery_predictions 
                             WHERE game_type = %s 
-                            AND verified_draw_number = %s 
-                            AND is_verified = true
-                            ORDER BY verified_at DESC 
+                            AND linked_draw_id = %s 
+                            ORDER BY created_at DESC 
                             LIMIT 1
                         """, (lottery_type, draw_number))
                         
                         validation_row = cur.fetchone()
-                        
-                        # If no match by draw number, try matching by draw date
-                        if not validation_row and row[2]:  # row[2] is draw_date
-                            cur.execute("""
-                                SELECT predicted_numbers, bonus_numbers, main_number_matches, 
-                                       accuracy_percentage, prize_tier, matched_main_numbers, 
-                                       matched_bonus_numbers, verified_at
-                                FROM lottery_predictions 
-                                WHERE game_type = %s 
-                                AND target_draw_date = %s 
-                                AND validation_status = 'validated'
-                                ORDER BY verified_at DESC 
-                                LIMIT 1
-                            """, (lottery_type, row[2]))
-                            
-                            validation_row = cur.fetchone()
                         if validation_row:
-                            validation_result = type('ValidationResult', (), {})()
-                            validation_result.predicted_numbers = validation_row[0]
-                            validation_result.predicted_bonus = validation_row[1]  # Template expects predicted_bonus
-                            validation_result.main_number_matches = validation_row[2]
-                            validation_result.accuracy_percentage = float(validation_row[3]) if validation_row[3] else 0.0
-                            validation_result.prize_tier = validation_row[4]
-                            validation_result.matched_numbers = validation_row[5]
-                            validation_result.matched_bonus = validation_row[6]  # Add matched bonus numbers
-                            validation_result.verified_at = validation_row[7]
+                            prediction_result = type('PredictionResult', (), {})()
+                            prediction_result.predicted_numbers = validation_row[0]
+                            prediction_result.predicted_bonus = validation_row[1]  # Template expects predicted_bonus
+                            prediction_result.main_number_matches = validation_row[2]
+                            prediction_result.accuracy_percentage = float(validation_row[3]) if validation_row[3] else 0.0
+                            prediction_result.prize_tier = validation_row[4]
+                            prediction_result.matched_numbers = validation_row[5]
+                            prediction_result.matched_bonus = validation_row[6]  # Add matched bonus numbers
+                            prediction_result.created_at = validation_row[7]
+                            prediction_result.confidence_score = validation_row[8]
+                            prediction_result.validation_status = validation_row[9]
+                            prediction_result.prediction_method = validation_row[10]
+                            prediction_result.reasoning = validation_row[11]
                             
                             # Parse matched numbers if they're in PostgreSQL array format
-                            if validation_result.matched_numbers and isinstance(validation_result.matched_numbers, str):
-                                matched_str = str(validation_result.matched_numbers)
+                            if prediction_result.matched_numbers and isinstance(prediction_result.matched_numbers, str):
+                                matched_str = str(prediction_result.matched_numbers)
                                 if matched_str.startswith('{') and matched_str.endswith('}'):
                                     matched_str = matched_str[1:-1]
-                                    validation_result.matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
+                                    prediction_result.matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
                                 else:
                                     try:
-                                        validation_result.matched_numbers = json.loads(validation_result.matched_numbers)
+                                        prediction_result.matched_numbers = json.loads(prediction_result.matched_numbers)
                                     except:
-                                        validation_result.matched_numbers = []
+                                        prediction_result.matched_numbers = []
                             
                             # Parse matched bonus numbers if they're in PostgreSQL array format
-                            if validation_result.matched_bonus and isinstance(validation_result.matched_bonus, str):
-                                matched_bonus_str = str(validation_result.matched_bonus)
+                            if prediction_result.matched_bonus and isinstance(prediction_result.matched_bonus, str):
+                                matched_bonus_str = str(prediction_result.matched_bonus)
                                 if matched_bonus_str.startswith('{') and matched_bonus_str.endswith('}'):
                                     matched_bonus_str = matched_bonus_str[1:-1]
-                                    validation_result.matched_bonus = [int(x.strip()) for x in matched_bonus_str.split(',') if x.strip()]
+                                    prediction_result.matched_bonus = [int(x.strip()) for x in matched_bonus_str.split(',') if x.strip()]
                                 else:
                                     try:
-                                        validation_result.matched_bonus = json.loads(validation_result.matched_bonus)
+                                        prediction_result.matched_bonus = json.loads(prediction_result.matched_bonus)
                                     except:
-                                        validation_result.matched_bonus = []
+                                        prediction_result.matched_bonus = []
                             
-                            logger.info(f"DRAW DETAILS: Found validation data for draw {draw_number}")
-                    except Exception as val_e:
-                        logger.error(f"Failed to fetch validation data: {val_e}")
-                        validation_result = None
+                            logger.info(f"DRAW DETAILS: Found prediction data linked to draw {draw_number}")
+                    except Exception as pred_e:
+                        logger.error(f"Failed to fetch prediction data: {pred_e}")
+                        prediction_result = None
                     
         except Exception as db_e:
             logger.error(f"Database connection failed: {db_e}")
@@ -800,7 +788,7 @@ def draw_details(lottery_type, draw_number):
                              result=result,
                              display_name=display_name,
                              lottery_type=lottery_type,
-                             validation_result=validation_result)
+                             prediction_result=prediction_result)
         
     except Exception as e:
         logger.error(f"Draw details error: {e}")
@@ -1197,11 +1185,11 @@ def api_predictions():
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Get latest predictions for each game type
+        # Get latest predictions for each game type with draw ID linking
         cur.execute("""
             SELECT id, game_type, predicted_numbers, bonus_numbers, confidence_score, 
                    created_at, validation_status, accuracy_score, target_draw_date, 
-                   prediction_method, reasoning
+                   prediction_method, reasoning, linked_draw_id
             FROM lottery_predictions 
             ORDER BY created_at DESC 
             LIMIT 50
@@ -1231,13 +1219,14 @@ def api_predictions():
                 'game_type': row['game_type'],
                 'main_numbers': json.dumps(main_numbers),  # Convert to JSON string
                 'bonus_numbers': json.dumps(bonus_numbers) if bonus_numbers else json.dumps([]),
-                'confidence': int(row['confidence_score'] * 100) if row['confidence_score'] else 0,  # Convert to percentage
+                'confidence': int(row['confidence_score']) if row['confidence_score'] else 0,  # Already a percentage
                 'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                 'status': row['validation_status'],
                 'accuracy_score': row['accuracy_score'],
                 'draw_date': row['target_draw_date'].isoformat() if row['target_draw_date'] else None,
                 'method': row['prediction_method'],
-                'reasoning': row['reasoning']
+                'reasoning': row['reasoning'],
+                'linked_draw_id': row['linked_draw_id']  # Add draw ID linking
             })
         
         cur.close()
@@ -1253,6 +1242,83 @@ def api_predictions():
         return jsonify({
             'success': False,
             'error': str(e),
+            'predictions': []
+        })
+
+@app.route('/api/predictions/by-draw/<int:draw_id>')
+def api_predictions_by_draw(draw_id):
+    """API endpoint for fetching predictions linked to a specific draw ID"""
+    try:
+        import psycopg2
+        import json
+        from psycopg2.extras import RealDictCursor
+        
+        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get predictions linked to this draw ID
+        cur.execute("""
+            SELECT p.id, p.game_type, p.predicted_numbers, p.bonus_numbers, p.confidence_score,
+                   p.created_at, p.validation_status, p.accuracy_score, p.target_draw_date,
+                   p.prediction_method, p.reasoning, p.linked_draw_id,
+                   p.main_number_matches, p.bonus_number_matches, p.accuracy_percentage, p.prize_tier,
+                   lr.draw_number, lr.main_numbers as actual_numbers, lr.bonus_numbers as actual_bonus_numbers,
+                   lr.draw_date as actual_draw_date
+            FROM lottery_predictions p
+            LEFT JOIN lottery_results lr ON p.linked_draw_id = lr.draw_number AND p.game_type = lr.lottery_type
+            WHERE p.linked_draw_id = %s
+            ORDER BY p.game_type, p.created_at DESC
+        """, (draw_id,))
+        
+        predictions = []
+        for row in cur.fetchall():
+            # Convert PostgreSQL array format to JSON
+            main_numbers = row['predicted_numbers'] if row['predicted_numbers'] else []
+            bonus_numbers = row['bonus_numbers'] if row['bonus_numbers'] else []
+            actual_numbers = row['actual_numbers'] if row['actual_numbers'] else []
+            actual_bonus_numbers = row['actual_bonus_numbers'] if row['actual_bonus_numbers'] else []
+            
+            prediction_data = {
+                'id': row['id'],
+                'game_type': row['game_type'],
+                'predicted_numbers': main_numbers,
+                'bonus_numbers': bonus_numbers,
+                'confidence_score': row['confidence_score'],
+                'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                'validation_status': row['validation_status'],
+                'accuracy_score': row['accuracy_score'],
+                'target_draw_date': row['target_draw_date'].isoformat() if row['target_draw_date'] else None,
+                'prediction_method': row['prediction_method'],
+                'reasoning': row['reasoning'],
+                'linked_draw_id': row['linked_draw_id'],
+                'main_number_matches': row['main_number_matches'],
+                'bonus_number_matches': row['bonus_number_matches'],
+                'accuracy_percentage': row['accuracy_percentage'],
+                'prize_tier': row['prize_tier'],
+                # Actual draw results
+                'actual_numbers': actual_numbers,
+                'actual_bonus_numbers': actual_bonus_numbers,
+                'actual_draw_date': row['actual_draw_date'].isoformat() if row['actual_draw_date'] else None,
+                'is_verified': row['validation_status'] == 'validated'
+            }
+            predictions.append(prediction_data)
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'draw_id': draw_id,
+            'predictions': predictions,
+            'total_predictions': len(predictions)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching predictions for draw {draw_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'draw_id': draw_id,
             'predictions': []
         })
 
