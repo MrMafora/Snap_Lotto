@@ -273,7 +273,7 @@ class PredictionValidator:
                 logger.info(f"Found {len(predictions)} pending predictions to validate")
                 
                 for prediction in predictions:
-                    # Find matching results based on game type and date
+                    # CRITICAL FIX: Only validate predictions that have FRESH results from today
                     lottery_type_map = {
                         'DAILY LOTTO': 'DAILY LOTTO',
                         'LOTTO': 'LOTTO',
@@ -283,23 +283,26 @@ class PredictionValidator:
                         'POWERBALL PLUS': 'POWERBALL PLUS'
                     }
                     
+                    # First, check if there are FRESH results (added today) for this game type
                     cursor.execute("""
                         SELECT id, draw_number, draw_date, created_at 
                         FROM lottery_results 
                         WHERE lottery_type = %s 
                         AND draw_date <= %s
+                        AND created_at::date = %s
                         ORDER BY draw_date DESC
                         LIMIT 1
                     """, (
                         lottery_type_map.get(prediction['game_type'], prediction['game_type']),
-                        prediction['target_draw_date']
+                        prediction['target_draw_date'],
+                        datetime.now().date()  # Only fresh results from today
                     ))
                     
-                    available_results = cursor.fetchall()
+                    fresh_results = cursor.fetchall()
                     
-                    if available_results:
-                        # Use the first available result (closest to target date)
-                        result = available_results[0]
+                    if fresh_results:
+                        # VALIDATE: Fresh result found - proceed with validation
+                        result = fresh_results[0]
                         validation_result = self.validate_prediction_against_result(
                             prediction['id'], 
                             draw_number=result['draw_number'],
@@ -308,17 +311,20 @@ class PredictionValidator:
                         results.append(validation_result)
                         
                         if validation_result.get('success'):
-                            # Only track for replacement generation if result is recent (added today)
-                            result_added_today = result['created_at'].date() == datetime.now().date()
-                            if result_added_today:
-                                successfully_validated_game_types.add(prediction['game_type'])
-                                logger.info(f"✅ Validated prediction {prediction['id']} against fresh draw {result['draw_number']} (added today)")
-                            else:
-                                logger.info(f"✅ Validated prediction {prediction['id']} against old draw {result['draw_number']} (no new prediction needed)")
+                            successfully_validated_game_types.add(prediction['game_type'])
+                            logger.info(f"✅ FRESH VALIDATION: Prediction {prediction['id']} validated against fresh draw {result['draw_number']} (added today)")
                         else:
                             logger.warning(f"❌ Failed to validate prediction {prediction['id']}: {validation_result.get('error')}")
                     else:
-                        logger.info(f"⏳ No results available yet for {prediction['game_type']} prediction {prediction['id']}")
+                        # NO FRESH RESULTS: Keep prediction as pending
+                        logger.info(f"⏳ PENDING: No fresh results for {prediction['game_type']} prediction {prediction['id']} - keeping as pending")
+                        results.append({
+                            'success': False,
+                            'reason': 'no_fresh_results',
+                            'game_type': prediction['game_type'],
+                            'prediction_id': prediction['id'],
+                            'message': f"No fresh results available for {prediction['game_type']} - prediction remains pending"
+                        })
                 
                 # Generate replacement predictions only for game types with fresh results from today
                 if successfully_validated_game_types:
