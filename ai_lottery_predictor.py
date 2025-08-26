@@ -1116,32 +1116,68 @@ class AILotteryPredictor:
         return configs.get(game_type, configs['LOTTO'])
     
     def store_prediction_in_database(self, prediction: LotteryPrediction) -> bool:
-        """Store prediction in database with ensemble support"""
+        """Store prediction in database with duplicate prevention (1 prediction per game type per draw rule)"""
         try:
             with psycopg2.connect(self.connection_string) as conn:
                 with conn.cursor() as cur:
-                    next_draw = datetime.now().date() + timedelta(days=1)
+                    # Calculate next draw date
+                    if prediction.game_type == 'DAILY LOTTO':
+                        next_draw = datetime.now().date() + timedelta(days=1)
+                    else:
+                        next_draw = datetime.now().date() + timedelta(days=7)
                     
+                    # CRITICAL: Check for existing predictions for this game type and target date
                     cur.execute("""
-                        INSERT INTO lottery_predictions (
-                            game_type, predicted_numbers, bonus_numbers, 
-                            confidence_score, prediction_method, reasoning, 
-                            target_draw_date, created_at, ensemble_composition, model_weights
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (
-                        prediction.game_type,
-                        prediction.predicted_numbers,
-                        prediction.bonus_numbers,
-                        prediction.confidence_score,
-                        prediction.prediction_method,
-                        prediction.reasoning,
-                        next_draw,
-                        prediction.created_at,
-                        json.dumps(prediction.ensemble_composition) if prediction.ensemble_composition else None,
-                        json.dumps(prediction.model_weights) if prediction.model_weights else None
-                    ))
+                        SELECT id FROM lottery_predictions 
+                        WHERE game_type = %s AND target_draw_date = %s
+                    """, (prediction.game_type, next_draw))
+                    
+                    existing_prediction = cur.fetchone()
+                    
+                    if existing_prediction:
+                        # Update existing prediction instead of creating duplicate (1 prediction per draw rule)
+                        logger.info(f"Updating existing prediction {existing_prediction[0]} for {prediction.game_type} on {next_draw}")
+                        cur.execute("""
+                            UPDATE lottery_predictions 
+                            SET predicted_numbers = %s, bonus_numbers = %s, confidence_score = %s,
+                                reasoning = %s, prediction_method = %s, created_at = %s,
+                                ensemble_composition = %s, model_weights = %s
+                            WHERE id = %s
+                        """, (
+                            prediction.predicted_numbers,
+                            prediction.bonus_numbers,
+                            prediction.confidence_score,
+                            prediction.reasoning,
+                            prediction.prediction_method,
+                            prediction.created_at,
+                            json.dumps(prediction.ensemble_composition) if prediction.ensemble_composition else None,
+                            json.dumps(prediction.model_weights) if prediction.model_weights else None,
+                            existing_prediction[0]
+                        ))
+                        logger.info(f"✅ Updated existing {prediction.prediction_method} prediction for {prediction.game_type}")
+                    else:
+                        # Insert new prediction
+                        cur.execute("""
+                            INSERT INTO lottery_predictions (
+                                game_type, predicted_numbers, bonus_numbers, 
+                                confidence_score, prediction_method, reasoning, 
+                                target_draw_date, created_at, ensemble_composition, model_weights
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            prediction.game_type,
+                            prediction.predicted_numbers,
+                            prediction.bonus_numbers,
+                            prediction.confidence_score,
+                            prediction.prediction_method,
+                            prediction.reasoning,
+                            next_draw,
+                            prediction.created_at,
+                            json.dumps(prediction.ensemble_composition) if prediction.ensemble_composition else None,
+                            json.dumps(prediction.model_weights) if prediction.model_weights else None
+                        ))
+                        logger.info(f"✅ Stored new {prediction.prediction_method} prediction for {prediction.game_type}")
+                    
                     conn.commit()
-                    logger.info(f"✅ Stored {prediction.prediction_method} prediction for {prediction.game_type}")
                     return True
         except Exception as e:
             logger.error(f"Error storing prediction: {e}")

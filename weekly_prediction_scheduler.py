@@ -29,16 +29,16 @@ class WeeklyPredictionScheduler:
     def __init__(self):
         # Games with their draw frequencies
         self.game_schedules = {
-            'LOTTO': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Wed, Sat
-            'LOTTO PLUS 1': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Wed, Sat
-            'LOTTO PLUS 2': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Wed, Sat
-            'POWERBALL': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Tue, Fri
-            'POWERBALL PLUS': {'draws_per_week': 2, 'predictions_per_draw': 3},  # Tue, Fri
-            'DAILY LOTTO': {'draws_per_week': 7, 'predictions_per_draw': 3}  # Every day
+            'LOTTO': {'draws_per_week': 2, 'predictions_per_game': 1, 'draw_days': ['Wed', 'Sat']},
+            'LOTTO PLUS 1': {'draws_per_week': 2, 'predictions_per_game': 1, 'draw_days': ['Wed', 'Sat']},
+            'LOTTO PLUS 2': {'draws_per_week': 2, 'predictions_per_game': 1, 'draw_days': ['Wed', 'Sat']},
+            'POWERBALL': {'draws_per_week': 2, 'predictions_per_game': 1, 'draw_days': ['Tue', 'Fri']},
+            'POWERBALL PLUS': {'draws_per_week': 2, 'predictions_per_game': 1, 'draw_days': ['Tue', 'Fri']},
+            'DAILY LOTTO': {'draws_per_week': 7, 'predictions_per_game': 1, 'draw_days': ['Daily']}  # Every day
         }
         
-    def cleanup_old_predictions(self, game_type, max_predictions=3):
-        """Keep only 3 most recent predictions per game type"""
+    def cleanup_old_predictions(self, game_type, max_predictions=1):
+        """Keep only 1 most recent prediction per game type (1 prediction per draw rule)"""
         try:
             with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
                 with conn.cursor() as cur:
@@ -50,7 +50,7 @@ class WeeklyPredictionScheduler:
                         excess_count = current_count - max_predictions
                         logger.info(f"Removing {excess_count} old {game_type} predictions (keeping newest {max_predictions})")
                         
-                        # Delete oldest predictions beyond the limit, keeping only newest 3
+                        # Delete oldest predictions beyond the limit, keeping only newest 1
                         cur.execute("""
                             DELETE FROM lottery_predictions 
                             WHERE game_type = %s 
@@ -77,13 +77,13 @@ class WeeklyPredictionScheduler:
         total_generated = 0
         results = {}
         
-        # First, cleanup old predictions to maintain exactly 3 per game
+        # First, cleanup old predictions to maintain exactly 1 per game (1 prediction per draw rule)
         for game_type in self.game_schedules.keys():
-            self.cleanup_old_predictions(game_type, 3)
+            self.cleanup_old_predictions(game_type, 1)
         
         for game_type, schedule in self.game_schedules.items():
             try:
-                predictions_needed = schedule['predictions_per_game']  # Always 3
+                predictions_needed = schedule['predictions_per_game']  # Always 1 (1 prediction per draw rule)
                 draw_days = schedule['draw_days']
                 
                 logger.info(f"Generating {predictions_needed} predictions for {game_type} "
@@ -91,7 +91,7 @@ class WeeklyPredictionScheduler:
                 
                 game_results = []
                 
-                # Check how many predictions already exist (should be 3 after cleanup)
+                # Check how many predictions already exist (should be 1 after cleanup)
                 with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
                     with conn.cursor() as cur:
                         cur.execute("SELECT COUNT(*) FROM lottery_predictions WHERE game_type = %s", (game_type,))
@@ -106,7 +106,7 @@ class WeeklyPredictionScheduler:
                 
                 logger.info(f"Generating {predictions_to_generate} new predictions for {game_type} (existing: {existing_count})")
                 
-                # Generate only the needed predictions to reach exactly 3
+                # Generate only the needed predictions to reach exactly 1
                 generated_count = 0
                 for i in range(predictions_to_generate):
                     try:
@@ -149,7 +149,7 @@ class WeeklyPredictionScheduler:
                         continue
                 
                 results[game_type] = {'generated': generated_count, 'existing': existing_count, 'total': existing_count + generated_count}
-                logger.info(f"Completed {game_type}: {generated_count} new + {existing_count} existing = {existing_count + generated_count} total predictions (Target: exactly 3)")
+                logger.info(f"Completed {game_type}: {generated_count} new + {existing_count} existing = {existing_count + generated_count} total predictions (Target: exactly 1)")
                 
             except Exception as e:
                 logger.error(f"Failed to process {game_type}: {e}")
@@ -174,7 +174,7 @@ class WeeklyPredictionScheduler:
         report_content.append(f"WEEKLY AI PREDICTION REPORT - {report_date}")
         report_content.append("=" * 60)
         report_content.append(f"Total Predictions Generated: {total_generated}")
-        report_content.append("Prediction Strategy: 3 predictions per draw, tailored to each game's schedule")
+        report_content.append("Prediction Strategy: 1 prediction per draw, tailored to each game's schedule (validation-driven workflow)")
         report_content.append("")
         
         for game_type, predictions in results.items():
