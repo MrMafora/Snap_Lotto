@@ -707,6 +707,7 @@ def draw_details(lottery_type, draw_number):
                     # Fetch validation data for this specific draw
                     validation_result = None
                     try:
+                        # First try matching by verified_draw_number
                         cur.execute("""
                             SELECT predicted_numbers, bonus_numbers, main_number_matches, 
                                    accuracy_percentage, prize_tier, matched_main_numbers, 
@@ -720,6 +721,22 @@ def draw_details(lottery_type, draw_number):
                         """, (lottery_type, draw_number))
                         
                         validation_row = cur.fetchone()
+                        
+                        # If no match by draw number, try matching by draw date
+                        if not validation_row and row[2]:  # row[2] is draw_date
+                            cur.execute("""
+                                SELECT predicted_numbers, bonus_numbers, main_number_matches, 
+                                       accuracy_percentage, prize_tier, matched_main_numbers, 
+                                       matched_bonus_numbers, verified_at
+                                FROM lottery_predictions 
+                                WHERE game_type = %s 
+                                AND target_draw_date = %s 
+                                AND validation_status = 'validated'
+                                ORDER BY verified_at DESC 
+                                LIMIT 1
+                            """, (lottery_type, row[2]))
+                            
+                            validation_row = cur.fetchone()
                         if validation_row:
                             validation_result = type('ValidationResult', (), {})()
                             validation_result.predicted_numbers = validation_row[0]
