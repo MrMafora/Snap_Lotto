@@ -53,6 +53,7 @@ This project is an AI-powered lottery intelligence platform for South African lo
 - EXTENDED HISTORICAL ANALYSIS IMPLEMENTED (2025-08-22): Major prediction accuracy enhancement - expanded analysis from 15 draws to 100 historical draws (optimized for AI processing), implemented multi-timeframe analysis (recent 20, medium-term 40, long-term 40+), added cyclical pattern detection (monthly/quarterly/seasonal), drought cycle analysis, hot/cold transition tracking, and anomaly detection for statistical outliers and pattern breaks
 - SMART PREDICTION GENERATION OPTIMIZATION (2025-08-24): Optimized validation system to only generate replacement predictions for game types that actually have new results and successful validations, eliminating unnecessary AI API calls and improving system efficiency by preventing prediction generation for game types without new lottery results
 - DRAW ID LINKING SYSTEM IMPLEMENTED (2025-08-26): Successfully implemented comprehensive draw ID linking system where predictions are automatically linked to specific future draw IDs (e.g., prediction [4,9,22,30,33] linked to Daily Lotto draw 2357). Added linked_draw_id column to database, created API endpoints for draw-specific prediction lookup (/api/predictions/by-draw/{id}), and fixed confidence display bug where scores were incorrectly multiplied by 100 again (44.25% showing as 4425% - now correctly displays as 44%)
+- UNIFIED INTELLIGENT PREDICTION SYSTEM (2025-08-26): Eliminated all backup and fallback prediction methods across all game types. All 6 lottery games (Daily Lotto, Lotto, Lotto Plus 1/2, Powerball/Plus) now use the same intelligent "Hybrid Frequency-Gap Analysis with Learning" methodology that incorporates 40+ historical draws, hot/cold number patterns, mean reversion strategies, and performance-based learning from validated predictions. Removed AI Ensemble backup methods that were using simple statistical sampling instead of comprehensive learning intelligence.
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
@@ -62,14 +63,15 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage, adhering to authentic data.
 -   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning (`ai_lottery_processor.py`), data extraction, pattern analysis, and lottery prediction (`ai_lottery_predictor.py`). 
 
-    **Prediction Algorithm Details:**
-    - **Core Engine**: Google Gemini 2.5 Pro AI (not simple mathematical formulas)
-    - **Game-Specific Analysis**: Each lottery type uses customized analysis approach
-    - **6-Step Analysis Framework**: 1) Frequency patterns (hot/cold numbers), 2) Gap pattern analysis, 3) Mathematical relationships, 4) Temporal analysis, 5) Prize pattern correlation, 6) Statistical balance validation
-    - **Confidence Scoring**: AI generates 22-55% confidence scores based on pattern strength and statistical significance
+    **Unified Prediction Algorithm Details:**
+    - **Core Engine**: Hybrid Frequency-Gap Analysis with Learning (unified across all game types)
+    - **Historical Analysis**: 40+ historical draws per game with extended pattern recognition
+    - **Learning Framework**: Hot number frequency patterns, cold number mean reversion, statistical balance validation
+    - **Performance Integration**: Incorporates accuracy feedback from validated predictions to improve future predictions
+    - **Confidence Scoring**: 45-65% confidence scores based on historical frequency patterns and pattern strength
     - **Individual Game Rules**: LOTTO (6 main, 1-52), LOTTO PLUS 1/2 (6 main, 1-52), POWERBALL/PLUS (5 main 1-50 + 1 bonus 1-20), DAILY LOTTO (5 main, 1-36)
-    - **Analysis Methods**: "Hybrid Statistical Analysis", "Frequency and Gap Analysis", "Statistical Frequency and Pattern Analysis", "Blended Statistical Analysis"
-    - **Data Sources**: 15-50 recent draws per game, temporal patterns, prize progressions, rollover tracking
+    - **Unified Method**: "Hybrid Frequency-Gap Analysis with Learning" applied consistently across all lottery types
+    - **Learning Sources**: Performance data from validated predictions, multi-timeframe frequency analysis, drought cycle detection, hot/cold transition tracking
 -   **Automation Workflow**: A robust 4-step daily automation process utilizing Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification, with anti-detection measures.
 -   **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, centralized error handling, and admin-only access for sensitive AI features.
 -   **Performance**: Optimized database queries, critical performance indexes, and a cache manager. Decoupled card heights for optimal content display.

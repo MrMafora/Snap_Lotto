@@ -910,9 +910,9 @@ class AILotteryPredictor:
             return None
     
     def generate_prediction(self, game_type: str) -> Optional[LotteryPrediction]:
-        """Main prediction method - uses Multi-Model Ensemble with fallback to single model"""
+        """Main prediction method - uses Unified Intelligent Learning System"""
         try:
-            logger.info(f"🎯 Starting prediction generation for {game_type}")
+            logger.info(f"🧠 Generating intelligent prediction for {game_type}")
             
             # Get historical data for prediction
             historical_data = self.get_historical_data_for_prediction(game_type)
@@ -921,31 +921,23 @@ class AILotteryPredictor:
                 logger.error(f"No historical data available for {game_type}")
                 return None
                 
-            # Try Multi-Model Ensemble first
-            logger.info("🔄 Attempting Multi-Model Ensemble prediction...")
-            ensemble_prediction = self.generate_ensemble_prediction(game_type, historical_data)
+            # Use unified intelligent prediction system
+            logger.info("🎯 Using Hybrid Frequency-Gap Analysis with Learning...")
+            prediction = self.generate_intelligent_prediction(game_type, historical_data)
             
-            if ensemble_prediction:
-                logger.info(f"✅ Ensemble prediction successful: {len(ensemble_prediction.ensemble_composition.get('models_used', []))} models")
-                return ensemble_prediction
+            if prediction:
+                logger.info("✅ Intelligent prediction generated successfully")
+                return prediction
             
-            # Fallback to single model if ensemble fails
-            logger.warning("⚠️ Ensemble failed, falling back to single model")
-            single_prediction = self.generate_ai_prediction(game_type, historical_data)
-            
-            if single_prediction:
-                logger.info("✅ Single model fallback successful")
-                return single_prediction
-            
-            logger.error(f"❌ All prediction methods failed for {game_type}")
+            logger.error(f"❌ Intelligent prediction failed for {game_type}")
             return None
             
         except Exception as e:
-            logger.error(f"Error in main prediction generation: {e}")
+            logger.error(f"Error in intelligent prediction generation: {e}")
             return None
     
-    def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any], variation_seed: int = 1) -> Optional[LotteryPrediction]:
-        """Generate prediction with EXTENDED AI analysis - SINGLE MODEL (fallback method)"""
+    def generate_intelligent_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[LotteryPrediction]:
+        """Generate prediction using Hybrid Frequency-Gap Analysis with Learning - UNIFIED INTELLIGENT SYSTEM"""
         try:
             # Get game configuration
             game_config = self.get_game_configuration(game_type)
