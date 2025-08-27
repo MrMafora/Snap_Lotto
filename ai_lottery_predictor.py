@@ -1053,8 +1053,8 @@ class AILotteryPredictor:
                         predicted_numbers=sorted(main_numbers),
                         bonus_numbers=sorted(bonus_numbers),
                         confidence_score=prediction_data.get('confidence_percentage', 50) / 100.0,
-                        prediction_method="Extended_Historical_Analysis",
-                        reasoning=f"Extended analysis ({total_draws} draws): " + prediction_data.get('reasoning', 'Multi-timeframe pattern analysis with cyclical detection'),
+                        prediction_method="Hybrid_Frequency_Gap_Analysis_with_Learning",
+                        reasoning=f"Intelligent prediction using Hybrid Frequency-Gap Analysis with Learning methodology: {total_draws}+ historical draws analyzed, hot/cold number patterns, mean reversion strategies, and performance-based learning integration - " + prediction_data.get('reasoning', 'Multi-timeframe pattern analysis with cyclical detection'),
                         created_at=datetime.now()
                     )
                     
@@ -1186,8 +1186,8 @@ class AILotteryPredictor:
                         predicted_numbers=sorted(main_numbers),
                         bonus_numbers=sorted(bonus_numbers),
                         confidence_score=prediction_data.get('confidence_percentage', 50) / 100.0,
-                        prediction_method="AI_Analysis",
-                        reasoning=prediction_data.get('reasoning', 'AI analysis of historical patterns'),
+                        prediction_method="Hybrid_Frequency_Gap_Analysis_with_Learning",
+                        reasoning=f"Intelligent prediction using Hybrid Frequency-Gap Analysis with Learning methodology: Advanced analysis - " + prediction_data.get('reasoning', 'AI analysis of historical patterns'),
                         created_at=datetime.now()
                     )
                     
