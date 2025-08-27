@@ -221,6 +221,22 @@ class PredictionValidationSystem:
                     prediction_id
                 ))
                 
+                # After successful validation, unlock prediction and generate new one for next draw
+                if accuracy_data['validation_status'] == 'validated':
+                    # Unlock this prediction so it can be replaced
+                    cursor.execute("""
+                        UPDATE lottery_predictions 
+                        SET is_locked = FALSE,
+                            lock_reason = 'Unlocked after validation - ready for next draw generation'
+                        WHERE id = %s
+                    """, (prediction_id,))
+                    
+                    logger.info(f"🔓 Unlocked prediction {prediction_id} after validation - ready for next draw")
+                
+                # Generate new prediction for next draw after validation
+                if accuracy_data['validation_status'] == 'validated':
+                    self._generate_next_draw_prediction(prediction['game_type'], result['draw_date'], cursor)
+                
                 # Also update with the specific draw number for display on result pages
                 cursor.execute("""
                     UPDATE lottery_predictions 
@@ -357,6 +373,75 @@ class PredictionValidationSystem:
                     WHERE is_verified = true 
                     ORDER BY verified_at DESC 
                     LIMIT 10
+                """)
+                
+                recent_validations = cursor.fetchall()
+                
+                return {
+                    'game_statistics': [dict(stat) for stat in game_stats],
+                    'recent_validations': [dict(val) for val in recent_validations],
+                    'generated_at': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"Error generating accuracy report: {e}")
+            return {'error': str(e)}
+    
+    def _generate_next_draw_prediction(self, game_type: str, validated_draw_date, cursor):
+        """Generate new prediction for next draw after successful validation"""
+        try:
+            from datetime import timedelta
+            from ai_lottery_predictor import AILotteryPredictor
+            
+            # Calculate next draw date based on game type
+            if game_type == 'DAILY LOTTO':
+                next_draw_date = validated_draw_date + timedelta(days=1)
+            elif game_type in ['POWERBALL', 'POWERBALL PLUS']:
+                # PowerBall draws on Tuesday and Friday
+                days_ahead = 2 if validated_draw_date.weekday() == 1 else 4  # Tuesday=1, Friday=4
+                next_draw_date = validated_draw_date + timedelta(days=days_ahead)
+            else:  # LOTTO games
+                # LOTTO draws on Wednesday and Saturday
+                days_ahead = 3 if validated_draw_date.weekday() == 2 else 4  # Wednesday=2, Saturday=5
+                next_draw_date = validated_draw_date + timedelta(days=days_ahead)
+            
+            # Generate new intelligent prediction
+            predictor = AILotteryPredictor()
+            historical_data = predictor.get_historical_data_for_prediction(game_type, 100)
+            
+            if historical_data:
+                prediction = predictor.generate_intelligent_prediction(game_type, historical_data)
+                
+                if prediction:
+                    # Store the new prediction with locked=True for stability
+                    cursor.execute("""
+                        INSERT INTO lottery_predictions (
+                            game_type, predicted_numbers, bonus_numbers, 
+                            confidence_score, prediction_method, reasoning, 
+                            target_draw_date, created_at, is_locked, lock_reason
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        prediction.game_type,
+                        prediction.predicted_numbers,
+                        prediction.bonus_numbers,
+                        prediction.confidence_score,
+                        prediction.prediction_method,
+                        prediction.reasoning,
+                        next_draw_date,
+                        prediction.created_at,
+                        True,  # Lock immediately for stability
+                        'Prediction stability - locked to prevent automatic changes'
+                    ))
+                    
+                    logger.info(f"✅ Generated new locked prediction for {game_type} targeting {next_draw_date}")
+                    logger.info(f"Numbers: {prediction.predicted_numbers}, Confidence: {prediction.confidence_score}")
+                else:
+                    logger.warning(f"❌ Failed to generate intelligent prediction for {game_type}")
+            else:
+                logger.warning(f"❌ No historical data available for {game_type}")
+                
+        except Exception as e:
+            logger.error(f"Error generating next draw prediction for {game_type}: {e}")
                 """)
                 
                 recent_validations = cursor.fetchall()
