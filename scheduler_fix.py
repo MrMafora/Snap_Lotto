@@ -85,9 +85,30 @@ class WorkerSafeLotteryScheduler:
                         new_results = len(workflow_result.get('database_records', []))
                         logger.info(f"✅ WORKER-SAFE SUCCESS: {len(screenshots)} screenshots, {new_results} new results")
                         
-                        # Log success
-                        self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
-                                               f"Captured {len(screenshots)} screenshots, found {new_results} new results")
+                        # STEP 4: AUTO-TRIGGER AI PREDICTION GENERATION AFTER NEW RESULTS
+                        if new_results > 0:
+                            logger.info("Step 4: Auto-triggering AI prediction generation for new lottery results...")
+                            try:
+                                from prediction_refresh_system import PredictionRefreshSystem
+                                
+                                refresh_system = PredictionRefreshSystem()
+                                refresh_result = refresh_system.check_and_refresh_all_predictions()
+                                
+                                predictions_generated = sum(refresh_result.get('refresh_results', {}).values())
+                                logger.info(f"✅ WORKER-SAFE PREDICTION SUCCESS: Generated {predictions_generated} new AI predictions")
+                                
+                                # Log success with predictions
+                                self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
+                                                       f"Captured {len(screenshots)} screenshots, found {new_results} new results, generated {predictions_generated} AI predictions")
+                            except Exception as prediction_error:
+                                logger.warning(f"⚠️ WORKER-SAFE PREDICTION PARTIAL: Lottery results captured but AI prediction generation failed: {prediction_error}")
+                                # Log success for results but note prediction failure
+                                self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
+                                                       f"Captured {len(screenshots)} screenshots, found {new_results} new results (prediction generation failed: {prediction_error})")
+                        else:
+                            # Log success without predictions (no new results)
+                            self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
+                                                   f"Captured {len(screenshots)} screenshots, found {new_results} new results")
                         
                     else:
                         error_msg = f'Expected 6 screenshots, only captured {len(screenshots)}'

@@ -102,12 +102,42 @@ class SimpleLotteryScheduler:
                         
                         if success or new_results_count > 0:
                             logger.info(f"Step 3 SUCCESS: Processed {workflow_result.get('total_processed', 0)} screenshots, extracted {new_results_count} new lottery results")
-                            result = {
-                                'success': True, 
-                                'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results",
-                                'screenshots_captured': len(screenshots),
-                                'new_results': new_results_count
-                            }
+                            
+                            # STEP 4: AUTO-TRIGGER AI PREDICTION GENERATION AFTER NEW RESULTS
+                            if new_results_count > 0:
+                                logger.info("Step 4: Auto-triggering AI prediction generation for new lottery results...")
+                                try:
+                                    from prediction_refresh_system import PredictionRefreshSystem
+                                    
+                                    refresh_system = PredictionRefreshSystem()
+                                    refresh_result = refresh_system.check_and_refresh_all_predictions()
+                                    
+                                    predictions_generated = sum(refresh_result.get('refresh_results', {}).values())
+                                    logger.info(f"Step 4 SUCCESS: Generated {predictions_generated} new AI predictions based on fresh lottery results")
+                                    
+                                    result = {
+                                        'success': True, 
+                                        'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results, generated {predictions_generated} AI predictions",
+                                        'screenshots_captured': len(screenshots),
+                                        'new_results': new_results_count,
+                                        'predictions_generated': predictions_generated
+                                    }
+                                except Exception as prediction_error:
+                                    logger.warning(f"Step 4 PARTIAL: Lottery results captured but AI prediction generation failed: {prediction_error}")
+                                    result = {
+                                        'success': True, 
+                                        'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results (prediction generation failed)",
+                                        'screenshots_captured': len(screenshots),
+                                        'new_results': new_results_count,
+                                        'prediction_error': str(prediction_error)
+                                    }
+                            else:
+                                result = {
+                                    'success': True, 
+                                    'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results",
+                                    'screenshots_captured': len(screenshots),
+                                    'new_results': new_results_count
+                                }
                         else:
                             logger.info(f"Step 3 COMPLETE: No new results found (all current). Processed: {workflow_result.get('total_processed', 0)}")
                             result = {
