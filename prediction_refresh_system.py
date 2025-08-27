@@ -92,12 +92,21 @@ class PredictionRefreshSystem:
         logger.info(f"Refreshing predictions for {game_type}")
         
         try:
-            # Clear existing predictions for this game
+            # Clear existing UNLOCKED predictions for this game (preserve locked predictions)
             with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("DELETE FROM lottery_predictions WHERE game_type = %s", (game_type,))
+                    # Check for locked predictions first
+                    cur.execute("SELECT COUNT(*) FROM lottery_predictions WHERE game_type = %s AND is_locked = TRUE", (game_type,))
+                    locked_count = cur.fetchone()[0]
+                    
+                    if locked_count > 0:
+                        logger.info(f"🔒 Found {locked_count} locked predictions for {game_type} - preserving them")
+                        cur.execute("DELETE FROM lottery_predictions WHERE game_type = %s AND (is_locked IS NULL OR is_locked = FALSE)", (game_type,))
+                    else:
+                        cur.execute("DELETE FROM lottery_predictions WHERE game_type = %s", (game_type,))
+                    
                     conn.commit()
-                    logger.info(f"Cleared existing predictions for {game_type}")
+                    logger.info(f"Cleared {cur.rowcount} unlocked predictions for {game_type}")
             
             # Generate 3 new predictions
             generated_count = 0

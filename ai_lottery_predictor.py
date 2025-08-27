@@ -1249,13 +1249,17 @@ class AILotteryPredictor:
                     
                     # CRITICAL: Check for existing predictions for this game type and target date
                     cur.execute("""
-                        SELECT id FROM lottery_predictions 
+                        SELECT id, is_locked FROM lottery_predictions 
                         WHERE game_type = %s AND target_draw_date = %s
                     """, (prediction.game_type, next_draw))
                     
                     existing_prediction = cur.fetchone()
                     
                     if existing_prediction:
+                        # Check if prediction is locked (stable)
+                        if existing_prediction[1]:  # is_locked = True
+                            logger.info(f"🔒 Prediction for {prediction.game_type} on {next_draw} is locked - skipping update")
+                            return True
                         # Update existing prediction instead of creating duplicate (1 prediction per draw rule)
                         logger.info(f"Updating existing prediction {existing_prediction[0]} for {prediction.game_type} on {next_draw}")
                         cur.execute("""
