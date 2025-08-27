@@ -19,7 +19,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class PredictionValidator:
+class PredictionValidationSystem:
     def __init__(self):
         self.db_url = os.environ.get('DATABASE_URL')
         if not self.db_url:
@@ -273,7 +273,12 @@ class PredictionValidator:
                 logger.info(f"Found {len(predictions)} pending predictions to validate")
                 
                 for prediction in predictions:
-                    # CRITICAL FIX: Only validate predictions that have FRESH results from today
+                    # Try to find matching lottery result
+                    # Look for results that match the game type and target date
+                    game_type = prediction['game_type']
+                    target_date = prediction['target_draw_date']
+                    
+                    # Map game types for lottery results
                     lottery_type_map = {
                         'DAILY LOTTO': 'DAILY LOTTO',
                         'LOTTO': 'LOTTO',
@@ -283,69 +288,43 @@ class PredictionValidator:
                         'POWERBALL PLUS': 'POWERBALL PLUS'
                     }
                     
-                    # Check if there are available results for this prediction (not limited to today)
                     cursor.execute("""
-                        SELECT id, draw_number, draw_date, created_at 
-                        FROM lottery_results 
-                        WHERE lottery_type = %s 
-                        AND draw_date <= %s
-                        ORDER BY draw_date DESC
-                        LIMIT 1
-                    """, (
-                        lottery_type_map.get(prediction['game_type'], prediction['game_type']),
-                        prediction['target_draw_date']
-                    ))
+                        SELECT * FROM lottery_results 
+                        WHERE lottery_type = %s AND draw_date = %s
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (lottery_type_map.get(game_type, game_type), target_date))
                     
-                    available_results = cursor.fetchall()
-                    
-                    if available_results:
-                        # VALIDATE: Result found - proceed with validation
-                        result = available_results[0]
-                        
-                        # Check if this is a fresh result (added today) for replacement logic
-                        is_fresh_result = result['created_at'].date() == datetime.now().date()
-                        
-                        validation_result = self.validate_prediction_against_result(
+                    result = cursor.fetchone()
+                    if result:
+                        # Validate this prediction
+                        validation_result = self.validate_prediction(
                             prediction['id'], 
-                            draw_number=result['draw_number'],
-                            game_type=prediction['game_type']
+                            lottery_result_id=result['id']
                         )
-                        results.append(validation_result)
                         
                         if validation_result.get('success'):
-                            # Only generate replacement for fresh results
-                            if is_fresh_result:
-                                successfully_validated_game_types.add(prediction['game_type'])
-                            logger.info(f"✅ VALIDATION: Prediction {prediction['id']} validated against draw {result['draw_number']} ({'fresh' if is_fresh_result else 'historical'})")
+                            successfully_validated_game_types.add(game_type)
+                            results.append(validation_result)
+                            logger.info(f"✅ Validated {game_type} prediction {prediction['id']}")
                         else:
-                            logger.warning(f"❌ Failed to validate prediction {prediction['id']}: {validation_result.get('error')}")
+                            logger.warning(f"❌ Failed to validate {game_type} prediction {prediction['id']}: {validation_result.get('error')}")
                     else:
-                        # NO RESULTS: Keep prediction as pending
-                        logger.info(f"⏳ PENDING: No results available for {prediction['game_type']} prediction {prediction['id']} - keeping as pending")
-                        results.append({
-                            'success': False,
-                            'reason': 'no_results_available',
-                            'game_type': prediction['game_type'],
-                            'prediction_id': prediction['id'],
-                            'message': f"No results available for {prediction['game_type']} - prediction remains pending"
-                        })
+                        logger.info(f"⏳ No result yet for {game_type} prediction {prediction['id']} targeting {target_date}")
                 
-                # Generate replacement predictions only for game types with fresh results from today
-                if successfully_validated_game_types:
-                    logger.info(f"Generating replacement predictions for {len(successfully_validated_game_types)} game types with fresh results from today...")
-                    for game_type in successfully_validated_game_types:
-                        try:
-                            logger.info(f"Generating replacement prediction for {game_type} (validated against fresh result)")
-                            self._generate_replacement_prediction(game_type)
-                        except Exception as e:
-                            logger.error(f"Failed to generate replacement prediction for {game_type}: {e}")
-                else:
-                    logger.info("🎯 No fresh results found today - no new predictions needed. All validations completed.")
-                        
+                logger.info(f"Validation complete: {len(results)} predictions validated for {len(successfully_validated_game_types)} game types")
+                
         except Exception as e:
-            logger.error(f"Batch validation error: {e}")
+            logger.error(f"Error validating pending predictions: {e}")
             
-        return results
+        return {
+            'validation_results': {game_type: len([r for r in results if r.get('game_type') == game_type]) for game_type in successfully_validated_game_types},
+            'total_validated': len(results),
+            'game_types_with_validations': list(successfully_validated_game_types)
+        }
+    
+    def validate_prediction(self, prediction_id: int, lottery_result_id: int = None, draw_number: int = None, game_type: str = None) -> Dict:
+        """Validate a single prediction against lottery result"""
+        return self.validate_prediction_against_result(prediction_id, lottery_result_id, draw_number, game_type)
     
     def generate_accuracy_report(self) -> Dict:
         """

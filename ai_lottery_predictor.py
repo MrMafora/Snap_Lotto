@@ -1008,8 +1008,6 @@ class AILotteryPredictor:
             5. ANOMALY-INFORMED PREDICTIONS: Use pattern break detection to avoid or favor certain combinations
             6. MULTI-TIMEFRAME SYNTHESIS: Blend recent (20 draws), medium-term (40 draws), and long-term (40+ draws) patterns
             
-            VARIATION SEED: {variation_seed}
-            
             Return ONLY this JSON format:
             {{
                 "main_numbers": [list of {game_config['main_count']} numbers],
@@ -1025,7 +1023,7 @@ class AILotteryPredictor:
                 contents=prediction_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.7 + (variation_seed * 0.01),
+                    temperature=0.7,
                     max_output_tokens=1024
                 )
             )
@@ -1095,6 +1093,137 @@ class AILotteryPredictor:
             import random
             return random.sample(range(1, max_range + 1), required_count)
     
+    def generate_ai_prediction(self, game_type: str, historical_data: Dict[str, Any], variation_seed: int = 1) -> LotteryPrediction:
+        """Generate AI prediction using advanced analysis - MISSING METHOD RESTORED"""
+        try:
+            # Get game configuration
+            game_config = self.get_game_configuration(game_type)
+            
+            # Extract key data for focused analysis
+            recent_draws = historical_data.get('draws', [])[:10]  # Last 10 draws only
+            frequency_analysis = dict(list(historical_data.get('frequency_analysis', {}).items())[:30])  # Top 30 numbers
+            prize_patterns = historical_data.get('prize_patterns', {})
+            temporal_patterns = historical_data.get('temporal_patterns', {})
+            
+            # Create focused, game-specific prompt
+            prediction_prompt = f"""
+            FOCUSED LOTTERY ANALYSIS FOR {game_type}
+            
+            OBJECTIVE: Analyze {game_type} lottery data to identify exploitable patterns and generate predictions.
+            
+            GAME RULES:
+            - Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
+            {"- Pick " + str(game_config['bonus_count']) + " bonus numbers from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            
+            RECENT WINNING PATTERNS (Last 10 draws):
+            {self.serialize_data_safe(recent_draws)}
+            
+            NUMBER FREQUENCY ANALYSIS:
+            {frequency_analysis}
+            
+            PRIZE DISTRIBUTION INSIGHTS:
+            - Jackpot progression: {prize_patterns.get('jackpot_progression', [])[-5:]}
+            - Rollover frequency: {prize_patterns.get('rollover_frequency', 0)} out of {historical_data.get('total_draws', 0)} draws
+            
+            TEMPORAL PATTERNS:
+            - Day of week distribution: {temporal_patterns.get('day_of_week_frequency', {})}
+            
+            ANALYSIS TASKS:
+            1. Identify number patterns that appear frequently in recent draws
+            2. Look for mathematical relationships (sums, even/odd ratios, consecutive pairs)
+            3. Consider temporal factors (day patterns, seasonal trends)
+            4. Analyze prize distribution anomalies that might indicate algorithmic behavior
+            
+            PREDICTION REQUIREMENTS:
+            - Generate {game_config['main_count']} main numbers (1-{game_config['main_range']})
+            {"- Generate " + str(game_config['bonus_count']) + " bonus numbers (1-" + str(game_config['bonus_range']) + ") if applicable" if game_config['bonus_count'] > 0 else ""}
+            - Provide confidence percentage (0-100%)
+            - Explain your reasoning focusing on exploitable patterns found
+            
+            VARIATION SEED: {variation_seed} (use this to ensure different predictions for the same game)
+            
+            Return your response in this EXACT JSON format:
+            {{
+                "main_numbers": [num1, num2, num3, num4, num5{"num6" if game_config['main_count'] == 6 else ""}],
+                {"bonus_numbers: [bonus_num]," if game_config['bonus_count'] > 0 else ""}
+                "confidence_percentage": 45,
+                "reasoning": "Exploitable pattern analysis based on frequency and temporal data"
+            }}
+            """
+            
+            response = self.client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=prediction_prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.6 + (variation_seed * 0.01),
+                    max_output_tokens=1024
+                )
+            )
+            
+            if response.text:
+                try:
+                    prediction_data = json.loads(response.text)
+                    
+                    # Validate numbers
+                    main_numbers = self.validate_numbers(
+                        prediction_data.get('main_numbers', []),
+                        game_config['main_count'],
+                        game_config['main_range']
+                    )
+                    
+                    bonus_numbers = []
+                    if game_config['bonus_count'] > 0:
+                        bonus_numbers = self.validate_numbers(
+                            prediction_data.get('bonus_numbers', []),
+                            game_config['bonus_count'],
+                            game_config['bonus_range']
+                        )
+                    
+                    # Create prediction
+                    prediction = LotteryPrediction(
+                        game_type=game_type,
+                        predicted_numbers=sorted(main_numbers),
+                        bonus_numbers=sorted(bonus_numbers),
+                        confidence_score=prediction_data.get('confidence_percentage', 50) / 100.0,
+                        prediction_method="AI_Analysis",
+                        reasoning=prediction_data.get('reasoning', 'AI analysis of historical patterns'),
+                        created_at=datetime.now()
+                    )
+                    
+                    return prediction
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {e}")
+                    return None
+            else:
+                logger.error("Empty response from AI model")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error generating AI prediction: {e}")
+            return None
+
+    def serialize_data_safe(self, data):
+        """Safely serialize data by converting Decimal and other non-JSON types"""
+        import decimal
+        
+        def convert_item(obj):
+            if isinstance(obj, decimal.Decimal):
+                return float(obj)
+            elif isinstance(obj, dict):
+                return {k: convert_item(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_item(item) for item in obj]
+            else:
+                return obj
+        
+        try:
+            converted = convert_item(data)
+            return json.dumps(converted, indent=2)
+        except Exception as e:
+            return f"[Data serialization error: {e}]"
+
     def get_game_configuration(self, game_type: str) -> Dict[str, int]:
         """Get game configuration"""
         configs = {
