@@ -1053,8 +1053,6 @@ class PredictionsManager {
                     <div class="actual-vs-predicted mb-3" data-prediction-id="${pred.id}">
                         <div class="loading-actual-numbers">Loading actual results...</div>
                     </div>` : ''}
-                    </div>
-                ` : ''}
                 
                 ${pred.is_verified && pred.main_number_matches !== undefined ? `
                     <div class="validation-results mb-2">
@@ -1432,9 +1430,24 @@ window.addEventListener('load', function() {
             html += '<div class="row g-3">';
             
             preds.forEach((pred, index) => {
-                // DEBUG: Log the actual values
-                console.log('POWERBALL DEBUG:', pred.game_type, 'confidence_score:', pred.confidence_score, 'type:', typeof pred.confidence_score);
-                const confidencePercent = Math.round(pred.confidence_score * 100);
+                // DEBUG: Log the actual values for PowerBall games
+                if (pred.game_type.includes('POWERBALL')) {
+                    console.log('POWERBALL DEBUG:', {
+                        game_type: pred.game_type,
+                        confidence_score: pred.confidence_score,
+                        type: typeof pred.confidence_score,
+                        raw_value: JSON.stringify(pred.confidence_score)
+                    });
+                }
+                
+                // Ensure confidence_score is treated as a number
+                let confidenceScore = parseFloat(pred.confidence_score);
+                if (isNaN(confidenceScore)) {
+                    console.warn('Invalid confidence score for', pred.game_type, ':', pred.confidence_score);
+                    confidenceScore = 0.5; // Default fallback
+                }
+                
+                const confidencePercent = Math.round(confidenceScore * 100);
                 
                 html += '<div class="col-lg-4 col-md-4 col-12">';
                 html += '<div class="prediction-card-compact">';
@@ -1599,9 +1612,24 @@ window.addEventListener('load', function() {
                         html += '<div class="row g-3">';
                         
                         preds.forEach(pred => {
-                            // DEBUG: Log the actual values
-                            console.log('POWERBALL DEBUG 2:', pred.game_type, 'confidence_score:', pred.confidence_score, 'type:', typeof pred.confidence_score);
-                            const confidencePercent = Math.round(pred.confidence_score * 100);
+                            // DEBUG: Log the actual values for PowerBall games
+                            if (pred.game_type.includes('POWERBALL')) {
+                                console.log('POWERBALL DEBUG 2:', {
+                                    game_type: pred.game_type,
+                                    confidence_score: pred.confidence_score,
+                                    type: typeof pred.confidence_score,
+                                    raw_value: JSON.stringify(pred.confidence_score)
+                                });
+                            }
+                            
+                            // Ensure confidence_score is treated as a number
+                            let confidenceScore = parseFloat(pred.confidence_score);
+                            if (isNaN(confidenceScore)) {
+                                console.warn('Invalid confidence score for', pred.game_type, ':', pred.confidence_score);
+                                confidenceScore = 0.5; // Default fallback
+                            }
+                            
+                            const confidencePercent = Math.round(confidenceScore * 100);
                             
                             html += '<div class="col-md-4">';
                             html += '<div class="prediction-horizontal-card">';
