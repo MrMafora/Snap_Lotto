@@ -1432,6 +1432,8 @@ window.addEventListener('load', function() {
             html += '<div class="row g-3">';
             
             preds.forEach((pred, index) => {
+                // DEBUG: Log the actual values
+                console.log('POWERBALL DEBUG:', pred.game_type, 'confidence_score:', pred.confidence_score, 'type:', typeof pred.confidence_score);
                 const confidencePercent = Math.round(pred.confidence_score * 100);
                 
                 html += '<div class="col-lg-4 col-md-4 col-12">';
@@ -1597,6 +1599,8 @@ window.addEventListener('load', function() {
                         html += '<div class="row g-3">';
                         
                         preds.forEach(pred => {
+                            // DEBUG: Log the actual values
+                            console.log('POWERBALL DEBUG 2:', pred.game_type, 'confidence_score:', pred.confidence_score, 'type:', typeof pred.confidence_score);
                             const confidencePercent = Math.round(pred.confidence_score * 100);
                             
                             html += '<div class="col-md-4">';

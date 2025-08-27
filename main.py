@@ -1340,7 +1340,7 @@ def api_predictions():
                 'game_type': row['game_type'],
                 'main_numbers': json.dumps(main_numbers),  # Convert to JSON string
                 'bonus_numbers': json.dumps(bonus_numbers) if bonus_numbers else json.dumps([]),
-                'confidence_score': float(row['confidence_score']) if row['confidence_score'] else 0,  # Keep as float percentage
+                'confidence_score': float(row['confidence_score']) if row['confidence_score'] else 0,  # Database stores as decimal 0.0-1.0
                 'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                 'status': row['validation_status'],
                 'accuracy_score': row['accuracy_score'],
