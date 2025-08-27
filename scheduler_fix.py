@@ -72,14 +72,17 @@ class WorkerSafeLotteryScheduler:
                     logger.info(f"Screenshot capture: {capture_count}/6, found {len(screenshots)} files")
                     
                     if len(screenshots) >= 6:
-                        # Step 3: Process with AI
-                        logger.info("Step 3: Processing with AI")
+                        # Step 3: Process with AI (EXACT SAME as manual button)
+                        logger.info("Step 3: Processing screenshots with Google Gemini 2.5 Pro AI")
                         from ai_lottery_processor import CompleteLotteryProcessor
                         
+                        # Initialize and run the comprehensive AI processor (EXACT SAME as manual button)
                         processor = CompleteLotteryProcessor()
-                        result = processor.process_all_screenshots()
+                        workflow_result = processor.process_all_screenshots()
                         
-                        new_results = len(result.get('database_records', []))
+                        # Check if processing was successful - comprehensive processor returns dict with results
+                        success = workflow_result.get('total_success', 0) > 0 or len(workflow_result.get('database_records', [])) > 0
+                        new_results = len(workflow_result.get('database_records', []))
                         logger.info(f"✅ WORKER-SAFE SUCCESS: {len(screenshots)} screenshots, {new_results} new results")
                         
                         # Log success
