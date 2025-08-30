@@ -465,23 +465,6 @@ class PredictionValidationSystem:
                 
         except Exception as e:
             logger.error(f"Error generating next draw prediction for {game_type}: {e}")
-                """)
-                
-                recent_validations = cursor.fetchall()
-                
-                return {
-                    'report_generated_at': datetime.now().isoformat(),
-                    'game_statistics': [dict(stat) for stat in game_stats],
-                    'recent_validations': [dict(val) for val in recent_validations],
-                    'summary': {
-                        'total_games': len(game_stats),
-                        'overall_avg_accuracy': round(sum(stat['avg_accuracy'] or 0 for stat in game_stats) / len(game_stats) if game_stats else 0, 2)
-                    }
-                }
-                
-        except Exception as e:
-            logger.error(f"Report generation error: {e}")
-            return {'error': str(e)}
     
     def _generate_replacement_prediction(self, game_type: str):
         """Generate a new prediction to replace the validated one"""
