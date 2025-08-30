@@ -103,9 +103,22 @@ class SimpleLotteryScheduler:
                         if success or new_results_count > 0:
                             logger.info(f"Step 3 SUCCESS: Processed {workflow_result.get('total_processed', 0)} screenshots, extracted {new_results_count} new lottery results")
                             
-                            # STEP 4: AUTO-TRIGGER AI PREDICTION GENERATION AFTER NEW RESULTS
+                            # STEP 4: AUTO-VALIDATE EXISTING PREDICTIONS AND GENERATE NEW ONES
                             if new_results_count > 0:
-                                logger.info("Step 4: Auto-triggering AI prediction generation for new lottery results...")
+                                logger.info("Step 4a: Auto-validating existing predictions against new lottery results...")
+                                validation_results = 0
+                                try:
+                                    from prediction_validation_system import PredictionValidationSystem
+                                    
+                                    validation_system = PredictionValidationSystem()
+                                    validation_result = validation_system.validate_all_pending_predictions()
+                                    validation_results = len(validation_result.get('validated_predictions', []))
+                                    logger.info(f"Step 4a SUCCESS: Validated {validation_results} existing predictions against new results")
+                                    
+                                except Exception as validation_error:
+                                    logger.warning(f"Step 4a WARNING: Prediction validation failed: {validation_error}")
+                                
+                                logger.info("Step 4b: Auto-triggering AI prediction generation for new lottery results...")
                                 try:
                                     from prediction_refresh_system import PredictionRefreshSystem
                                     
@@ -113,22 +126,24 @@ class SimpleLotteryScheduler:
                                     refresh_result = refresh_system.check_and_refresh_all_predictions()
                                     
                                     predictions_generated = sum(refresh_result.get('refresh_results', {}).values())
-                                    logger.info(f"Step 4 SUCCESS: Generated {predictions_generated} new AI predictions based on fresh lottery results")
+                                    logger.info(f"Step 4b SUCCESS: Generated {predictions_generated} new AI predictions based on fresh lottery results")
                                     
                                     result = {
                                         'success': True, 
-                                        'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results, generated {predictions_generated} AI predictions",
+                                        'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results, validated {validation_results} predictions, generated {predictions_generated} AI predictions",
                                         'screenshots_captured': len(screenshots),
                                         'new_results': new_results_count,
+                                        'predictions_validated': validation_results,
                                         'predictions_generated': predictions_generated
                                     }
                                 except Exception as prediction_error:
-                                    logger.warning(f"Step 4 PARTIAL: Lottery results captured but AI prediction generation failed: {prediction_error}")
+                                    logger.warning(f"Step 4b PARTIAL: Lottery results captured and predictions validated, but AI prediction generation failed: {prediction_error}")
                                     result = {
                                         'success': True, 
-                                        'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results (prediction generation failed)",
+                                        'message': f"Captured {len(screenshots)} screenshots, found {new_results_count} new results, validated {validation_results} predictions (generation failed)",
                                         'screenshots_captured': len(screenshots),
                                         'new_results': new_results_count,
+                                        'predictions_validated': validation_results,
                                         'prediction_error': str(prediction_error)
                                     }
                             else:

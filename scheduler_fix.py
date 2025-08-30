@@ -85,9 +85,22 @@ class WorkerSafeLotteryScheduler:
                         new_results = len(workflow_result.get('database_records', []))
                         logger.info(f"✅ WORKER-SAFE SUCCESS: {len(screenshots)} screenshots, {new_results} new results")
                         
-                        # STEP 4: AUTO-TRIGGER AI PREDICTION GENERATION AFTER NEW RESULTS
+                        # STEP 4: AUTO-VALIDATE EXISTING PREDICTIONS AND GENERATE NEW ONES
                         if new_results > 0:
-                            logger.info("Step 4: Auto-triggering AI prediction generation for new lottery results...")
+                            logger.info("Step 4a: Auto-validating existing predictions against new lottery results...")
+                            validation_results = 0
+                            try:
+                                from prediction_validation_system import PredictionValidationSystem
+                                
+                                validation_system = PredictionValidationSystem()
+                                validation_result = validation_system.validate_all_pending_predictions()
+                                validation_results = len(validation_result.get('validated_predictions', []))
+                                logger.info(f"✅ WORKER-SAFE VALIDATION SUCCESS: Validated {validation_results} existing predictions")
+                                
+                            except Exception as validation_error:
+                                logger.warning(f"⚠️ WORKER-SAFE VALIDATION WARNING: Prediction validation failed: {validation_error}")
+                            
+                            logger.info("Step 4b: Auto-triggering AI prediction generation for new lottery results...")
                             try:
                                 from prediction_refresh_system import PredictionRefreshSystem
                                 
@@ -97,14 +110,14 @@ class WorkerSafeLotteryScheduler:
                                 predictions_generated = sum(refresh_result.get('refresh_results', {}).values())
                                 logger.info(f"✅ WORKER-SAFE PREDICTION SUCCESS: Generated {predictions_generated} new AI predictions")
                                 
-                                # Log success with predictions
+                                # Log success with predictions and validation
                                 self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
-                                                       f"Captured {len(screenshots)} screenshots, found {new_results} new results, generated {predictions_generated} AI predictions")
+                                                       f"Captured {len(screenshots)} screenshots, found {new_results} new results, validated {validation_results} predictions, generated {predictions_generated} AI predictions")
                             except Exception as prediction_error:
-                                logger.warning(f"⚠️ WORKER-SAFE PREDICTION PARTIAL: Lottery results captured but AI prediction generation failed: {prediction_error}")
-                                # Log success for results but note prediction failure
+                                logger.warning(f"⚠️ WORKER-SAFE PREDICTION PARTIAL: Lottery results captured and predictions validated, but AI prediction generation failed: {prediction_error}")
+                                # Log success for results and validation but note prediction failure
                                 self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
-                                                       f"Captured {len(screenshots)} screenshots, found {new_results} new results (prediction generation failed: {prediction_error})")
+                                                       f"Captured {len(screenshots)} screenshots, found {new_results} new results, validated {validation_results} predictions (generation failed: {prediction_error})")
                         else:
                             # Log success without predictions (no new results)
                             self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
