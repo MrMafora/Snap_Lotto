@@ -640,19 +640,12 @@ class AILotteryPredictor:
             total_draws = len(historical_data.get('draws', []))
             recent_draws = historical_data.get('draws', [])[:20]
             
-            prompt = f"""
-            PATTERN ANALYSIS MODEL for {game_type} - {total_draws} draws analyzed
+            prompt = f"""Analyze {game_type} patterns. Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}.
+            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) + "." if game_config['bonus_count'] > 0 else ""}
             
-            GAME RULES: Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
-            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            Recent draws: {recent_draws[:3]}
             
-            FOCUS: Pattern recognition, sequence analysis, cyclical trends
-            
-            RECENT PATTERNS: {json.dumps(recent_draws[:8], indent=1)}
-            CYCLICAL: {historical_data.get('cyclical_patterns', {}).get('monthly_trends', {})}
-            
-            Return JSON: {{"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 60, "reasoning": "pattern analysis"}}
-            """
+            Return JSON: {{"main_numbers": [1,2,3,4,5], "confidence_percentage": 55, "reasoning": "pattern analysis"}}"""
             
             response = self.client.models.generate_content(
                 model="gemini-2.5-pro",
@@ -692,22 +685,13 @@ class AILotteryPredictor:
             hot_numbers = [num for num, freq in sorted_freq[:15]]
             cold_numbers = [num for num, freq in sorted_freq[-10:]]
             
-            prompt = f"""
-            FREQUENCY ANALYSIS MODEL for {game_type}
+            prompt = f"""Frequency analysis for {game_type}. Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}.
+            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) + "." if game_config['bonus_count'] > 0 else ""}
             
-            GAME RULES: Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
-            {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            Hot numbers: {hot_numbers[:8]}
+            Cold numbers: {cold_numbers[:5]}
             
-            FOCUS: Statistical frequency, hot/cold number theory, reversion analysis
-            
-            HOT NUMBERS (most frequent): {hot_numbers}
-            COLD NUMBERS (least frequent): {cold_numbers}
-            FREQUENCY DATA: {dict(sorted_freq[:20])}
-            
-            STRATEGY: Balance hot numbers (continuing trends) with cold numbers (due for reversion)
-            
-            Return JSON: {{"main_numbers": [1,2,3,4,5,6], "confidence_percentage": 55, "reasoning": "frequency analysis"}}
-            """
+            Return JSON: {{"main_numbers": [1,2,3,4,5], "confidence_percentage": 52, "reasoning": "frequency analysis"}}"""
             
             response = self.client.models.generate_content(
                 model="gemini-2.5-pro",

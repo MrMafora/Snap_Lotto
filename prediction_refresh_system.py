@@ -9,7 +9,7 @@ import logging
 import os
 import psycopg2
 from datetime import datetime, timedelta
-from ai_lottery_predictor import AILotteryPredictor
+from simple_ai_predictor import SimpleLotteryPredictor
 predictor = AILotteryPredictor()
 
 # Configure logging
