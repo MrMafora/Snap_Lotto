@@ -174,37 +174,68 @@ class SimpleLotteryPredictor:
             return None
 
     def _get_next_draw_info(self, game_type: str) -> Dict:
-        """Get next draw date and ID"""
+        """Get next draw date and ID from extracted image data"""
         try:
             with psycopg2.connect(self.connection_string) as conn:
                 with conn.cursor() as cur:
+                    # First, try to get next draw info from the most recent extraction
+                    cur.execute("""
+                        SELECT draw_number, next_draw_date 
+                        FROM lottery_results 
+                        WHERE lottery_type = %s 
+                          AND next_draw_date IS NOT NULL
+                          AND next_draw_date != ''
+                        ORDER BY draw_date DESC, created_at DESC
+                        LIMIT 1
+                    """, (game_type,))
+                    
+                    result = cur.fetchone()
+                    if result and result[1]:
+                        last_draw_num = result[0]
+                        extracted_next_date = result[1]
+                        
+                        # Parse the extracted next draw date
+                        try:
+                            if isinstance(extracted_next_date, str):
+                                next_date = datetime.strptime(extracted_next_date, '%Y-%m-%d').date()
+                            else:
+                                next_date = extracted_next_date
+                            
+                            # Ensure the extracted date is in the future
+                            today = datetime.now().date()
+                            if next_date > today:
+                                return {
+                                    'draw_id': last_draw_num + 1,
+                                    'date': next_date
+                                }
+                        except Exception as date_e:
+                            logger.warning(f"Could not parse extracted next draw date '{extracted_next_date}': {date_e}")
+                    
+                    # Fallback: Calculate next draw if no extracted data available
                     cur.execute("""
                         SELECT MAX(draw_number), MAX(draw_date) 
                         FROM lottery_results 
                         WHERE lottery_type = %s
                     """, (game_type,))
                     
-                    result = cur.fetchone()
-                    if result and result[0]:
-                        last_draw_num = result[0]
-                        last_draw_date = result[1]
+                    fallback_result = cur.fetchone()
+                    if fallback_result and fallback_result[0]:
+                        last_draw_num = fallback_result[0]
+                        last_draw_date = fallback_result[1]
                         
                         # Calculate next draw - always ensure it's in the future
                         today = datetime.now().date()
                         
                         if game_type == 'DAILY LOTTO':
-                            # Daily draws - next business day or tomorrow
                             next_date = max(last_draw_date + timedelta(days=1), today + timedelta(days=1))
                         elif game_type in ['POWERBALL', 'POWERBALL PLUS']:
-                            # Tuesday/Friday draws
-                            next_date = last_draw_date + timedelta(days=3)  # Next scheduled draw
+                            next_date = last_draw_date + timedelta(days=3)
                             while next_date <= today:
-                                next_date += timedelta(days=3)  # Keep adding until future
-                        else:  # LOTTO games - Wednesday/Saturday
-                            # Wednesday/Saturday draws
-                            next_date = last_draw_date + timedelta(days=3)  # Next scheduled draw
+                                next_date += timedelta(days=3)
+                        else:  # LOTTO games
+                            next_date = last_draw_date + timedelta(days=3)
                             while next_date <= today:
-                                next_date += timedelta(days=3)  # Keep adding until future
+                                next_date += timedelta(days=3)
                         
                         return {
                             'draw_id': last_draw_num + 1,
