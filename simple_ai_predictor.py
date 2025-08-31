@@ -189,16 +189,22 @@ class SimpleLotteryPredictor:
                         last_draw_num = result[0]
                         last_draw_date = result[1]
                         
-                        # Calculate next draw
+                        # Calculate next draw - always ensure it's in the future
+                        today = datetime.now().date()
+                        
                         if game_type == 'DAILY LOTTO':
-                            next_date = last_draw_date + timedelta(days=1)
+                            # Daily draws - next business day or tomorrow
+                            next_date = max(last_draw_date + timedelta(days=1), today + timedelta(days=1))
                         elif game_type in ['POWERBALL', 'POWERBALL PLUS']:
-                            # Tuesday/Friday
-                            days_ahead = 2 if last_draw_date.weekday() < 4 else 4
-                            next_date = last_draw_date + timedelta(days=days_ahead)
+                            # Tuesday/Friday draws
+                            next_date = last_draw_date + timedelta(days=3)  # Next scheduled draw
+                            while next_date <= today:
+                                next_date += timedelta(days=3)  # Keep adding until future
                         else:  # LOTTO games - Wednesday/Saturday
-                            days_ahead = 3 if last_draw_date.weekday() < 5 else 4
-                            next_date = last_draw_date + timedelta(days=days_ahead)
+                            # Wednesday/Saturday draws
+                            next_date = last_draw_date + timedelta(days=3)  # Next scheduled draw
+                            while next_date <= today:
+                                next_date += timedelta(days=3)  # Keep adding until future
                         
                         return {
                             'draw_id': last_draw_num + 1,

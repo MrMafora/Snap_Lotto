@@ -1,7 +1,7 @@
 # South African Lottery Ticket Scanner
 
 ## Overview
-This project is an AI-powered lottery intelligence platform for South African lotteries. Its primary purpose is to process and synchronize South African lottery results, enabling accurate data extraction and display. Key capabilities include AI-powered ticket scanning, comprehensive display of prize divisions, and robust database management of lottery results. The business vision is to be the leading platform for South African lottery intelligence, offering unparalleled accuracy and real-time data to users.
+This project is an AI-powered lottery intelligence platform designed for South African lotteries. Its main purpose is to process and synchronize South African lottery results, enabling accurate data extraction and display. Key capabilities include AI-powered ticket scanning, comprehensive display of prize divisions, and robust database management of lottery results. The business vision is to be the leading platform for South African lottery intelligence, offering unparalleled accuracy and real-time data to users.
 
 ## User Preferences
 - STRICT RULE: NO PLACEHOLDER DATA - All data must be authentic and extracted from real sources
@@ -57,7 +57,8 @@ This project is an AI-powered lottery intelligence platform for South African lo
 - Eliminated all backup and fallback prediction methods across all game types. All 6 lottery games (Daily Lotto, Lotto, Lotto Plus 1/2, Powerball/Plus) now use the same intelligent "Hybrid Frequency-Gap Analysis with Learning" methodology that incorporates 40+ historical draws, hot/cold number patterns, mean reversion strategies, and performance-based learning from validated predictions. Removed AI Ensemble backup methods that were using simple statistical sampling instead of comprehensive learning intelligence.
 - Implemented automatic AI prediction generation that triggers immediately after new lottery results are captured by the manual workflow or automation schedulers. Both simple_daily_scheduler.py and scheduler_fix.py now include Step 4 that automatically calls PredictionRefreshSystem when new lottery results are detected, ensuring fresh AI predictions are generated based on the latest lottery data without manual intervention. This creates a seamless workflow: screenshot capture → AI extraction → database update → automatic prediction generation.
 - Resolved two critical bugs preventing prediction generation and validation. Fixed missing 'generate_ai_prediction' method in AILotteryPredictor class and completed PredictionValidationSystem class with all required methods (validate_prediction, validate_prediction_against_result, validate_all_pending_predictions, calculate_prediction_accuracy). Both automation schedulers and manual workflows now have complete functionality for the full prediction lifecycle: generation, validation, and automatic replacement predictions.
-- **ENHANCEMENT (Aug 30, 2025):** Added automatic prediction validation to manual workflow. Enhanced both simple_daily_scheduler.py and scheduler_fix.py to include Step 4a (prediction validation) and Step 4b (prediction generation). Manual workflow now: capture results → validate existing predictions → generate new predictions. Created PREDICTION_ENHANCEMENT_ROLLBACK.md with complete rollback instructions if screenshot capture system breaks. Core screenshot capture system (robust_screenshot_capture.py, ai_lottery_processor.py) remains unchanged for easy rollback.
+- Added automatic prediction validation to manual workflow. Enhanced both simple_daily_scheduler.py and scheduler_fix.py to include Step 4a (prediction validation) and Step 4b (prediction generation). Manual workflow now: capture results → validate existing predictions → generate new predictions.
+- Fixed major prediction date logic issue where predictions were being generated for past dates (e.g., generated 2025-08-31 targeting 2025-08-25). Implemented robust future date calculation ensuring all predictions target future draws only. Fixed Gemini API key conflicts and created simple_ai_predictor.py with optimized token limits. All predictions now use logical future dates and maintain required "Hybrid Frequency-Gap Analysis with Learning" methodology exclusively.
 
 ## System Architecture
 The platform features a modular codebase designed for enhanced security and performance. The UI/UX prioritizes consistency and readability, with optimized ball sizes and clear visual elements across the application.
@@ -66,7 +67,6 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **Backend**: Python Flask framework.
 -   **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage, adhering to authentic data.
 -   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning (`ai_lottery_processor.py`), data extraction, pattern analysis, and lottery prediction (`ai_lottery_predictor.py`).
-
     **Unified Prediction Algorithm Details:**
     - **Core Engine**: Hybrid Frequency-Gap Analysis with Learning (unified across all game types)
     - **Historical Analysis**: 40+ historical draws per game with extended pattern recognition
@@ -84,7 +84,7 @@ The platform features a modular codebase designed for enhanced security and perf
     -   **Ticket Scanner**: Extracts player-selected numbers and detects multiple game types (LOTTO, LOTTO PLUS 1, LOTTO PLUS 2) with multi-line support.
     -   **Results Display**: Shows complete lottery results with all prize divisions and financial details, with numbers sorted ascending.
     -   **Data Analytics**: Displays hot/cold/absent numbers and frequency charts, derived from authentic lottery data, including AI-powered pattern analysis.
-    -   **AI-Powered Lottery Predictor**: Generates and validates lottery number predictions with accuracy tracking and self-improvement, based on comprehensive AI analysis of historical data, with automated weekly generation (45 predictions for all games) and an interactive visual match analysis system. Predictions are static until new draw results are available.
+    -   **AI-Powered Lottery Predictor**: Generates and validates lottery number predictions with accuracy tracking and self-improvement, based on comprehensive AI analysis of historical data. Predictions are static until new draw results are available.
     -   **Data Preview and Approval System**: Allows review, approval, deeper extraction requests, and rejection of AI-extracted data.
 
 ## External Dependencies
