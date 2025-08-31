@@ -227,7 +227,8 @@ class SimpleLotteryPredictor:
                         today = datetime.now().date()
                         
                         if game_type == 'DAILY LOTTO':
-                            next_date = max(last_draw_date + timedelta(days=1), today + timedelta(days=1))
+                            # Daily Lotto draws every single day - next draw is always tomorrow
+                            next_date = today + timedelta(days=1)
                         elif game_type in ['POWERBALL', 'POWERBALL PLUS']:
                             next_date = last_draw_date + timedelta(days=3)
                             while next_date <= today:
