@@ -1,7 +1,7 @@
 # South African Lottery Ticket Scanner
 
 ## Overview
-This project is an AI-powered lottery intelligence platform designed for South African lotteries. Its main purpose is to process and synchronize South African lottery results, enabling accurate data extraction and display. Key capabilities include AI-powered ticket scanning, comprehensive display of prize divisions, robust database management of lottery results, and AI-powered prediction. The business vision is to be the leading platform for South African lottery intelligence, offering unparalleled accuracy and real-time data to users with significant market potential in the South African lottery sector.
+This project is an AI-powered lottery intelligence platform for South African lotteries. Its main purpose is to process and synchronize South African lottery results, enabling accurate data extraction and display. Key capabilities include AI-powered ticket scanning, comprehensive display of prize divisions, robust database management of lottery results, and AI-powered prediction. The business vision is to be the leading platform for South African lottery intelligence, offering unparalleled accuracy and real-time data to users with significant market potential in the South African lottery sector.
 
 ## User Preferences
 - STRICT RULE: NO PLACEHOLDER DATA - All data must be authentic and extracted from real sources
