@@ -17,7 +17,7 @@ from typing import Dict, List, Optional, Any
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class SimpleLotteryPredictor:
+class SimpleAIPredictor:
     def __init__(self):
         self.connection_string = os.environ.get('DATABASE_URL')
         # Force use of GEMINI_API_KEY by temporarily removing GOOGLE_API_KEY

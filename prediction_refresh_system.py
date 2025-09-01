@@ -9,8 +9,7 @@ import logging
 import os
 import psycopg2
 from datetime import datetime, timedelta
-from simple_ai_predictor import SimpleLotteryPredictor
-predictor = AILotteryPredictor()
+from simple_ai_predictor import SimpleAIPredictor
 
 # Configure logging
 logging.basicConfig(
@@ -108,27 +107,18 @@ class PredictionRefreshSystem:
                     conn.commit()
                     logger.info(f"Cleared {cur.rowcount} unlocked predictions for {game_type}")
             
-            # Generate 3 new predictions
+            # Generate new predictions using SimpleAIPredictor
+            predictor = SimpleAIPredictor()
             generated_count = 0
             for i in range(3):
                 try:
-                    # Get comprehensive historical data for deep AI analysis
-                    historical_data = predictor.get_historical_data_for_prediction(game_type, 365)
+                    prediction_result = predictor.generate_prediction(game_type)
                     
-                    # Generate AI prediction with unique seed
-                    variation_seed = (i + 1) * 17 + hash(game_type) % 100
-                    prediction = predictor.generate_ai_prediction(
-                        game_type, 
-                        historical_data,
-                        variation_seed=variation_seed
-                    )
-                    
-                    if prediction:
-                        success = predictor.store_prediction_in_database(prediction)
-                        
-                        if success:
-                            generated_count += 1
-                            logger.info(f"✅ Generated new {game_type} prediction #{i+1}")
+                    if prediction_result:
+                        generated_count += 1
+                        logger.info(f"✅ Generated new {game_type} prediction #{i+1}")
+                        if prediction_result.get('main_numbers'):
+                            logger.info(f"   Numbers: {prediction_result['main_numbers']}")
                         else:
                             logger.error(f"❌ Failed to store {game_type} prediction #{i+1}")
                     else:
@@ -186,6 +176,12 @@ class PredictionRefreshSystem:
         
         logger.info(f"Total predictions refreshed: {total_refreshed}")
         return refresh_summary
+    
+    def refresh_all_predictions(self):
+        """Refresh predictions for all game types - wrapper for compatibility"""
+        summary = self.check_and_refresh_all_predictions()
+        total_generated = sum(result.get('count', 0) for result in summary.values())
+        return {"total_generated": total_generated, "game_results": summary}
 
 def main():
     """Run prediction refresh check"""

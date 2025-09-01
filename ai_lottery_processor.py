@@ -302,18 +302,19 @@ class CompleteLotteryProcessor:
         """Extract lottery type from screenshot filename"""
         filename_lower = filename.lower()
         
-        if "lotto_plus_2" in filename_lower:
+        # CRITICAL FIX: Check daily_lotto FIRST before lotto
+        if "daily_lotto" in filename_lower:
+            return "DAILY LOTTO"
+        elif "lotto_plus_2" in filename_lower:
             return "LOTTO PLUS 2"
         elif "lotto_plus_1" in filename_lower:
             return "LOTTO PLUS 1"
-        elif "lotto" in filename_lower and "plus" not in filename_lower:
+        elif "lotto" in filename_lower and "plus" not in filename_lower and "daily" not in filename_lower:
             return "LOTTO"
         elif "powerball_plus" in filename_lower:
             return "POWERBALL PLUS"
         elif "powerball" in filename_lower and "plus" not in filename_lower:
             return "POWERBALL"
-        elif "daily_lotto" in filename_lower:
-            return "DAILY LOTTO"
         else:
             return "UNKNOWN"
     
