@@ -1,7 +1,7 @@
 # South African Lottery Ticket Scanner
 
 ## Overview
-This project is an AI-powered lottery intelligence platform designed for South African lotteries. Its main purpose is to process and synchronize South African lottery results, enabling accurate data extraction and display. Key capabilities include AI-powered ticket scanning, comprehensive display of prize divisions, and robust database management of lottery results. The business vision is to be the leading platform for South African lottery intelligence, offering unparalleled accuracy and real-time data to users.
+This project is an AI-powered lottery intelligence platform designed for South African lotteries. Its main purpose is to process and synchronize South African lottery results, enabling accurate data extraction and display. Key capabilities include AI-powered ticket scanning, comprehensive display of prize divisions, robust database management of lottery results, and AI-powered prediction. The business vision is to be the leading platform for South African lottery intelligence, offering unparalleled accuracy and real-time data to users.
 
 ## User Preferences
 - STRICT RULE: NO PLACEHOLDER DATA - All data must be authentic and extracted from real sources
@@ -67,16 +67,14 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **Frontend**: Responsive web interface with mobile-friendly design and PWA functionality, ensuring visual consistency.
 -   **Backend**: Python Flask framework.
 -   **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage, adhering to authentic data.
--   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning (`ai_lottery_processor.py`), data extraction, pattern analysis, and lottery prediction (`ai_lottery_predictor.py`).
+-   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and lottery prediction.
     **Unified Prediction Algorithm Details:**
-    - **Core Engine**: Hybrid Frequency-Gap Analysis with Learning (unified across all game types)
-    - **Historical Analysis**: 40+ historical draws per game with extended pattern recognition
-    - **Learning Framework**: Hot number frequency patterns, cold number mean reversion, statistical balance validation
-    - **Performance Integration**: Incorporates accuracy feedback from validated predictions to improve future predictions
-    - **Confidence Scoring**: 45-65% confidence scores based on historical frequency patterns and pattern strength
-    - **Individual Game Rules**: LOTTO (6 main, 1-52), LOTTO PLUS 1/2 (6 main, 1-52), POWERBALL/PLUS (5 main 1-50 + 1 bonus 1-20), DAILY LOTTO (5 main, 1-36)
-    - **Unified Method**: "Hybrid Frequency-Gap Analysis with Learning" applied consistently across all lottery types
-    - **Learning Sources**: Performance data from validated predictions, multi-timeframe frequency analysis, drought cycle detection, hot/cold transition tracking
+    -   **Core Engine**: Hybrid Frequency-Gap Analysis with Learning (unified across all game types)
+    -   **Historical Analysis**: 40+ historical draws per game with extended pattern recognition
+    -   **Learning Framework**: Hot number frequency patterns, cold number mean reversion, statistical balance validation
+    -   **Performance Integration**: Incorporates accuracy feedback from validated predictions to improve future predictions
+    -   **Confidence Scoring**: 45-65% confidence scores based on historical frequency patterns and pattern strength
+    -   **Individual Game Rules**: LOTTO (6 main, 1-52), LOTTO PLUS 1/2 (6 main, 1-52), POWERBALL/PLUS (5 main 1-50 + 1 bonus 1-20), DAILY LOTTO (5 main, 1-36)
 -   **Automation Workflow**: A robust 4-step daily automation process utilizing Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification, with anti-detection measures.
 -   **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, centralized error handling, and admin-only access for sensitive AI features.
 -   **Performance**: Optimized database queries, critical performance indexes, and a cache manager. Decoupled card heights for optimal content display.
@@ -84,7 +82,7 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **Core Features**:
     -   **Ticket Scanner**: Extracts player-selected numbers and detects multiple game types (LOTTO, LOTTO PLUS 1, LOTTO PLUS 2) with multi-line support.
     -   **Results Display**: Shows complete lottery results with all prize divisions and financial details, with numbers sorted ascending.
-    -   **Data Analytics**: Displays hot/cold/absent numbers and frequency charts, derived from authentic lottery data, including AI-powered pattern analysis.
+    -   **Data Analytics**: Displays hot/cold numbers and frequency charts, derived from authentic lottery data, including AI-powered pattern analysis.
     -   **AI-Powered Lottery Predictor**: Generates and validates lottery number predictions with accuracy tracking and self-improvement, based on comprehensive AI analysis of historical data. Predictions are static until new draw results are available.
     -   **Data Preview and Approval System**: Allows review, approval, deeper extraction requests, and rejection of AI-extracted data.
 
