@@ -475,14 +475,15 @@ def results(lottery_type=None):
                         cur.execute("""
                             SELECT DISTINCT ON (game_type)
                                 game_type, predicted_numbers, bonus_numbers, confidence_score,
-                                linked_draw_id, validation_status, created_at
+                                linked_draw_id, validation_status, created_at,
+                                main_number_matches, bonus_number_matches, accuracy_percentage, prize_tier
                             FROM lottery_predictions 
-                            WHERE validation_status = 'pending'
+                            WHERE validation_status IN ('pending', 'validated')
                             ORDER BY game_type, created_at DESC
                         """)
                         
                         for row in cur.fetchall():
-                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at = row
+                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at, main_matches, bonus_matches, accuracy, prize = row
                             
                             # Parse PostgreSQL array format to Python list
                             main_numbers = []
@@ -514,7 +515,11 @@ def results(lottery_type=None):
                                 'bonus_numbers': bonus_numbers,
                                 'confidence_score': confidence,
                                 'linked_draw_id': linked_draw_id,
-                                'status': status
+                                'status': status,
+                                'main_matches': main_matches or 0,
+                                'bonus_matches': bonus_matches or 0,
+                                'accuracy_percentage': accuracy or 0.0,
+                                'prize_tier': prize or 'No Prize'
                             }
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
@@ -660,14 +665,15 @@ def results(lottery_type=None):
                         cur.execute("""
                             SELECT DISTINCT ON (game_type)
                                 game_type, predicted_numbers, bonus_numbers, confidence_score,
-                                linked_draw_id, validation_status, created_at
+                                linked_draw_id, validation_status, created_at,
+                                main_number_matches, bonus_number_matches, accuracy_percentage, prize_tier
                             FROM lottery_predictions 
-                            WHERE validation_status = 'pending'
+                            WHERE validation_status IN ('pending', 'validated')
                             ORDER BY game_type, created_at DESC
                         """)
                         
                         for row in cur.fetchall():
-                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at = row
+                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at, main_matches, bonus_matches, accuracy, prize = row
                             
                             # Parse PostgreSQL array format to Python list
                             main_numbers = []
@@ -699,7 +705,11 @@ def results(lottery_type=None):
                                 'bonus_numbers': bonus_numbers,
                                 'confidence_score': confidence,
                                 'linked_draw_id': linked_draw_id,
-                                'status': status
+                                'status': status,
+                                'main_matches': main_matches or 0,
+                                'bonus_matches': bonus_matches or 0,
+                                'accuracy_percentage': accuracy or 0.0,
+                                'prize_tier': prize or 'No Prize'
                             }
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
@@ -1162,7 +1172,7 @@ def predictions():
                 matched_main_numbers,
                 verified_at
             FROM lottery_predictions 
-            WHERE validation_status = 'pending' OR validation_status IS NULL OR is_verified = true
+            WHERE validation_status IN ('pending', 'validated') OR validation_status IS NULL OR is_verified = true
             ORDER BY game_type, 
                      CASE WHEN validation_status = 'pending' AND target_draw_date >= CURRENT_DATE THEN 0 ELSE 1 END,
                      confidence_score DESC, 
