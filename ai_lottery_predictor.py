@@ -950,63 +950,28 @@ class AILotteryPredictor:
             anomaly_detection = historical_data.get('anomaly_detection', {})
             prize_patterns = historical_data.get('prize_patterns', {})
             
-            # Create comprehensive advanced analysis prompt
+            # Create OPTIMIZED prediction prompt - token-efficient while maintaining analysis power
+            # FIX: Use correct data structure keys - 'main' and 'bonus', not 'numbers' and 'bonus_numbers'
+            recent_numbers = [draw.get('main', []) + (draw.get('bonus', []) or []) for draw in recent_draws[:8]]
+            top_frequencies = dict(list(frequency_analysis.items())[:15])
+            
             prediction_prompt = f"""
-            EXTENDED LOTTERY ANALYSIS FOR {game_type} - ANALYZING {total_draws} HISTORICAL DRAWS
+            {game_type} LOTTERY PREDICTION - {total_draws} Draws Analysis
             
-            GAME RULES:
-            - Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}
-            {"- Pick " + str(game_config['bonus_count']) + " bonus numbers from 1-" + str(game_config['bonus_range']) if game_config['bonus_count'] > 0 else ""}
+            RULES: Pick {game_config['main_count']} main (1-{game_config['main_range']}){"+ " + str(game_config['bonus_count']) + " bonus (1-" + str(game_config['bonus_range']) + ")" if game_config['bonus_count'] > 0 else ""}
             
-            === MULTI-TIMEFRAME ANALYSIS ===
+            RECENT PATTERNS (Last 8): {recent_numbers}
+            TOP FREQUENCIES: {top_frequencies}
+            PATTERN INSIGHTS: {len(cyclical_patterns.get('monthly_trends', {}))} monthly trends, {len(anomaly_detection.get('pattern_breaks', []))} pattern breaks, {prize_patterns.get('rollover_count', 0)} rollovers
             
-            RECENT DRAWS (Last 20 - Most Relevant):
-            {json.dumps(recent_draws[:12], indent=2)}
+            ANALYSIS: Apply hybrid frequency-gap analysis with multi-timeframe patterns from {total_draws} draws. Consider hot/cold transitions, drought cycles, and recent anomalies for optimal prediction.
             
-            MEDIUM-TERM PATTERN (Draws 21-60):
-            Total draws analyzed: {len(medium_term_draws)}
-            
-            LONG-TERM HISTORICAL (60+ draws):
-            Total historical draws: {len(long_term_draws)}
-            
-            === COMPREHENSIVE FREQUENCY ANALYSIS ===
-            Complete Number Frequency (ALL {total_draws} draws):
-            {dict(list(frequency_analysis.items())[:30])}
-            
-            === CYCLICAL PATTERN DETECTION ===
-            Monthly Trends: {dict(list(cyclical_patterns.get('monthly_trends', {}).items())[:6])}
-            Quarterly Patterns: {len(cyclical_patterns.get('quarterly_trends', {}))} quarters analyzed
-            Day-of-Week Patterns: {len(cyclical_patterns.get('day_of_week_patterns', {}))} different days
-            
-            === LONG-TERM PATTERN ANALYSIS ===
-            Number Drought Cycles: {dict(list(long_term_analysis.get('number_drought_cycles', {}).items())[:10])}
-            Hot/Cold Transitions: {len(long_term_analysis.get('hot_cold_transitions', []))} transitions detected
-            Seasonal Variations: {dict(list(long_term_analysis.get('seasonal_variations', {}).items())[:6])}
-            
-            === ANOMALY & PATTERN BREAK DETECTION ===
-            Unusual Combinations Found: {len(anomaly_detection.get('unusual_combinations', []))}
-            Pattern Breaks Detected: {len(anomaly_detection.get('pattern_breaks', []))}
-            Statistical Outliers: {len(anomaly_detection.get('statistical_outliers', []))}
-            
-            === JACKPOT & FINANCIAL PATTERN ANALYSIS ===
-            Recent Jackpot Progression: {prize_patterns.get('jackpot_progression', [])[-8:]}
-            Rollover Count: {prize_patterns.get('rollover_count', 0)}
-            Rollover Cycles: {len(prize_patterns.get('rollover_cycles', []))} cycles
-            
-            === ADVANCED ANALYSIS FRAMEWORK ===
-            1. EXTENDED FREQUENCY PATTERNS: Analyze complete {total_draws}-draw frequency spectrum, not just recent trends
-            2. CYCLICAL PATTERN RECOGNITION: Identify monthly, quarterly, and seasonal number selection patterns
-            3. DROUGHT CYCLE EXPLOITATION: Consider numbers with extended absence periods for statistical reversion
-            4. HOT/COLD TRANSITION ANALYSIS: Leverage numbers transitioning between frequency states
-            5. ANOMALY-INFORMED PREDICTIONS: Use pattern break detection to avoid or favor certain combinations
-            6. MULTI-TIMEFRAME SYNTHESIS: Blend recent (20 draws), medium-term (40 draws), and long-term (40+ draws) patterns
-            
-            Return ONLY this JSON format:
+            Return JSON:
             {{
-                "main_numbers": [list of {game_config['main_count']} numbers],
-                {"bonus_numbers: [list of " + str(game_config['bonus_count']) + " numbers]," if game_config['bonus_count'] > 0 else ""}
-                "confidence_percentage": 55,
-                "reasoning": "Multi-timeframe analysis combining {total_draws} draws with cyclical patterns, drought cycles, and anomaly detection"
+                "main_numbers": [{game_config['main_count']} numbers],
+                {"bonus_numbers: [" + str(game_config['bonus_count']) + " numbers]," if game_config['bonus_count'] > 0 else ""}
+                "confidence_percentage": 58,
+                "reasoning": "Hybrid frequency-gap analysis with learning from {total_draws} draws"
             }}
             """
             
