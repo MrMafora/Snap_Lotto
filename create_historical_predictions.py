@@ -24,7 +24,7 @@ def create_prediction_for_draw(conn, lottery_type, draw_number, draw_date, actua
     """
     
     # Use intelligent prediction method consistently
-    prediction_method = "Hybrid Frequency-Gap Analysis with Learning"
+    prediction_method = "Hybrid Frequency-Gap Analysis with Near-Miss Learning"
     
     # Generate prediction based on historical data available before this draw
     # This uses the same logic as current predictions but with historical context

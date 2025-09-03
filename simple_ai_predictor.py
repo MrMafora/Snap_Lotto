@@ -106,7 +106,7 @@ class SimpleAIPredictor:
                 'predicted_numbers': sorted(main_numbers),
                 'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else None,
                 'confidence_score': min(data.get('confidence', 50), 65),  # Cap at 65%
-                'prediction_method': 'Hybrid Frequency-Gap Analysis with Learning',
+                'prediction_method': 'Hybrid Frequency-Gap Analysis with Near-Miss Learning',
                 'reasoning': data.get('reasoning', 'AI-generated prediction based on historical analysis'),
                 'target_draw_date': next_draw_info['date'],
                 'linked_draw_id': next_draw_info['draw_id'],
