@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 class SimpleAIPredictor:
     def __init__(self):
         self.connection_string = os.environ.get('DATABASE_URL')
-        # Force use of GEMINI_API_KEY by temporarily removing GOOGLE_API_KEY
-        gemini_key = os.environ.get('GEMINI_API_KEY')
+        # Use centralized Gemini API key
+        gemini_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
         self.client = genai.Client(api_key=gemini_key)
         
         # Game configurations
@@ -62,14 +62,13 @@ class SimpleAIPredictor:
             
             Return JSON: {{"main_numbers": [1,2,3], "bonus_numbers": [1], "confidence": 50, "reasoning": "analysis"}}"""
             
-            # Call Gemini API with optimized settings
+            # Call Gemini API with unlimited tokens
             response = self.client.models.generate_content(
                 model="gemini-2.5-pro",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.5,
-                    max_output_tokens=80
+                    temperature=0.5
                 )
             )
             
@@ -336,7 +335,7 @@ class SimpleAIPredictor:
 
 def main():
     """Test the simple predictor"""
-    predictor = SimpleLotteryPredictor()
+    predictor = SimpleAIPredictor()
     
     # Test with Daily Lotto
     print("Testing Daily Lotto prediction...")

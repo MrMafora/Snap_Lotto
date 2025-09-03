@@ -18,9 +18,9 @@ def test_gemini_extraction():
     """Test Gemini extraction on a real captured screenshot"""
     
     # Initialize Gemini client
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY")
     if not api_key:
-        logger.error("❌ GEMINI_API_KEY not found in environment")
+        logger.error("❌ GOOGLE_API_KEY_SNAP_LOTTERY not found in environment")
         return False
     
     client = genai.Client(api_key=api_key)

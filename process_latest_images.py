@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Initialize Gemini client
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY"))
 
 def process_lottery_image(image_path, lottery_type):
     """Process a single lottery image with Gemini 2.5 Pro"""

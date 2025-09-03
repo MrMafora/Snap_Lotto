@@ -47,7 +47,7 @@ class AILotteryPredictor:
     """Optimized AI Lottery Predictor with focused game-specific analysis"""
     
     def __init__(self):
-        self.client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        self.client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY"))
         self.connection_string = os.environ.get("DATABASE_URL")
         self._initialize_tables()
     

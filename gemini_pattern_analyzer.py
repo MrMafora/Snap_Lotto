@@ -18,7 +18,7 @@ from collections import Counter
 logger = logging.getLogger(__name__)
 
 # Initialize Gemini client
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY"))
 
 class PatternAnalysis(BaseModel):
     """Pattern analysis result structure"""
