@@ -2,6 +2,7 @@
 """
 Optimized AI Lottery Predictor with Focused Game-Specific Analysis
 Processes data in smaller chunks to avoid AI timeouts
+Enhanced with Near-Miss Learning System for pattern refinement
 """
 
 import os
@@ -19,6 +20,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Import Google Gemini
 from google import genai
 from google.genai import types
+
+# Import Near-Miss Learning System
+try:
+    from near_miss_learning_system import NearMissLearningSystem
+    NEAR_MISS_AVAILABLE = True
+except ImportError:
+    print("Near-Miss Learning System not available - using standard prediction only")
+    NEAR_MISS_AVAILABLE = False
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -1016,12 +1025,50 @@ class AILotteryPredictor:
                 try:
                     prediction_data = json.loads(response.text)
                     
-                    # Validate numbers
-                    main_numbers = self.validate_numbers(
+                    # Get base prediction numbers
+                    base_main_numbers = self.validate_numbers(
                         prediction_data.get('main_numbers', []),
                         game_config['main_count'],
                         game_config['main_range']
                     )
+                    
+                    # Apply Near-Miss Learning Enhancement if available
+                    enhanced_main_numbers = base_main_numbers
+                    learning_applied = False
+                    
+                    if NEAR_MISS_AVAILABLE:
+                        try:
+                            logger.info("🎯 Applying Near-Miss Learning enhancement...")
+                            near_miss_system = NearMissLearningSystem()
+                            
+                            # Extract near-miss patterns from recent predictions
+                            patterns = near_miss_system.extract_near_miss_patterns(game_type, days_back=30)
+                            
+                            if patterns:
+                                logger.info(f"Found {len(patterns)} near-miss patterns for learning")
+                                
+                                # Generate adjustment factors from patterns
+                                adjustments = near_miss_system.generate_adjustment_vector(patterns)
+                                
+                                if adjustments:
+                                    # Apply near-miss learning to base prediction
+                                    enhanced_main_numbers = near_miss_system.apply_near_miss_learning(
+                                        base_main_numbers, adjustments, 
+                                        (1, game_config['main_range'])
+                                    )
+                                    learning_applied = True
+                                    logger.info(f"Near-miss learning applied: {base_main_numbers} → {enhanced_main_numbers}")
+                                else:
+                                    logger.info("No adjustment factors calculated from near-miss patterns")
+                            else:
+                                logger.info("No near-miss patterns found for learning")
+                                
+                        except Exception as e:
+                            logger.warning(f"Near-miss learning failed, using base prediction: {e}")
+                            enhanced_main_numbers = base_main_numbers
+                    
+                    # Use enhanced or base numbers
+                    main_numbers = enhanced_main_numbers
                     
                     bonus_numbers = []
                     if game_config['bonus_count'] > 0:
@@ -1037,8 +1084,8 @@ class AILotteryPredictor:
                         predicted_numbers=sorted(main_numbers),
                         bonus_numbers=sorted(bonus_numbers),
                         confidence_score=prediction_data.get('confidence_percentage', 50) / 100.0,
-                        prediction_method="Hybrid_Frequency_Gap_Analysis_with_Learning",
-                        reasoning=f"Intelligent prediction using Hybrid Frequency-Gap Analysis with Learning methodology: {total_draws}+ historical draws analyzed, hot/cold number patterns, mean reversion strategies, and performance-based learning integration - " + prediction_data.get('reasoning', 'Multi-timeframe pattern analysis with cyclical detection'),
+                        prediction_method="Hybrid_Frequency_Gap_Analysis_with_Near_Miss_Learning",
+                        reasoning=f"Enhanced prediction using Hybrid Frequency-Gap Analysis with Near-Miss Learning: {total_draws}+ historical draws analyzed, near-miss pattern refinement {'(applied)' if learning_applied else '(available)'}, hot/cold number patterns, mean reversion strategies, and performance-based learning integration - " + prediction_data.get('reasoning', 'Multi-timeframe pattern analysis with cyclical detection'),
                         created_at=datetime.now()
                     )
                     
