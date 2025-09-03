@@ -85,4 +85,4 @@ localPort = 8080
 externalPort = 80
 
 [agent]
-integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]
+integrations = ["python_openai==1.0.0", "python_anthropic==1.0.0", "python_gemini==1.0.0"]
