@@ -230,7 +230,7 @@ body {
 /* Ensure lottery balls are visible */
 .lottery-ball {
     color: #000 !important;
-    border: 2px solid rgba(0,0,0,0.1) !important;
+    border: none !important;
 }
 
 /* Make all text in tables more visible */
@@ -297,8 +297,8 @@ tbody, td, th {
     color: #fff;
     border-radius: 50%;
     position: relative;
-    border: 2px solid #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: none;
+    box-shadow: none;
 }
 
 /* Mobile lottery ball optimization - consistent with analytics */
@@ -307,8 +307,8 @@ tbody, td, th {
         width: 35px !important;
         height: 35px !important;
         font-size: 14px !important;
-        margin: 0 2px !important;
-        border: 1px solid #fff !important;
+        margin: 2px 1px !important;
+        border: none !important;
         line-height: 35px !important;
         font-weight: bold !important;
     }
