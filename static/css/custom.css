@@ -307,7 +307,7 @@ tbody, td, th {
         width: 35px !important;
         height: 35px !important;
         font-size: 14px !important;
-        margin: 2px 1px !important;
+        margin: 1px !important;
         border: none !important;
         line-height: 35px !important;
         font-weight: bold !important;
@@ -831,7 +831,7 @@ canvas {
 .numbers-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 2px;
 }
 
 /* Responsive adjustments */
