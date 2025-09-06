@@ -1,0 +1,35 @@
+/* Mobile-specific chart styling to ensure proper card heights */
+
+/* Make data analytics card much taller on mobile to accommodate AI predictions */
+@media (max-width: 767px) {
+    .chart-container-mobile {
+        min-height: 400px !important;
+        height: auto !important;
+    }
+    
+    .bar-chart-container {
+        min-height: 400px !important;
+        height: auto !important;
+    }
+    
+    /* Ensure chart cards expand properly on mobile */
+    .chart-card {
+        height: auto !important;
+        min-height: auto !important;
+    }
+    
+    /* AI predictions container should not have height constraints */
+    .ai-predictions-container {
+        height: auto !important;
+        max-height: none !important;
+        min-height: auto !important;
+    }
+}
+
+/* Very small mobile devices need even more space */
+@media (max-width: 480px) {
+    .chart-container-mobile,
+    .bar-chart-container {
+        min-height: 450px !important;
+    }
+}
