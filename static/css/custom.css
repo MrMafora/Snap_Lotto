@@ -304,12 +304,12 @@ tbody, td, th {
 /* Mobile lottery ball optimization - consistent with analytics */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 35px !important;
-        height: 35px !important;
-        font-size: 14px !important;
-        margin: 1px !important;
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+        margin: 2px 1px !important;
         border: none !important;
-        line-height: 35px !important;
+        line-height: 28px !important;
         font-weight: bold !important;
     }
     
@@ -357,11 +357,11 @@ tbody, td, th {
 /* Extra small mobile screens - maintain readability */
 @media (max-width: 400px) {
     .lottery-ball {
-        width: 30px !important;
-        height: 30px !important;
-        font-size: 12px !important;
-        margin: 0 1px !important;
-        line-height: 30px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        margin: 2px 1px !important;
+        line-height: 24px !important;
         font-weight: bold !important;
     }
     
