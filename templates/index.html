@@ -726,40 +726,13 @@
                         <span>Most Frequent Numbers</span>
                         <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
-                    <!-- Hot and Cold Numbers Display -->
-                    <div style="height: 200px; overflow-y: auto;">
-                        <!-- Hot Numbers Section -->
-                        <div class="mb-3">
-                            <h6 class="mb-2" style="font-size: 0.8rem; color: #666;">
-                                <span class="me-1" style="width: 10px; height: 10px; background-color: var(--lottery-red); border-radius: 50%; display: inline-block;"></span>
-                                Hot Numbers (Most Frequent)
-                            </h6>
-                            <div id="hotNumbersContainer" class="d-flex flex-wrap">
-                                <!-- Populated by JavaScript -->
-                                <div class="d-flex justify-content-center align-items-center w-100" style="height: 60px;">
-                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                        <span class="visually-hidden">Loading hot numbers...</span>
-                                    </div>
-                                    <span class="ms-2" style="font-size: 0.8rem;">Loading...</span>
-                                </div>
+                    <!-- Interactive bar chart container - will be populated by JavaScript -->
+                    <div class="bar-chart-container" style="width: 100%; height: 200px;">
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading chart...</span>
                             </div>
-                        </div>
-                        
-                        <!-- Cold Numbers Section -->
-                        <div>
-                            <h6 class="mb-2" style="font-size: 0.8rem; color: #666;">
-                                <span class="me-1" style="width: 10px; height: 10px; background-color: var(--lottery-blue); border-radius: 50%; display: inline-block;"></span>
-                                Cold Numbers (Least Frequent)
-                            </h6>
-                            <div id="coldNumbersContainer" class="d-flex flex-wrap">
-                                <!-- Populated by JavaScript -->
-                                <div class="d-flex justify-content-center align-items-center w-100" style="height: 60px;">
-                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                        <span class="visually-hidden">Loading cold numbers...</span>
-                                    </div>
-                                    <span class="ms-2" style="font-size: 0.8rem;">Loading...</span>
-                                </div>
-                            </div>
+                            <span class="ms-2">Loading interactive chart...</span>
                         </div>
                     </div>
                 </div>
