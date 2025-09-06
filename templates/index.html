@@ -656,8 +656,8 @@
         </div>
         
         <div class="row">
-            <!-- AI Predictions Display - Show first on mobile -->
-            <div class="col-md-6 order-1 order-md-2">
+            <!-- AI Predictions Display - Show second on mobile -->
+            <div class="col-md-6 order-2 order-md-2">
                 <div class="chart-card">
                     <h6 class="mb-3 d-flex justify-content-between">
                         <span><i class="fas fa-brain me-1"></i> AI Predictions</span>
@@ -665,7 +665,7 @@
                     </h6>
                     
                     <!-- AI Predictions Container -->
-                    <div class="ai-predictions-container" style="height: 200px; overflow-y: auto;">
+                    <div class="ai-predictions-container">
                         {% if unvalidated_predictions %}
                             <!-- Desktop table view -->
                             <div class="table-responsive d-none d-md-block">
@@ -756,8 +756,8 @@
                     </div>
                 </div>
             </div>
-            <!-- Most Frequent Numbers chart - Show second on mobile -->
-            <div class="col-md-6 order-2 order-md-1">
+            <!-- Most Frequent Numbers chart - Show first on mobile -->
+            <div class="col-md-6 order-1 order-md-1">
                 <!-- Most Frequent Numbers chart -->
                 <div class="chart-card">
                     <h6 class="mb-3 d-flex justify-content-between">
@@ -765,7 +765,7 @@
                         <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
                     <!-- Interactive bar chart container - will be populated by JavaScript -->
-                    <div class="bar-chart-container" style="width: 100%; height: 200px;">
+                    <div class="bar-chart-container" style="width: 100%; min-height: 180px;">
                         <div class="d-flex justify-content-center align-items-center h-100">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading chart...</span>
