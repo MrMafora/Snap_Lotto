@@ -685,40 +685,56 @@
                     </h6>
                     
                     <!-- AI Predictions Container -->
-                    <div class="ai-predictions-container" style="height: 200px;">
+                    <div class="ai-predictions-container" style="height: 200px; overflow-y: auto;">
                         {% if unvalidated_predictions %}
-                            {% for prediction in unvalidated_predictions %}
-                                <div class="prediction-item mb-1 p-1 bg-light rounded border-start border-2 border-primary">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex align-items-center">
-                                                <span class="game-type-badge me-2 
-                                                    {% if prediction.game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2'] %}game-type-lottery
-                                                    {% elif prediction.game_type in ['POWERBALL', 'POWERBALL PLUS'] %}game-type-powerball
-                                                    {% elif prediction.game_type == 'DAILY LOTTO' %}game-type-daily
-                                                    {% endif %}" style="font-size: 0.6rem;">{{ prediction.game_type }}</span>
-                                                <span class="badge bg-primary me-2" style="font-size: 0.6rem;">{{ prediction.confidence }}%</span>
-                                                {% for number in prediction.main_numbers %}
-                                                    <span class="lottery-ball me-1 
-                                                        {% if prediction.game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2'] %}lottery-ball-red
-                                                        {% elif prediction.game_type in ['POWERBALL', 'POWERBALL PLUS'] %}lottery-ball-yellow
-                                                        {% elif prediction.game_type == 'DAILY LOTTO' %}lottery-ball-green
-                                                        {% endif %}" style="width: 20px; height: 20px; line-height: 10px; font-size: 0.65rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ number }}</span>
-                                                {% endfor %}
-                                                {% if prediction.bonus_numbers %}
-                                                    <span class="text-muted mx-1" style="font-size: 0.7rem;">+</span>
-                                                    {% for bonus in prediction.bonus_numbers %}
-                                                        <span class="lottery-ball lottery-ball-yellow me-1" style="width: 20px; height: 20px; line-height: 10px; font-size: 0.65rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ bonus }}</span>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="text-end">
-                                            <small class="text-muted" style="font-size: 0.6rem;">{{ prediction.target_date.strftime('%b %d') }}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0" style="font-size: 0.75rem;">
+                                    <thead>
+                                        <tr>
+                                            <th style="border: none; font-size: 0.65rem; padding: 2px 4px;">Game</th>
+                                            <th style="border: none; font-size: 0.65rem; padding: 2px 4px;" class="text-center">Conf.</th>
+                                            <th style="border: none; font-size: 0.65rem; padding: 2px 4px;">Numbers</th>
+                                            <th style="border: none; font-size: 0.65rem; padding: 2px 4px;" class="text-end">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for prediction in unvalidated_predictions %}
+                                            <tr>
+                                                <td style="border: none; padding: 2px 4px; vertical-align: middle;">
+                                                    <span class="game-type-badge 
+                                                        {% if prediction.game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2'] %}game-type-lottery
+                                                        {% elif prediction.game_type in ['POWERBALL', 'POWERBALL PLUS'] %}game-type-powerball
+                                                        {% elif prediction.game_type == 'DAILY LOTTO' %}game-type-daily
+                                                        {% endif %}" style="font-size: 0.5rem; padding: 1px 4px;">{{ prediction.game_type }}</span>
+                                                </td>
+                                                <td style="border: none; padding: 2px 4px; vertical-align: middle;" class="text-center">
+                                                    <span class="badge bg-primary" style="font-size: 0.5rem; padding: 1px 4px;">{{ prediction.confidence }}%</span>
+                                                </td>
+                                                <td style="border: none; padding: 2px 4px; vertical-align: middle;">
+                                                    <div class="d-flex align-items-center">
+                                                        {% for number in prediction.main_numbers %}
+                                                            <span class="lottery-ball me-1 
+                                                                {% if prediction.game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2'] %}lottery-ball-red
+                                                                {% elif prediction.game_type in ['POWERBALL', 'POWERBALL PLUS'] %}lottery-ball-yellow
+                                                                {% elif prediction.game_type == 'DAILY LOTTO' %}lottery-ball-green
+                                                                {% endif %}" style="width: 18px; height: 18px; line-height: 8px; font-size: 0.6rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ number }}</span>
+                                                        {% endfor %}
+                                                        {% if prediction.bonus_numbers %}
+                                                            <span class="text-muted mx-1" style="font-size: 0.6rem;">+</span>
+                                                            {% for bonus in prediction.bonus_numbers %}
+                                                                <span class="lottery-ball lottery-ball-yellow me-1" style="width: 18px; height: 18px; line-height: 8px; font-size: 0.6rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ bonus }}</span>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                                <td style="border: none; padding: 2px 4px; vertical-align: middle;" class="text-end">
+                                                    <small class="text-muted" style="font-size: 0.5rem;">{{ prediction.target_date.strftime('%b %d') }}</small>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                             
                             <div class="text-center mt-2">
                                 <a href="/predictions" class="btn btn-outline-primary btn-sm">
