@@ -1153,7 +1153,7 @@ def predictions():
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
         
-        # Get exactly 1 prediction per game type, prioritizing pending predictions for future dates
+        # Get exactly 1 LATEST UNVALIDATED prediction per game type for future draws only
         # Custom ordering: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO
         cur.execute("""
             SELECT DISTINCT ON (game_type)
@@ -1172,9 +1172,10 @@ def predictions():
                 matched_main_numbers,
                 verified_at
             FROM lottery_predictions 
-            WHERE validation_status IN ('pending', 'validated') OR validation_status IS NULL OR is_verified = true
+            WHERE (validation_status = 'pending' OR validation_status IS NULL) 
+                AND target_draw_date >= CURRENT_DATE
+                AND is_verified = false
             ORDER BY game_type, 
-                     CASE WHEN validation_status = 'pending' AND target_draw_date >= CURRENT_DATE THEN 0 ELSE 1 END,
                      confidence_score DESC, 
                      created_at DESC
         """)
