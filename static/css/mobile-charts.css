@@ -42,6 +42,40 @@
     .mobile-prediction-item .d-flex.justify-content-between {
         margin-bottom: 6px !important;
     }
+    
+    /* Fix AI prediction ball shapes - make perfectly circular */
+    .mobile-prediction-item .lottery-number {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        max-width: 32px !important;
+        max-height: 32px !important;
+        border-radius: 50% !important;
+        font-size: 13px !important;
+        line-height: 32px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 2px 1px !important;
+    }
+    
+    /* Make bonus balls same size as main balls */
+    .mobile-prediction-item .bonus-number {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        max-width: 32px !important;
+        max-height: 32px !important;
+        border-radius: 50% !important;
+        font-size: 13px !important;
+        line-height: 32px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 2px 1px !important;
+    }
 }
 
 /* Very small mobile devices - even taller container */
@@ -58,5 +92,18 @@
     .mobile-prediction-item {
         padding: 6px !important;
         margin-bottom: 6px !important;
+    }
+    
+    /* Ensure balls stay circular on very small screens */
+    .mobile-prediction-item .lottery-number,
+    .mobile-prediction-item .bonus-number {
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        min-height: 30px !important;
+        max-width: 30px !important;
+        max-height: 30px !important;
+        font-size: 12px !important;
+        line-height: 30px !important;
     }
 }
