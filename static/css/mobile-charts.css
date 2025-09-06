@@ -1,17 +1,23 @@
 /* Mobile-specific chart styling to ensure proper card heights */
 
-/* Balanced mobile layout - reasonable chart height, compact AI predictions */
+/* Make the main Data Analytics Preview container taller on mobile to show both cards */
 @media (max-width: 767px) {
+    /* This is the main container that holds both Most Frequent Numbers and AI Prediction cards */
+    .data-analytics-preview {
+        height: 750px !important; /* Increased from 570px to show both cards */
+        overflow: visible !important;
+    }
+    
+    /* Reset individual chart containers to normal sizes */
     .chart-container-mobile,
     .bar-chart-container {
-        min-height: 220px !important;
+        min-height: 180px !important;
         height: auto !important;
     }
     
-    /* Ensure chart cards don't take too much space */
+    /* Keep chart cards at reasonable sizes */
     .chart-card {
-        height: auto !important;
-        min-height: auto !important;
+        height: 350px !important; /* Keep original size */
         margin-bottom: 1rem !important;
     }
     
@@ -38,11 +44,15 @@
     }
 }
 
-/* Very small mobile devices - keep it compact */
+/* Very small mobile devices - even taller container */
 @media (max-width: 480px) {
+    .data-analytics-preview {
+        height: 800px !important; /* Even more space for very small screens */
+    }
+    
     .chart-container-mobile,
     .bar-chart-container {
-        min-height: 200px !important;
+        min-height: 160px !important;
     }
     
     .mobile-prediction-item {
