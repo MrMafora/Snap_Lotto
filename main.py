@@ -334,7 +334,16 @@ def index():
                 FROM lottery_predictions 
                 WHERE (validation_status = 'pending' OR validation_status IS NULL) 
                   AND is_verified = false
-                ORDER BY target_draw_date ASC, game_type
+                ORDER BY target_draw_date ASC, 
+                         CASE game_type 
+                            WHEN 'LOTTO' THEN 1
+                            WHEN 'LOTTO PLUS 1' THEN 2 
+                            WHEN 'LOTTO PLUS 2' THEN 3
+                            WHEN 'POWERBALL' THEN 4
+                            WHEN 'POWERBALL PLUS' THEN 5
+                            WHEN 'DAILY LOTTO' THEN 6
+                            ELSE 7
+                         END
                 LIMIT 6
             """)
             
@@ -1175,7 +1184,16 @@ def visualizations():
             FROM lottery_predictions 
             WHERE (validation_status = 'pending' OR validation_status IS NULL) 
               AND is_verified = false
-            ORDER BY target_draw_date ASC, game_type
+            ORDER BY target_draw_date ASC, 
+                     CASE game_type 
+                        WHEN 'LOTTO' THEN 1
+                        WHEN 'LOTTO PLUS 1' THEN 2 
+                        WHEN 'LOTTO PLUS 2' THEN 3
+                        WHEN 'POWERBALL' THEN 4
+                        WHEN 'POWERBALL PLUS' THEN 5
+                        WHEN 'DAILY LOTTO' THEN 6
+                        ELSE 7
+                     END
         """)
         
         unvalidated_predictions = []
