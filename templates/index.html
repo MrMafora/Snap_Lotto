@@ -665,9 +665,10 @@
                     </h6>
                     
                     <!-- AI Predictions Container -->
-                    <div class="ai-predictions-container" style="height: 200px;">
+                    <div class="ai-predictions-container" style="height: 200px; overflow-y: auto;">
                         {% if unvalidated_predictions %}
-                            <div class="table-responsive">
+                            <!-- Desktop table view -->
+                            <div class="table-responsive d-none d-md-block">
                                 <table class="table table-sm mb-0" style="font-size: 0.75rem;">
                                     <tbody>
                                         {% for prediction in unvalidated_predictions %}
@@ -706,6 +707,43 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
+                            </div>
+                            
+                            <!-- Mobile view - similar to Latest Lottery Results mobile layout -->
+                            <div class="d-block d-md-none">
+                                {% for prediction in unvalidated_predictions %}
+                                    <div class="mobile-prediction-item p-2 mb-2 border-bottom" style="border-color: #eee;">
+                                        <!-- Game type and confidence -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="game-type-badge 
+                                                {% if prediction.game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2'] %}game-type-lottery
+                                                {% elif prediction.game_type in ['POWERBALL', 'POWERBALL PLUS'] %}game-type-powerball
+                                                {% elif prediction.game_type == 'DAILY LOTTO' %}game-type-daily
+                                                {% endif %}" style="font-size: 0.7rem; padding: 2px 6px;">{{ prediction.game_type }}</span>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-primary me-2" style="font-size: 0.7rem;">{{ prediction.confidence }}%</span>
+                                                <small class="text-muted" style="font-size: 0.7rem;">{{ prediction.target_date.strftime('%b %d') }}</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Numbers display with proper mobile wrapping -->
+                                        <div class="numbers-container d-flex flex-wrap align-items-center">
+                                            {% for number in prediction.main_numbers %}
+                                                <span class="lottery-number 
+                                                    {% if prediction.game_type in ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2'] %}lottery-ball-red
+                                                    {% elif prediction.game_type in ['POWERBALL', 'POWERBALL PLUS'] %}lottery-ball-yellow
+                                                    {% elif prediction.game_type == 'DAILY LOTTO' %}lottery-ball-green
+                                                    {% endif %}" style="width: 28px; height: 28px; font-size: 12px; line-height: 28px; margin: 2px 1px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ number }}</span>
+                                            {% endfor %}
+                                            {% if prediction.bonus_numbers %}
+                                                <span class="text-muted mx-1" style="font-size: 0.8rem;">+</span>
+                                                {% for bonus in prediction.bonus_numbers %}
+                                                    <span class="bonus-number lottery-ball-yellow" style="width: 24px; height: 24px; font-size: 11px; line-height: 24px; margin: 2px 1px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ bonus }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             </div>
                             
                         {% else %}
