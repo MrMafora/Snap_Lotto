@@ -134,14 +134,14 @@
     min-width: 350px;
 }
 
-/* Lottery Ball Styles - match AI prediction size for consistency */
+/* Lottery Ball Styles - readable desktop size, mobile matches AI predictions */
 .lottery-ball {
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    min-height: 16px;
-    max-width: 16px;
-    max-height: 16px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
     border-radius: 50%;
     background-color: var(--lottery-red);
     color: white;
@@ -154,11 +154,11 @@
     justify-content: center;
     white-space: nowrap;
     font-weight: bold;
-    font-size: 0.55rem;
+    font-size: 12px;
     box-sizing: border-box;
     flex-shrink: 0;
     text-align: center;
-    line-height: 6px;
+    line-height: 28px;
 }
 
 /* Color-specific text contrast for better readability */
