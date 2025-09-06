@@ -1,35 +1,52 @@
 /* Mobile-specific chart styling to ensure proper card heights */
 
-/* Make data analytics card much taller on mobile to accommodate AI predictions */
+/* Balanced mobile layout - reasonable chart height, compact AI predictions */
 @media (max-width: 767px) {
-    .chart-container-mobile {
-        min-height: 400px !important;
-        height: auto !important;
-    }
-    
+    .chart-container-mobile,
     .bar-chart-container {
-        min-height: 400px !important;
+        min-height: 220px !important;
         height: auto !important;
     }
     
-    /* Ensure chart cards expand properly on mobile */
+    /* Ensure chart cards don't take too much space */
     .chart-card {
         height: auto !important;
         min-height: auto !important;
+        margin-bottom: 1rem !important;
     }
     
-    /* AI predictions container should not have height constraints */
+    /* AI predictions container should be compact and fully visible */
     .ai-predictions-container {
         height: auto !important;
         max-height: none !important;
         min-height: auto !important;
     }
+    
+    /* Make AI predictions more compact on mobile */
+    .mobile-prediction-item {
+        padding: 8px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .mobile-prediction-item .numbers-container {
+        margin-top: 4px !important;
+    }
+    
+    /* Reduce spacing in AI predictions header */
+    .mobile-prediction-item .d-flex.justify-content-between {
+        margin-bottom: 6px !important;
+    }
 }
 
-/* Very small mobile devices need even more space */
+/* Very small mobile devices - keep it compact */
 @media (max-width: 480px) {
     .chart-container-mobile,
     .bar-chart-container {
-        min-height: 450px !important;
+        min-height: 200px !important;
+    }
+    
+    .mobile-prediction-item {
+        padding: 6px !important;
+        margin-bottom: 6px !important;
     }
 }
