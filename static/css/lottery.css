@@ -145,9 +145,9 @@
     border-radius: 50%;
     background-color: var(--lottery-red);
     color: white;
-    margin: 0 2px 3px 0;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+    margin: 2px 1px;
+    border: none;
+    box-shadow: none;
     padding: 0;
     display: inline-flex;
     align-items: center;
