@@ -315,25 +315,68 @@ def index():
         logger.info(f"HOMEPAGE: Ordered lottery types: {[r.lottery_type for r in unique_results]}")
         logger.info(f"HOMEPAGE: Loaded {len(unique_results)} results from database")
         
-        # Get frequency analysis for homepage charts
-        all_numbers = []
-        for result in unique_results:
-            if result.main_numbers:
-                try:
-                    if isinstance(result.main_numbers, str):
-                        numbers = json.loads(result.main_numbers)
+        # Get unvalidated predictions for homepage display instead of hot/cold numbers
+        unvalidated_predictions = []
+        try:
+            conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+            cur = conn.cursor()
+            
+            cur.execute("""
+                SELECT 
+                    game_type,
+                    predicted_numbers,
+                    bonus_numbers,
+                    confidence_score,
+                    reasoning,
+                    target_draw_date,
+                    created_at,
+                    linked_draw_id
+                FROM lottery_predictions 
+                WHERE (validation_status = 'pending' OR validation_status IS NULL) 
+                  AND is_verified = false
+                ORDER BY target_draw_date ASC, game_type
+                LIMIT 6
+            """)
+            
+            for row in cur.fetchall():
+                game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, linked_draw_id = row
+                
+                # Parse numbers from PostgreSQL format
+                main_numbers = []
+                if predicted_nums:
+                    nums_str = str(predicted_nums)
+                    if nums_str.startswith('{') and nums_str.endswith('}'):
+                        nums_str = nums_str[1:-1]
+                        main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
                     else:
-                        numbers = result.main_numbers
-                    all_numbers.extend(numbers)
-                except:
-                    pass
+                        main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                
+                bonus_numbers = []
+                if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                    bonus_str = str(bonus_nums)
+                    if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                        bonus_str = bonus_str[1:-1]
+                        bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                    else:
+                        bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
+                
+                unvalidated_predictions.append({
+                    'game_type': game_type,
+                    'main_numbers': sorted(main_numbers) if main_numbers else [],
+                    'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                    'confidence': round(confidence * 100) if confidence else 0,
+                    'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
+                    'target_date': target_date,
+                    'linked_draw_id': linked_draw_id
+                })
+            
+            cur.close()
+            conn.close()
+            
+        except Exception as e:
+            logger.error(f"Error fetching predictions for homepage: {e}")
         
-        # Calculate frequency
-        from collections import Counter
-        frequency = Counter(all_numbers)
-        top_numbers = frequency.most_common(10)
-        
-        logger.info(f"Frequency analysis: Found {len(set(all_numbers))} unique numbers, top 10: {top_numbers}")
+        logger.info(f"Homepage: Loaded {len(unvalidated_predictions)} AI predictions for display")
         
         # Debug bonus numbers for template and ensure methods exist
         for result in unique_results:
@@ -348,8 +391,8 @@ def index():
         
         return render_template('index.html', 
                              results=unique_results,
-                             top_numbers=top_numbers,
-                             total_numbers=len(set(all_numbers)))
+                             unvalidated_predictions=unvalidated_predictions,
+                             total_numbers=0)
     
     except Exception as e:
         logger.error(f"Homepage error: {e}")
