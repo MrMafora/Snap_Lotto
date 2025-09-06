@@ -36,8 +36,14 @@ class WorkerSafeLotteryScheduler:
         self.running = False
     
     def run_automation_now(self):
-        """Run the automation workflow - same proven working system"""
+        """Run the automation workflow - same proven working system with database locking"""
         logger.info("🚀 WORKER-SAFE: Starting scheduled automation...")
+        
+        # Try to acquire database lock first
+        conn, worker_id = self._get_database_lock()
+        if not conn or not worker_id:
+            logger.info("🚫 WORKER-SAFE: Skipping automation - another worker is already running")
+            return
         
         start_time = datetime.now(SA_TIMEZONE)
         
@@ -135,7 +141,70 @@ class WorkerSafeLotteryScheduler:
         except Exception as e:
             logger.error(f"💥 WORKER-SAFE CRITICAL ERROR: {e}")
             self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), False, f"Critical error: {str(e)}")
+        finally:
+            # Always release the database lock
+            if conn and worker_id:
+                self._release_database_lock(conn, worker_id)
     
+    def _get_database_lock(self):
+        """Try to acquire database lock for automation - prevents multiple workers running simultaneously"""
+        try:
+            conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+            cur = conn.cursor()
+            
+            # Create automation lock table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS automation_lock (
+                    id INTEGER PRIMARY KEY DEFAULT 1,
+                    worker_id VARCHAR(100),
+                    locked_at TIMESTAMP WITH TIME ZONE,
+                    expires_at TIMESTAMP WITH TIME ZONE,
+                    CHECK (id = 1)
+                );
+                INSERT INTO automation_lock (id, worker_id, locked_at, expires_at) 
+                VALUES (1, NULL, NULL, NULL) ON CONFLICT (id) DO NOTHING;
+            """)
+            
+            # Try to acquire lock with 1 hour expiry (in case worker crashes)
+            worker_id = f"worker_{os.getpid()}_{int(time.time())}"
+            cur.execute("""
+                UPDATE automation_lock 
+                SET worker_id = %s, 
+                    locked_at = NOW(), 
+                    expires_at = NOW() + INTERVAL '1 hour'
+                WHERE id = 1 AND (worker_id IS NULL OR expires_at < NOW())
+                RETURNING worker_id
+            """, (worker_id,))
+            
+            result = cur.fetchone()
+            conn.commit()
+            
+            if result and result[0] == worker_id:
+                logger.info(f"🔐 WORKER-SAFE: Acquired automation lock with worker_id={worker_id}")
+                cur.close()
+                return conn, worker_id
+            else:
+                cur.close()
+                conn.close()
+                logger.info("🔒 WORKER-SAFE: Another worker is already running automation")
+                return None, None
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to acquire database lock: {e}")
+            return None, None
+    
+    def _release_database_lock(self, conn, worker_id):
+        """Release database lock"""
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE automation_lock SET worker_id = NULL, locked_at = NULL, expires_at = NULL WHERE worker_id = %s", (worker_id,))
+            conn.commit()
+            cur.close()
+            conn.close()
+            logger.info(f"🔓 WORKER-SAFE: Released automation lock for worker_id={worker_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to release database lock: {e}")
+
     def _log_automation_run(self, start_time, end_time, success, message):
         """Log automation run to database"""
         try:
@@ -150,7 +219,6 @@ class WorkerSafeLotteryScheduler:
                     success BOOLEAN NOT NULL,
                     message TEXT,
                     duration_seconds INTEGER,
-                    scheduler_type VARCHAR(50) DEFAULT 'worker_safe',
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 )
             """)
@@ -158,9 +226,9 @@ class WorkerSafeLotteryScheduler:
             duration_seconds = int((end_time - start_time).total_seconds())
             
             cur.execute("""
-                INSERT INTO automation_logs (start_time, end_time, success, message, duration_seconds, scheduler_type)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (start_time, end_time, success, message, duration_seconds, 'worker_safe'))
+                INSERT INTO automation_logs (start_time, end_time, success, message, duration_seconds)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (start_time, end_time, success, message, duration_seconds))
             
             conn.commit()
             cur.close()
