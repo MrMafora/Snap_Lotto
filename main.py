@@ -1118,15 +1118,67 @@ def visualizations():
         """)
         lottery_types = [row[0] for row in cur.fetchall()]
         
+        # Get unvalidated predictions for display
+        cur.execute("""
+            SELECT 
+                game_type,
+                predicted_numbers,
+                bonus_numbers,
+                confidence_score,
+                reasoning,
+                target_draw_date,
+                created_at,
+                linked_draw_id
+            FROM lottery_predictions 
+            WHERE (validation_status = 'pending' OR validation_status IS NULL) 
+              AND is_verified = false
+            ORDER BY target_draw_date ASC, game_type
+        """)
+        
+        unvalidated_predictions = []
+        for row in cur.fetchall():
+            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, linked_draw_id = row
+            
+            # Parse numbers from PostgreSQL format
+            import json
+            main_numbers = []
+            if predicted_nums:
+                nums_str = str(predicted_nums)
+                if nums_str.startswith('{') and nums_str.endswith('}'):
+                    nums_str = nums_str[1:-1]
+                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                else:
+                    main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+            
+            bonus_numbers = []
+            if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                bonus_str = str(bonus_nums)
+                if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                    bonus_str = bonus_str[1:-1]
+                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                else:
+                    bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
+            
+            unvalidated_predictions.append({
+                'game_type': game_type,
+                'main_numbers': sorted(main_numbers) if main_numbers else [],
+                'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                'confidence': round(confidence * 100) if confidence else 0,
+                'reasoning': reasoning[:100] + '...' if reasoning and len(reasoning) > 100 else reasoning,
+                'target_date': target_date,
+                'linked_draw_id': linked_draw_id
+            })
+        
         cur.close()
         conn.close()
         
-        logger.info(f"Visualizations page data: {total_draws} draws, {len(lottery_types)} lottery types")
+        logger.info(f"Visualizations page data: {total_draws} draws, {len(lottery_types)} lottery types, {len(unvalidated_predictions)} unvalidated predictions")
         
         return render_template('visualizations.html', 
                              total_draws=total_draws,
                              latest_draw_date=latest_draw_date,
-                             lottery_types=lottery_types)
+                             lottery_types=lottery_types,
+                             unvalidated_predictions=unvalidated_predictions)
                              
     except Exception as e:
         logger.error(f"Error loading visualizations data: {e}")
