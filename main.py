@@ -522,14 +522,15 @@ def results(lottery_type=None):
             try:
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
-                        # Get latest prediction for each game type that has pending status
+                        # Get latest prediction for each game type that has pending status ONLY
                         cur.execute("""
                             SELECT DISTINCT ON (game_type)
                                 game_type, predicted_numbers, bonus_numbers, confidence_score,
                                 linked_draw_id, validation_status, created_at,
                                 main_number_matches, bonus_number_matches, accuracy_percentage, prize_tier
                             FROM lottery_predictions 
-                            WHERE validation_status IN ('pending', 'validated')
+                            WHERE (validation_status = 'pending' OR validation_status IS NULL) 
+                              AND is_verified = false
                             ORDER BY game_type, created_at DESC
                         """)
                         
@@ -720,14 +721,15 @@ def results(lottery_type=None):
             try:
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
-                        # Get latest prediction for each game type that has pending status
+                        # Get latest prediction for each game type that has pending status ONLY
                         cur.execute("""
                             SELECT DISTINCT ON (game_type)
                                 game_type, predicted_numbers, bonus_numbers, confidence_score,
                                 linked_draw_id, validation_status, created_at,
                                 main_number_matches, bonus_number_matches, accuracy_percentage, prize_tier
                             FROM lottery_predictions 
-                            WHERE validation_status IN ('pending', 'validated')
+                            WHERE (validation_status = 'pending' OR validation_status IS NULL) 
+                              AND is_verified = false
                             ORDER BY game_type, created_at DESC
                         """)
                         
