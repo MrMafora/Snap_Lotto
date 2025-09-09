@@ -106,10 +106,15 @@ class WorkerSafeLotteryScheduler:
                             except Exception as validation_error:
                                 logger.warning(f"⚠️ WORKER-SAFE VALIDATION WARNING: Prediction validation failed: {validation_error}")
                             
-                            logger.info("Step 4b: IMMEDIATE prediction generation for next draws...")
+                            logger.info("Step 4b: FRESH prediction generation for next draws...")
                             try:
+                                # Use the new fresh prediction system to ensure unique numbers for each draw
+                                from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
+                                fresh_predictions_success = generate_fresh_predictions_for_new_draws()
+                                
+                                # Also run the existing system as backup
                                 predictions_generated = self._generate_immediate_predictions()
-                                logger.info(f"✅ WORKER-SAFE PREDICTION SUCCESS: Generated {predictions_generated} immediate predictions for next draws")
+                                logger.info(f"✅ WORKER-SAFE FRESH PREDICTION SUCCESS: Generated fresh predictions using new system")
                                 
                                 # Step 4c: Fill any prediction gaps
                                 logger.info("Step 4c: Checking for and filling prediction gaps...")
