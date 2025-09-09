@@ -3109,18 +3109,11 @@ logger.info("All modules lazy-loaded successfully")
 try:
     from scheduler_fix import start_worker_safe_scheduler
     if start_worker_safe_scheduler():
-        logger.info("✅ WORKER-SAFE: APScheduler started for daily automation at 23:45 SA time")
+        logger.info("✅ WORKER-SAFE: Unified APScheduler started for daily automation at 23:45 SA time")
     else:
         logger.warning("⚠️ WORKER-SAFE: Scheduler was already running or failed to start")
 except Exception as e:
-    logger.error(f"❌ WORKER-SAFE: Failed to start scheduler: {e}")
-    # Fallback to original scheduler
-    try:
-        from simple_daily_scheduler import start_scheduler
-        if start_scheduler():
-            logger.info("✅ FALLBACK: Simple scheduler started as backup")
-    except Exception as fallback_error:
-        logger.error(f"❌ FALLBACK: Both schedulers failed: {fallback_error}")
+    logger.error(f"❌ WORKER-SAFE: Failed to start unified scheduler: {e}")
 
 if __name__ == '__main__':
     # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development

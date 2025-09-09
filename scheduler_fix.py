@@ -106,21 +106,16 @@ class WorkerSafeLotteryScheduler:
                             except Exception as validation_error:
                                 logger.warning(f"⚠️ WORKER-SAFE VALIDATION WARNING: Prediction validation failed: {validation_error}")
                             
-                            logger.info("Step 4b: Auto-triggering AI prediction generation for new lottery results...")
+                            logger.info("Step 4b: IMMEDIATE prediction generation for next draws...")
                             try:
-                                from prediction_refresh_system import PredictionRefreshSystem
-                                
-                                refresh_system = PredictionRefreshSystem()
-                                refresh_result = refresh_system.check_and_refresh_all_predictions()
-                                
-                                predictions_generated = sum(refresh_result.get('refresh_results', {}).values())
-                                logger.info(f"✅ WORKER-SAFE PREDICTION SUCCESS: Generated {predictions_generated} new AI predictions")
+                                predictions_generated = self._generate_immediate_predictions()
+                                logger.info(f"✅ WORKER-SAFE PREDICTION SUCCESS: Generated {predictions_generated} immediate predictions for next draws")
                                 
                                 # Log success with predictions and validation
                                 self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
                                                        f"Captured {len(screenshots)} screenshots, found {new_results} new results, validated {validation_results} predictions, generated {predictions_generated} AI predictions")
                             except Exception as prediction_error:
-                                logger.warning(f"⚠️ WORKER-SAFE PREDICTION PARTIAL: Lottery results captured and predictions validated, but AI prediction generation failed: {prediction_error}")
+                                logger.warning(f"⚠️ WORKER-SAFE PREDICTION PARTIAL: Lottery results captured and predictions validated, but immediate prediction generation failed: {prediction_error}")
                                 # Log success for results and validation but note prediction failure
                                 self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
                                                        f"Captured {len(screenshots)} screenshots, found {new_results} new results, validated {validation_results} predictions (generation failed: {prediction_error})")
@@ -205,6 +200,126 @@ class WorkerSafeLotteryScheduler:
         except Exception as e:
             logger.error(f"❌ Failed to release database lock: {e}")
 
+    def _generate_immediate_predictions(self):
+        """Generate predictions immediately for the next draw after new results"""
+        try:
+            conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+            cur = conn.cursor()
+            
+            game_types = ['DAILY LOTTO', 'LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS']
+            predictions_generated = 0
+            
+            for game_type in game_types:
+                try:
+                    # Get the latest draw number for this game
+                    cur.execute("""
+                        SELECT MAX(draw_number) 
+                        FROM lottery_results 
+                        WHERE lottery_type = %s
+                    """, (game_type,))
+                    
+                    result = cur.fetchone()
+                    if not result or not result[0]:
+                        logger.info(f"⚠️ No results found for {game_type}, skipping prediction generation")
+                        continue
+                    
+                    latest_draw_number = result[0]
+                    next_draw_number = latest_draw_number + 1
+                    
+                    # Check if prediction already exists for next draw
+                    cur.execute("""
+                        SELECT COUNT(*) 
+                        FROM lottery_predictions 
+                        WHERE game_type = %s 
+                        AND (linked_draw_id = %s OR predicted_numbers IS NOT NULL)
+                    """, (game_type, next_draw_number))
+                    
+                    existing_count = cur.fetchone()[0]
+                    if existing_count > 0:
+                        logger.info(f"✅ {game_type}: Prediction for draw {next_draw_number} already exists, skipping")
+                        continue
+                    
+                    # Generate new prediction for next draw
+                    logger.info(f"🎯 {game_type}: Generating prediction for next draw {next_draw_number}")
+                    
+                    from ai_lottery_predictor import AILotteryPredictor
+                    predictor = AILotteryPredictor()
+                    
+                    # Get historical data for intelligent prediction
+                    historical_data = predictor.get_historical_data_for_prediction(game_type, 80)
+                    
+                    if historical_data:
+                        prediction = predictor.generate_intelligent_prediction(game_type, historical_data)
+                        
+                        if prediction:
+                            # Calculate target draw date based on game schedule
+                            from datetime import timedelta
+                            
+                            cur.execute("""
+                                SELECT draw_date FROM lottery_results 
+                                WHERE lottery_type = %s AND draw_number = %s
+                            """, (game_type, latest_draw_number))
+                            
+                            latest_date_result = cur.fetchone()
+                            if latest_date_result:
+                                latest_draw_date = latest_date_result[0]
+                                
+                                # Calculate next draw date based on game type
+                                if game_type == 'DAILY LOTTO':
+                                    next_draw_date = latest_draw_date + timedelta(days=1)
+                                elif game_type in ['POWERBALL', 'POWERBALL PLUS']:
+                                    # PowerBall: Tuesday and Friday
+                                    days_ahead = 2 if latest_draw_date.weekday() == 1 else 4 if latest_draw_date.weekday() == 4 else 3
+                                    next_draw_date = latest_draw_date + timedelta(days=days_ahead)
+                                else:  # LOTTO games
+                                    # LOTTO: Wednesday and Saturday  
+                                    days_ahead = 3 if latest_draw_date.weekday() == 2 else 4 if latest_draw_date.weekday() == 5 else 3
+                                    next_draw_date = latest_draw_date + timedelta(days=days_ahead)
+                                
+                                # Store prediction
+                                cur.execute("""
+                                    INSERT INTO lottery_predictions (
+                                        game_type, predicted_numbers, bonus_numbers, 
+                                        confidence_score, prediction_method, reasoning, 
+                                        target_draw_date, linked_draw_id, created_at,
+                                        is_locked, lock_reason
+                                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """, (
+                                    prediction.game_type,
+                                    prediction.predicted_numbers,
+                                    prediction.bonus_numbers,
+                                    prediction.confidence_score,
+                                    prediction.prediction_method,
+                                    f"IMMEDIATE: {prediction.reasoning}",
+                                    next_draw_date,
+                                    next_draw_number,
+                                    prediction.created_at,
+                                    True,
+                                    f"Auto-generated immediately after draw {latest_draw_number} results"
+                                ))
+                                
+                                conn.commit()
+                                predictions_generated += 1
+                                logger.info(f"✅ {game_type}: Generated prediction for draw {next_draw_number} targeting {next_draw_date}")
+                            else:
+                                logger.warning(f"⚠️ {game_type}: Could not determine latest draw date")
+                        else:
+                            logger.warning(f"⚠️ {game_type}: AI prediction generation failed")
+                    else:
+                        logger.warning(f"⚠️ {game_type}: No historical data available for prediction")
+                        
+                except Exception as e:
+                    logger.error(f"❌ Error generating prediction for {game_type}: {e}")
+                    continue
+            
+            cur.close()
+            conn.close()
+            return predictions_generated
+            
+        except Exception as e:
+            logger.error(f"❌ Error in immediate prediction generation: {e}")
+            return 0
+    
     def _log_automation_run(self, start_time, end_time, success, message):
         """Log automation run to database"""
         try:
