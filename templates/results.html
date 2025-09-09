@@ -116,7 +116,8 @@
                                             ">{{ num }}</span>
                                         {% endfor %}
                                         
-                                        {% if prediction.bonus_numbers %}
+                                        {# Only show bonus numbers for POWERBALL games - LOTTO games don't include bonus in player selection #}
+                                        {% if prediction.bonus_numbers and 'POWERBALL' in result.lottery_type %}
                                             <span class="lottery-plus-sign" style="color: #6c5ce7; font-size: 0.75rem;">+</span>
                                             {% for bonus in prediction.bonus_numbers %}
                                                 <span class="lottery-ball lottery-ball-prediction" style="
