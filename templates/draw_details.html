@@ -203,6 +203,21 @@
                                 {% endif %}
                             </div>
                         </div>
+                        {% else %}
+                        <!-- No AI Prediction Available -->
+                        <div class="no-prediction-info mt-3">
+                            <div class="alert alert-info mb-0" style="border-left: 4px solid #2196f3;">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-2" style="color: #2196f3;"></i>
+                                    <div>
+                                        <strong>No AI Prediction Available</strong><br>
+                                        <small class="text-muted">
+                                            Our AI system only predicts future draws. No prediction was made for this historical draw.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
