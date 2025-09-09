@@ -536,30 +536,38 @@ def results(lottery_type=None):
                         for row in cur.fetchall():
                             game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at, main_matches, bonus_matches, accuracy, prize = row
                             
-                            # Parse PostgreSQL array format to Python list
+                            # FIXED: Parse PostgreSQL array format to Python list
                             main_numbers = []
                             if predicted_nums:
-                                nums_str = str(predicted_nums)
-                                if nums_str.startswith('{') and nums_str.endswith('}'):
-                                    nums_str = nums_str[1:-1]  # Remove braces
-                                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                                if isinstance(predicted_nums, list):
+                                    # Already parsed as list (PostgreSQL array type)
+                                    main_numbers = sorted([int(x) for x in predicted_nums])
                                 else:
-                                    try:
-                                        main_numbers = json.loads(predicted_nums)
-                                    except:
-                                        main_numbers = []
+                                    # String format - parse it
+                                    nums_str = str(predicted_nums)
+                                    if nums_str.startswith('{') and nums_str.endswith('}'):
+                                        nums_str = nums_str[1:-1]  # Remove braces
+                                        main_numbers = sorted([int(x.strip()) for x in nums_str.split(',') if x.strip()])
+                                    else:
+                                        try:
+                                            main_numbers = sorted(json.loads(predicted_nums))
+                                        except:
+                                            main_numbers = []
                             
                             bonus_numbers = []
                             if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
-                                bonus_str = str(bonus_nums)
-                                if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                                    bonus_str = bonus_str[1:-1]
-                                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                                if isinstance(bonus_nums, list):
+                                    bonus_numbers = sorted([int(x) for x in bonus_nums])
                                 else:
-                                    try:
-                                        bonus_numbers = json.loads(bonus_nums)
-                                    except:
-                                        bonus_numbers = []
+                                    bonus_str = str(bonus_nums)
+                                    if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                        bonus_str = bonus_str[1:-1]
+                                        bonus_numbers = sorted([int(x.strip()) for x in bonus_str.split(',') if x.strip()])
+                                    else:
+                                        try:
+                                            bonus_numbers = sorted(json.loads(bonus_nums))
+                                        except:
+                                            bonus_numbers = []
                             
                             predictions_data[game_type] = {
                                 'predicted_numbers': main_numbers,
@@ -726,30 +734,38 @@ def results(lottery_type=None):
                         for row in cur.fetchall():
                             game_type, predicted_nums, bonus_nums, confidence, linked_draw_id, status, created_at, main_matches, bonus_matches, accuracy, prize = row
                             
-                            # Parse PostgreSQL array format to Python list
+                            # FIXED: Parse PostgreSQL array format to Python list
                             main_numbers = []
                             if predicted_nums:
-                                nums_str = str(predicted_nums)
-                                if nums_str.startswith('{') and nums_str.endswith('}'):
-                                    nums_str = nums_str[1:-1]  # Remove braces
-                                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                                if isinstance(predicted_nums, list):
+                                    # Already parsed as list (PostgreSQL array type)
+                                    main_numbers = sorted([int(x) for x in predicted_nums])
                                 else:
-                                    try:
-                                        main_numbers = json.loads(predicted_nums)
-                                    except:
-                                        main_numbers = []
+                                    # String format - parse it
+                                    nums_str = str(predicted_nums)
+                                    if nums_str.startswith('{') and nums_str.endswith('}'):
+                                        nums_str = nums_str[1:-1]  # Remove braces
+                                        main_numbers = sorted([int(x.strip()) for x in nums_str.split(',') if x.strip()])
+                                    else:
+                                        try:
+                                            main_numbers = sorted(json.loads(predicted_nums))
+                                        except:
+                                            main_numbers = []
                             
                             bonus_numbers = []
                             if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
-                                bonus_str = str(bonus_nums)
-                                if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                                    bonus_str = bonus_str[1:-1]
-                                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                                if isinstance(bonus_nums, list):
+                                    bonus_numbers = sorted([int(x) for x in bonus_nums])
                                 else:
-                                    try:
-                                        bonus_numbers = json.loads(bonus_nums)
-                                    except:
-                                        bonus_numbers = []
+                                    bonus_str = str(bonus_nums)
+                                    if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                        bonus_str = bonus_str[1:-1]
+                                        bonus_numbers = sorted([int(x.strip()) for x in bonus_str.split(',') if x.strip()])
+                                    else:
+                                        try:
+                                            bonus_numbers = sorted(json.loads(bonus_nums))
+                                        except:
+                                            bonus_numbers = []
                             
                             predictions_data[game_type] = {
                                 'predicted_numbers': main_numbers,
