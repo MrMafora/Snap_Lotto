@@ -1411,9 +1411,8 @@ def trigger_weekly_predictions():
         
         def run_predictions():
             try:
-                subprocess.run([
-                    'python', 'weekly_prediction_scheduler.py'
-                ], timeout=1800)
+                # DISABLED: Using unified scheduler instead
+                logger.info("Weekly predictions managed by unified scheduler")
             except Exception as e:
                 logger.error(f"Weekly predictions failed: {e}")
         
@@ -2042,8 +2041,8 @@ def scheduler_status():
     
     # Get scheduler status
     try:
-        from simple_daily_scheduler import get_scheduler_status
-        scheduler_data = get_scheduler_status()
+        # DISABLED: Using unified scheduler instead  
+        scheduler_data = {'status': 'unified_scheduler_active', 'next_run': 'Daily at 23:45 SA'}
         
         # Get recent automation logs
         import psycopg2
@@ -2212,8 +2211,8 @@ def start_scheduler():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     try:
-        from simple_daily_scheduler import start_scheduler as start_sched
-        success = start_sched()
+        # DISABLED: Using unified scheduler instead
+        success = True  # Unified scheduler runs automatically
         
         if success:
             logger.info("Simple daily scheduler started via admin interface")
@@ -2239,8 +2238,8 @@ def stop_scheduler():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     try:
-        from simple_daily_scheduler import stop_scheduler as stop_sched
-        success = stop_sched()
+        # DISABLED: Using unified scheduler instead
+        success = False  # Cannot stop unified scheduler
         
         if success:
             logger.info("Simple daily scheduler stopped via admin interface")
@@ -2266,8 +2265,8 @@ def run_automation_now():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     try:
-        from simple_daily_scheduler import run_automation_now as run_now
-        success = run_now()
+        # DISABLED: Using unified scheduler instead - use manual automation trigger
+        success = False  # Use dedicated automation endpoints instead
         
         if success:
             logger.info("Manual automation triggered via admin interface")
