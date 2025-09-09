@@ -111,6 +111,15 @@ class WorkerSafeLotteryScheduler:
                                 predictions_generated = self._generate_immediate_predictions()
                                 logger.info(f"✅ WORKER-SAFE PREDICTION SUCCESS: Generated {predictions_generated} immediate predictions for next draws")
                                 
+                                # Step 4c: Fill any prediction gaps
+                                logger.info("Step 4c: Checking for and filling prediction gaps...")
+                                gaps_filled = self._fill_prediction_gaps()
+                                if gaps_filled > 0:
+                                    logger.info(f"✅ WORKER-SAFE GAP FILLING: Filled {gaps_filled} prediction gaps")
+                                    predictions_generated += gaps_filled
+                                else:
+                                    logger.info("✅ WORKER-SAFE GAP FILLING: No prediction gaps found")
+                                
                                 # Log success with predictions and validation
                                 self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 
                                                        f"Captured {len(screenshots)} screenshots, found {new_results} new results, validated {validation_results} predictions, generated {predictions_generated} AI predictions")
@@ -318,6 +327,100 @@ class WorkerSafeLotteryScheduler:
             
         except Exception as e:
             logger.error(f"❌ Error in immediate prediction generation: {e}")
+            return 0
+    
+    def _fill_prediction_gaps(self):
+        """Detect and fill any gaps in predictions where draws exist but predictions don't"""
+        try:
+            conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+            cur = conn.cursor()
+            
+            game_types = ['DAILY LOTTO', 'LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS']
+            gaps_filled = 0
+            
+            for game_type in game_types:
+                try:
+                    # Find draws that exist but don't have predictions
+                    cur.execute("""
+                        SELECT lr.draw_number, lr.draw_date
+                        FROM lottery_results lr
+                        LEFT JOIN lottery_predictions lp ON (
+                            lp.game_type = lr.lottery_type 
+                            AND lp.linked_draw_id = lr.draw_number
+                        )
+                        WHERE lr.lottery_type = %s 
+                        AND lp.id IS NULL
+                        AND lr.draw_date >= CURRENT_DATE - INTERVAL '30 days'
+                        ORDER BY lr.draw_number DESC
+                        LIMIT 10
+                    """, (game_type,))
+                    
+                    missing_predictions = cur.fetchall()
+                    
+                    if missing_predictions:
+                        logger.info(f"🔍 {game_type}: Found {len(missing_predictions)} draws without predictions")
+                        
+                        for draw_number, draw_date in missing_predictions:
+                            try:
+                                logger.info(f"🔧 {game_type}: Filling gap for draw {draw_number} ({draw_date})")
+                                
+                                from ai_lottery_predictor import AILotteryPredictor
+                                predictor = AILotteryPredictor()
+                                
+                                # Get historical data for intelligent prediction
+                                historical_data = predictor.get_historical_data_for_prediction(game_type, 80)
+                                
+                                if historical_data:
+                                    prediction = predictor.generate_intelligent_prediction(game_type, historical_data)
+                                    
+                                    if prediction:
+                                        # Store gap-filling prediction
+                                        cur.execute("""
+                                            INSERT INTO lottery_predictions (
+                                                game_type, predicted_numbers, bonus_numbers, 
+                                                confidence_score, prediction_method, reasoning, 
+                                                target_draw_date, linked_draw_id, created_at,
+                                                is_locked, lock_reason, validation_status
+                                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        """, (
+                                            prediction.game_type,
+                                            prediction.predicted_numbers,
+                                            prediction.bonus_numbers,
+                                            prediction.confidence_score,
+                                            prediction.prediction_method,
+                                            f"GAP-FILL: {prediction.reasoning}",
+                                            draw_date,
+                                            draw_number,
+                                            prediction.created_at,
+                                            True,
+                                            f"Gap-filling prediction for historical draw {draw_number}",
+                                            'pending'  # Will be validated if results exist
+                                        ))
+                                        
+                                        conn.commit()
+                                        gaps_filled += 1
+                                        logger.info(f"✅ {game_type}: Filled prediction gap for draw {draw_number}")
+                                    else:
+                                        logger.warning(f"⚠️ {game_type}: Failed to generate gap-filling prediction for draw {draw_number}")
+                                else:
+                                    logger.warning(f"⚠️ {game_type}: No historical data for gap-filling draw {draw_number}")
+                                    
+                            except Exception as e:
+                                logger.error(f"❌ Error filling gap for {game_type} draw {draw_number}: {e}")
+                                continue
+                    else:
+                        logger.info(f"✅ {game_type}: No prediction gaps found")
+                        
+                except Exception as e:
+                    logger.error(f"❌ Error checking gaps for {game_type}: {e}")
+                    continue
+            
+            cur.close()
+            conn.close()
+            return gaps_filled
+            
+        except Exception as e:
+            logger.error(f"❌ Error in gap detection and filling: {e}")
             return 0
     
     def _log_automation_run(self, start_time, end_time, success, message):
