@@ -21,13 +21,19 @@ from urllib.parse import quote, unquote, urlparse
 import psycopg2
 
 # Import configuration and models
-from config import Config
+# from config import Config  # Removed - not needed
 from models import db, User, LotteryResult, ExtractionReview, HealthCheck, Alert, SystemLog
 from security_utils import limiter, sanitize_input, validate_form_data, RateLimitExceeded, require_admin
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config.from_object(Config)
+# Configure app settings directly from environment
+app.secret_key = os.environ.get("SESSION_SECRET")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
 
 # Initialize security - CSRF temporarily disabled for login issues
 # csrf.init_app(app)
@@ -2358,9 +2364,9 @@ def export_combined_zip():
             # Add lottery data as JSON - use raw SQL to avoid PostgreSQL type issues
             try:
                 import psycopg2
-                from config import Config
+                # from config import Config  # Removed - not needed
                 
-                conn = psycopg2.connect(Config.SQLALCHEMY_DATABASE_URI)
+                conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
                 cur = conn.cursor()
                 
                 cur.execute("""
