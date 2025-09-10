@@ -322,7 +322,7 @@ def index():
             cur = conn.cursor()
             
             cur.execute("""
-                SELECT 
+                SELECT DISTINCT ON (game_type)
                     game_type,
                     predicted_numbers,
                     bonus_numbers,
@@ -334,16 +334,7 @@ def index():
                 FROM lottery_predictions 
                 WHERE (validation_status = 'pending' OR validation_status IS NULL) 
                   AND is_verified = false
-                ORDER BY CASE game_type 
-                            WHEN 'LOTTO' THEN 1
-                            WHEN 'LOTTO PLUS 1' THEN 2 
-                            WHEN 'LOTTO PLUS 2' THEN 3
-                            WHEN 'POWERBALL' THEN 4
-                            WHEN 'POWERBALL PLUS' THEN 5
-                            WHEN 'DAILY LOTTO' THEN 6
-                            ELSE 7
-                         END, target_draw_date ASC
-                LIMIT 6
+                ORDER BY game_type, created_at DESC
             """)
             
             for row in cur.fetchall():
