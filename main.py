@@ -329,18 +329,24 @@ def index():
             
             cur.execute("""
                 SELECT DISTINCT ON (game_type)
-                    game_type,
-                    predicted_numbers,
-                    bonus_numbers,
-                    confidence_score,
-                    reasoning,
-                    target_draw_date,
-                    created_at,
-                    linked_draw_id
-                FROM lottery_predictions 
-                WHERE (validation_status = 'pending' OR validation_status IS NULL) 
-                  AND is_verified = false
-                ORDER BY game_type, created_at DESC
+                    lp.game_type,
+                    lp.predicted_numbers,
+                    lp.bonus_numbers,
+                    lp.confidence_score,
+                    lp.reasoning,
+                    lp.target_draw_date,
+                    lp.created_at,
+                    lp.linked_draw_id
+                FROM lottery_predictions lp
+                JOIN (
+                    SELECT lottery_type, MAX(draw_number) as latest_draw
+                    FROM lottery_results 
+                    GROUP BY lottery_type
+                ) lr ON lr.lottery_type = lp.game_type
+                WHERE (lp.validation_status = 'pending' OR lp.validation_status IS NULL) 
+                  AND lp.is_verified = false
+                  AND lp.linked_draw_id > lr.latest_draw
+                ORDER BY lp.game_type, lp.created_at DESC
             """)
             
             for row in cur.fetchall():
