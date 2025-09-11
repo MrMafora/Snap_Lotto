@@ -23,7 +23,7 @@ def get_historical_data(cur, lottery_type, days_back=180):
             SELECT main_numbers, bonus_numbers, draw_date
             FROM lottery_results
             WHERE lottery_type = %s 
-              AND draw_date >= CURRENT_DATE - INTERVAL %s DAY
+              AND draw_date >= CURRENT_DATE - make_interval(days => %s)
             ORDER BY draw_date DESC
             LIMIT 100
         ''', (lottery_type, days_back))
@@ -181,12 +181,11 @@ def generate_fresh_predictions_for_new_draws():
                 lr.draw_date,
                 lr.draw_number + 1 as next_draw_needed
             FROM lottery_results lr
-            WHERE lr.draw_date >= CURRENT_DATE - INTERVAL '1 day'
+            WHERE lr.draw_date >= CURRENT_DATE - make_interval(days => 1)
               AND NOT EXISTS (
                   SELECT 1 FROM lottery_predictions lp 
                   WHERE lp.game_type = lr.lottery_type 
                     AND lp.linked_draw_id = lr.draw_number + 1
-                    AND lp.validation_status = 'pending'
               )
             ORDER BY lr.lottery_type, lr.draw_date DESC
         ''')
@@ -232,13 +231,22 @@ def generate_fresh_predictions_for_new_draws():
                 main_frequency
             )
             
-            # Generate bonus numbers using intelligent selection for bonus range
+            # Generate bonus numbers using intelligent frequency-weighted selection
             bonus_numbers = []
             if config['bonus_count'] > 0:
-                if hot_bonus_numbers:
-                    # Prefer hot bonus numbers with some randomness
-                    bonus_candidates = hot_bonus_numbers + list(range(config['bonus_range'][0], config['bonus_range'][1] + 1))
-                    bonus_numbers = [random.choice(bonus_candidates[:15])]  # Top 15 candidates
+                if hot_bonus_numbers and bonus_frequency:
+                    # Use frequency-weighted selection for bonus numbers
+                    all_bonus_range = list(range(config['bonus_range'][0], config['bonus_range'][1] + 1))
+                    
+                    # Create weighted list: hot numbers get 3x weight, others get 1x weight
+                    weighted_bonus_list = []
+                    for num in all_bonus_range:
+                        if num in hot_bonus_numbers:
+                            weighted_bonus_list.extend([num] * 3)  # 3x weight for hot numbers
+                        else:
+                            weighted_bonus_list.append(num)  # 1x weight for others
+                    
+                    bonus_numbers = [random.choice(weighted_bonus_list)]
                 else:
                     # Fall back to range-based selection
                     bonus_numbers = [random.randint(config['bonus_range'][0], config['bonus_range'][1])]
