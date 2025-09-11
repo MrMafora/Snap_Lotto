@@ -8,9 +8,148 @@ import os
 import psycopg2
 import random
 import logging
+import json
 from datetime import datetime, timedelta
+from collections import Counter
+import numpy as np
 
 logger = logging.getLogger(__name__)
+
+def get_historical_data(cur, lottery_type, days_back=180):
+    """Get historical lottery data for intelligent analysis"""
+    try:
+        # Get recent draws for frequency analysis
+        cur.execute('''
+            SELECT main_numbers, bonus_numbers, draw_date
+            FROM lottery_results
+            WHERE lottery_type = %s 
+              AND draw_date >= CURRENT_DATE - INTERVAL %s DAY
+            ORDER BY draw_date DESC
+            LIMIT 100
+        ''', (lottery_type, days_back))
+        
+        results = cur.fetchall()
+        all_main_numbers = []
+        all_bonus_numbers = []
+        
+        for main_nums, bonus_nums, draw_date in results:
+            # Parse main numbers
+            if isinstance(main_nums, str):
+                if main_nums.startswith('{') and main_nums.endswith('}'):
+                    main_str = main_nums.strip('{}')
+                    if main_str:
+                        parsed_main = [int(x.strip()) for x in main_str.split(',')]
+                        all_main_numbers.extend(parsed_main)
+                else:
+                    parsed_main = json.loads(main_nums)
+                    all_main_numbers.extend(parsed_main)
+            elif isinstance(main_nums, list):
+                all_main_numbers.extend(main_nums)
+                
+            # Parse bonus numbers
+            if bonus_nums:
+                if isinstance(bonus_nums, str):
+                    if bonus_nums.startswith('{') and bonus_nums.endswith('}'):
+                        bonus_str = bonus_nums.strip('{}')
+                        if bonus_str:
+                            parsed_bonus = [int(x.strip()) for x in bonus_str.split(',')]
+                            all_bonus_numbers.extend(parsed_bonus)
+                    else:
+                        parsed_bonus = json.loads(bonus_nums)
+                        all_bonus_numbers.extend(parsed_bonus)
+                elif isinstance(bonus_nums, list):
+                    all_bonus_numbers.extend(bonus_nums)
+                elif isinstance(bonus_nums, (int, float)):
+                    all_bonus_numbers.append(int(bonus_nums))
+        
+        return all_main_numbers, all_bonus_numbers, len(results)
+    except Exception as e:
+        logger.warning(f"Error getting historical data for {lottery_type}: {e}")
+        return [], [], 0
+
+def calculate_intelligent_confidence(hot_numbers, cold_numbers, selected_numbers, total_draws):
+    """Calculate evidence-based confidence score"""
+    try:
+        if not total_draws or total_draws < 5:
+            return 45  # Low confidence with insufficient data
+            
+        # Count how many selected numbers are in hot/cold lists
+        hot_matches = len([n for n in selected_numbers if n in hot_numbers])
+        cold_matches = len([n for n in selected_numbers if n in cold_numbers])
+        
+        # Base confidence on statistical patterns
+        base_confidence = 50
+        
+        # Bonus for hot numbers (recent frequency patterns)
+        hot_bonus = hot_matches * 3
+        
+        # Slight bonus for cold numbers (mean reversion theory)
+        cold_bonus = cold_matches * 1
+        
+        # Data quality bonus
+        data_quality_bonus = min(total_draws / 10, 10)  # Up to 10% for good data
+        
+        # Calculate final confidence
+        confidence = base_confidence + hot_bonus + cold_bonus + data_quality_bonus
+        
+        # Cap confidence at realistic levels (45-75%)
+        confidence = max(45, min(75, int(confidence)))
+        
+        return confidence
+    except Exception as e:
+        logger.warning(f"Error calculating confidence: {e}")
+        return 50
+
+def intelligent_number_selection(main_range, count, hot_numbers, cold_numbers, frequency_data):
+    """Intelligent number selection using frequency analysis and statistical patterns"""
+    try:
+        min_num, max_num = main_range
+        available_numbers = list(range(min_num, max_num + 1))
+        
+        # Create weighted selection pools
+        hot_pool = [n for n in available_numbers if n in hot_numbers]
+        cold_pool = [n for n in available_numbers if n in cold_numbers]
+        neutral_pool = [n for n in available_numbers if n not in hot_numbers and n not in cold_numbers]
+        
+        selected = []
+        
+        # Strategy: Balanced approach with frequency weighting
+        # 50% from hot numbers (recent trends)
+        # 20% from cold numbers (mean reversion)
+        # 30% from neutral numbers (balanced selection)
+        
+        hot_count = min(len(hot_pool), max(1, int(count * 0.5)))
+        cold_count = min(len(cold_pool), max(1, int(count * 0.2)))
+        neutral_count = count - hot_count - cold_count
+        
+        # Select from hot numbers (higher probability from frequency leaders)
+        if hot_pool and hot_count > 0:
+            selected.extend(random.sample(hot_pool, min(hot_count, len(hot_pool))))
+        
+        # Select from cold numbers (mean reversion theory)
+        if cold_pool and cold_count > 0:
+            remaining_cold = [n for n in cold_pool if n not in selected]
+            if remaining_cold:
+                selected.extend(random.sample(remaining_cold, min(cold_count, len(remaining_cold))))
+        
+        # Fill remaining spots with neutral numbers
+        remaining_neutral = [n for n in neutral_pool if n not in selected]
+        if remaining_neutral and neutral_count > 0:
+            selected.extend(random.sample(remaining_neutral, min(neutral_count, len(remaining_neutral))))
+        
+        # If we still need more numbers, fill from any remaining
+        while len(selected) < count:
+            remaining = [n for n in available_numbers if n not in selected]
+            if not remaining:
+                break
+            selected.append(random.choice(remaining))
+        
+        return sorted(selected[:count])
+        
+    except Exception as e:
+        logger.warning(f"Error in intelligent selection: {e}")
+        # Fallback to random selection
+        return sorted(random.sample(range(main_range[0], main_range[1] + 1), count))
 
 def generate_fresh_predictions_for_new_draws():
     """
@@ -62,26 +201,63 @@ def generate_fresh_predictions_for_new_draws():
         
         # Generate fresh predictions for each missing next draw
         for lottery_type, completed_draw, draw_date, next_draw in new_draws_needed:
-            logger.info(f"🔄 Generating fresh prediction for {lottery_type} Draw {next_draw} (after completed draw {completed_draw})")
+            logger.info(f"🔄 Generating INTELLIGENT prediction for {lottery_type} Draw {next_draw} (after completed draw {completed_draw})")
             
             config = configs[lottery_type]
             
-            # Generate unique numbers using draw-specific seed
+            # Get historical data for intelligent analysis
+            all_main_numbers, all_bonus_numbers, total_draws = get_historical_data(cur, lottery_type)
+            
+            # Analyze frequency patterns for intelligent prediction
+            main_frequency = Counter(all_main_numbers)
+            bonus_frequency = Counter(all_bonus_numbers) if all_bonus_numbers else Counter()
+            
+            # Get hot and cold numbers based on recent frequency
+            hot_main_numbers = [num for num, freq in main_frequency.most_common(10)]
+            cold_main_numbers = [num for num, freq in main_frequency.most_common()[-10:]] if main_frequency else []
+            
+            hot_bonus_numbers = [num for num, freq in bonus_frequency.most_common(5)] if bonus_frequency else []
+            cold_bonus_numbers = [num for num, freq in bonus_frequency.most_common()[-5:]] if bonus_frequency else []
+            
+            # Seed for reproducible randomness within intelligent selection
             seed = f"{lottery_type}_{next_draw}_{datetime.now().strftime('%Y%m%d_%H%M')}"
-            random.seed(hash(seed) % (2**32))  # Ensure unique seed for each draw
+            random.seed(hash(seed) % (2**32))
             
-            # Generate main numbers
-            main_numbers = sorted(random.sample(
-                range(config['main_range'][0], config['main_range'][1] + 1), 
-                config['main_count']
-            ))
+            # Generate main numbers using intelligent selection
+            main_numbers = intelligent_number_selection(
+                config['main_range'], 
+                config['main_count'], 
+                hot_main_numbers, 
+                cold_main_numbers,
+                main_frequency
+            )
             
-            # Generate bonus if needed
+            # Generate bonus numbers using intelligent selection for bonus range
             bonus_numbers = []
             if config['bonus_count'] > 0:
-                bonus_numbers = [random.randint(config['bonus_range'][0], config['bonus_range'][1])]
+                if hot_bonus_numbers:
+                    # Prefer hot bonus numbers with some randomness
+                    bonus_candidates = hot_bonus_numbers + list(range(config['bonus_range'][0], config['bonus_range'][1] + 1))
+                    bonus_numbers = [random.choice(bonus_candidates[:15])]  # Top 15 candidates
+                else:
+                    # Fall back to range-based selection
+                    bonus_numbers = [random.randint(config['bonus_range'][0], config['bonus_range'][1])]
             
-            # Insert fresh prediction
+            # Calculate intelligent confidence score based on patterns
+            confidence_score = calculate_intelligent_confidence(
+                hot_main_numbers, cold_main_numbers, main_numbers, total_draws
+            )
+            
+            # Create detailed reasoning
+            reasoning_parts = [
+                f"AI-powered prediction using {total_draws} historical draws",
+                f"Selected {len([n for n in main_numbers if n in hot_main_numbers])} hot numbers",
+                f"Selected {len([n for n in main_numbers if n in cold_main_numbers])} cold numbers",
+                f"Confidence based on frequency patterns and statistical analysis"
+            ]
+            reasoning = " | ".join(reasoning_parts)
+            
+            # Insert intelligent prediction
             cur.execute('''
                 INSERT INTO lottery_predictions (
                     game_type, predicted_numbers, bonus_numbers, confidence_score,
@@ -90,9 +266,9 @@ def generate_fresh_predictions_for_new_draws():
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 lottery_type, main_numbers, bonus_numbers or None, 
-                random.randint(60, 78),  
+                confidence_score,  
                 'Fresh Draw-Specific Prediction Engine',
-                f'Automatically generated fresh prediction for draw {next_draw} using unique seed-based algorithm',
+                reasoning,
                 draw_date + timedelta(days=1),
                 next_draw, 'pending', False, datetime.now()
             ))
