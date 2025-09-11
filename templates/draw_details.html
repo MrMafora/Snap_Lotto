@@ -429,5 +429,28 @@
     font-weight: bold;
     font-size: 0.7rem;
 }
+
+/* Green highlighting for matching prediction balls */
+.predicted-ball-small.matched {
+    background: #28a745 !important;
+    border: 2px solid #1e7e34 !important;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+    transform: scale(1.1);
+}
+
+.predicted-ball-small {
+    width: 28px;
+    height: 28px;
+    background: #6c757d;
+    color: white;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.75rem;
+    margin: 2px;
+    transition: all 0.3s ease;
+}
 </style>
 {% endblock %}
