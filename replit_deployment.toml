@@ -36,7 +36,7 @@ key = "PIP_ROOT_USER_ACTION"
 value = "ignore"
 
 [deployment.build]
-run = ["pip", "install", "-r", "requirements-minimal.txt"]
+run = ["pip", "install", "."]
 
 [deployment.run]
 run = ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers=1", "--timeout=30", "main:app"]
