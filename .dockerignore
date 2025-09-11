@@ -8,10 +8,12 @@ __pycache__/
 *.pyd
 .Python
 
-# Instance and upload directories - runtime data
+# Instance and upload directories - runtime data that gets created at runtime
 instance/
 uploads/
 screenshots/
+
+# Test and cache directories
 .pytest_cache/
 *.pytest_cache
 
@@ -59,12 +61,3 @@ Thumbs.db
 
 # Large development assets that aren't needed for production
 attached_assets/
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
-*.ico
-# Keep only essential icons and logos in static/
-!static/icons/
-!static/img/
