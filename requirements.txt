@@ -43,3 +43,6 @@ google-genai
 openai
 pydantic
 anthropic
+tensorflow
+torch
+xgboost

@@ -15,6 +15,15 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Import Phase 2 Neural Network System
+try:
+    from neural_network_predictor import neural_network_prediction
+    NEURAL_NETWORK_AVAILABLE = True
+    logger.info("✅ Phase 2 Neural Network system loaded successfully")
+except ImportError as e:
+    NEURAL_NETWORK_AVAILABLE = False
+    logger.warning(f"⚠️ Phase 2 Neural Network system not available: {e}")
+
 def get_historical_data(cur, lottery_type, days_back=180):
     """Get historical lottery data for intelligent analysis"""
     try:
@@ -218,52 +227,103 @@ def generate_fresh_predictions_for_new_draws():
             hot_bonus_numbers = [num for num, freq in bonus_frequency.most_common(5)] if bonus_frequency else []
             cold_bonus_numbers = [num for num, freq in bonus_frequency.most_common()[-5:]] if bonus_frequency else []
             
-            # Seed for reproducible randomness within intelligent selection
-            seed = f"{lottery_type}_{next_draw}_{datetime.now().strftime('%Y%m%d_%H%M')}"
-            random.seed(hash(seed) % (2**32))
+            # Phase 2: Try Neural Network System First (Advanced AI)
+            neural_prediction = None
+            neural_confidence = None
+            neural_reasoning = None
             
-            # Generate main numbers using intelligent selection
-            main_numbers = intelligent_number_selection(
-                config['main_range'], 
-                config['main_count'], 
-                hot_main_numbers, 
-                cold_main_numbers,
-                main_frequency
-            )
+            if NEURAL_NETWORK_AVAILABLE and total_draws >= 20:
+                logger.info(f"🧠 Attempting Phase 2 Neural Network prediction for {lottery_type}...")
+                try:
+                    neural_main, neural_bonus, neural_confidence, neural_reasoning = neural_network_prediction(lottery_type, config)
+                    if neural_main and neural_confidence:
+                        logger.info(f"✅ Phase 2 Neural Network SUCCESS: {neural_main} + {neural_bonus} (confidence: {neural_confidence}%)")
+                except Exception as e:
+                    logger.warning(f"⚠️ Phase 2 Neural Network failed, falling back to Phase 1: {e}")
             
-            # Generate bonus numbers using intelligent frequency-weighted selection
-            bonus_numbers = []
-            if config['bonus_count'] > 0:
-                if hot_bonus_numbers and bonus_frequency:
-                    # Use frequency-weighted selection for bonus numbers
-                    all_bonus_range = list(range(config['bonus_range'][0], config['bonus_range'][1] + 1))
-                    
-                    # Create weighted list: hot numbers get 3x weight, others get 1x weight
-                    weighted_bonus_list = []
-                    for num in all_bonus_range:
-                        if num in hot_bonus_numbers:
-                            weighted_bonus_list.extend([num] * 3)  # 3x weight for hot numbers
-                        else:
-                            weighted_bonus_list.append(num)  # 1x weight for others
-                    
-                    bonus_numbers = [random.choice(weighted_bonus_list)]
+            # Use Neural Network prediction if available, otherwise use Phase 1 frequency analysis
+            if neural_main and neural_confidence:
+                # Phase 2: Use Neural Network Results
+                main_numbers = neural_main
+                confidence_score = neural_confidence
+                reasoning = neural_reasoning
+                prediction_method = "Phase 2 Neural Network Ensemble (Random Forest + Gradient Boosting + Neural Network)"
+                
+                # Use Neural Network bonus if available, otherwise fallback to Phase 1 for bonus
+                if neural_bonus:
+                    bonus_numbers = neural_bonus
+                    logger.info(f"🎯 Using Phase 2 Neural Network bonus prediction: {bonus_numbers}")
                 else:
-                    # Fall back to range-based selection
-                    bonus_numbers = [random.randint(config['bonus_range'][0], config['bonus_range'][1])]
-            
-            # Calculate intelligent confidence score based on patterns
-            confidence_score = calculate_intelligent_confidence(
-                hot_main_numbers, cold_main_numbers, main_numbers, total_draws
-            )
-            
-            # Create detailed reasoning
-            reasoning_parts = [
-                f"AI-powered prediction using {total_draws} historical draws",
-                f"Selected {len([n for n in main_numbers if n in hot_main_numbers])} hot numbers",
-                f"Selected {len([n for n in main_numbers if n in cold_main_numbers])} cold numbers",
-                f"Confidence based on frequency patterns and statistical analysis"
-            ]
-            reasoning = " | ".join(reasoning_parts)
+                    # Fallback to Phase 1 for bonus numbers
+                    bonus_numbers = []
+                    if config['bonus_count'] > 0:
+                        if hot_bonus_numbers and bonus_frequency:
+                            # Use frequency-weighted selection for bonus numbers
+                            all_bonus_range = list(range(config['bonus_range'][0], config['bonus_range'][1] + 1))
+                            weighted_bonus_list = []
+                            for num in all_bonus_range:
+                                if num in hot_bonus_numbers:
+                                    weighted_bonus_list.extend([num] * 3)  # 3x weight for hot numbers
+                                else:
+                                    weighted_bonus_list.append(num)  # 1x weight for others
+                            bonus_numbers = [random.choice(weighted_bonus_list)]
+                        else:
+                            bonus_numbers = [random.randint(config['bonus_range'][0], config['bonus_range'][1])]
+                        logger.info(f"📊 Using Phase 1 fallback for bonus prediction: {bonus_numbers}")
+                
+                logger.info(f"🚀 Using Phase 2 Neural Network prediction with {confidence_score}% confidence")
+                
+            else:
+                # Phase 1: Fallback to Frequency Analysis (Still much better than random!)
+                logger.info(f"📊 Using Phase 1 Frequency Analysis for {lottery_type}...")
+                
+                # Seed for reproducible randomness within intelligent selection
+                seed = f"{lottery_type}_{next_draw}_{datetime.now().strftime('%Y%m%d_%H%M')}"
+                random.seed(hash(seed) % (2**32))
+                
+                # Generate main numbers using intelligent selection
+                main_numbers = intelligent_number_selection(
+                    config['main_range'], 
+                    config['main_count'], 
+                    hot_main_numbers, 
+                    cold_main_numbers,
+                    main_frequency
+                )
+                
+                # Generate bonus numbers using intelligent frequency-weighted selection
+                bonus_numbers = []
+                if config['bonus_count'] > 0:
+                    if hot_bonus_numbers and bonus_frequency:
+                        # Use frequency-weighted selection for bonus numbers
+                        all_bonus_range = list(range(config['bonus_range'][0], config['bonus_range'][1] + 1))
+                        
+                        # Create weighted list: hot numbers get 3x weight, others get 1x weight
+                        weighted_bonus_list = []
+                        for num in all_bonus_range:
+                            if num in hot_bonus_numbers:
+                                weighted_bonus_list.extend([num] * 3)  # 3x weight for hot numbers
+                            else:
+                                weighted_bonus_list.append(num)  # 1x weight for others
+                        
+                        bonus_numbers = [random.choice(weighted_bonus_list)]
+                    else:
+                        # Fall back to range-based selection
+                        bonus_numbers = [random.randint(config['bonus_range'][0], config['bonus_range'][1])]
+                
+                # Calculate intelligent confidence score based on patterns
+                confidence_score = calculate_intelligent_confidence(
+                    hot_main_numbers, cold_main_numbers, main_numbers, total_draws
+                )
+                
+                # Create detailed reasoning
+                reasoning_parts = [
+                    f"Phase 1 frequency analysis using {total_draws} historical draws",
+                    f"Selected {len([n for n in main_numbers if n in hot_main_numbers])} hot numbers",
+                    f"Selected {len([n for n in main_numbers if n in cold_main_numbers])} cold numbers",
+                    f"Confidence based on frequency patterns and statistical analysis"
+                ]
+                reasoning = " | ".join(reasoning_parts)
+                prediction_method = "Fresh Draw-Specific Prediction Engine"
             
             # Insert intelligent prediction
             cur.execute('''
@@ -275,7 +335,7 @@ def generate_fresh_predictions_for_new_draws():
             ''', (
                 lottery_type, main_numbers, bonus_numbers or None, 
                 confidence_score,  
-                'Fresh Draw-Specific Prediction Engine',
+                prediction_method,
                 reasoning,
                 draw_date + timedelta(days=1),
                 next_draw, 'pending', False, datetime.now()
