@@ -40,7 +40,7 @@ key = "PIP_NO_BUILD_ISOLATION"
 value = "1"
 
 [deployment.build]
-run = ["pip", "install", "--no-cache-dir", "--no-compile", "--prefer-binary", "--only-binary=:all:", "--no-deps", "-r", "requirements-prod.txt"]
+run = ["pip", "install", "--no-cache-dir", "--no-compile", "--prefer-binary", "--only-binary=:all:", "-r", "requirements-prod.txt"]
 
 [deployment.run]
 run = ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers=1", "--timeout=60", "main:app"]

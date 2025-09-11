@@ -5,9 +5,7 @@ channel = "stable-24_05"
 packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xsimd", "zlib"]
 
 [deployment]
-deploymentTarget = "cloudrun"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=1 --timeout=60 main:app"]
-build = ["sh", "-c", "pip install --no-cache-dir --prefer-binary --only-binary=:all: -r requirements-prod.txt"]
+run = ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers=1", "--timeout=60", "main:app"]
 
 [workflows]
 runButton = "Web Server"
@@ -71,6 +69,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "gunicorn -c gunicorn.conf.py main:app"
+
+[[workflows.workflow]]
+name = "Production Deploy"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=1 --timeout=60 main:app"
 
 [[ports]]
 localPort = 3000

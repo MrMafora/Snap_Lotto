@@ -3319,4 +3319,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     # Always disable debug mode in production deployment
     debug_mode = False
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)0.0.0.0', port=port, debug=debug_mode)
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
