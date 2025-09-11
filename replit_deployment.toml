@@ -1,7 +1,7 @@
 
 [deployment]
 deploymentTarget = "cloudrun"
-ignorePorts = false
+ignorePorts = true
 
 [[deployment.env]]
 key = "FLASK_APP"
@@ -35,12 +35,12 @@ value = "1"
 key = "PIP_ROOT_USER_ACTION"
 value = "ignore"
 
+[[deployment.env]]
+key = "PIP_NO_BUILD_ISOLATION"
+value = "1"
+
 [deployment.build]
-run = ["pip", "install", "-r", "requirements.txt"]
+run = ["pip", "install", "--no-cache-dir", "--no-compile", "--prefer-binary", "--only-binary=:all:", "-r", "requirements-prod.txt"]
 
 [deployment.run]
-run = ["gunicorn", "-c", "gunicorn.conf.py", "main:app"]
-
-[[deployment.ports]]
-localPort = 8080
-externalPort = 80
+run = ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers=1", "--timeout=60", "main:app"]

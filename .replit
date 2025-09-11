@@ -6,8 +6,8 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 [deployment]
 deploymentTarget = "cloudrun"
-run = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=2 --worker-class=gthread --threads=2 --timeout=0 main:app"]
-build = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && pip install -r requirements.txt"]
+run = ["sh", "-c", "gunicorn -c gunicorn.conf.py main:app"]
+build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
 runButton = "Web Server"
@@ -91,6 +91,10 @@ externalPort = 3001
 [[ports]]
 localPort = 38359
 externalPort = 3003
+
+[[ports]]
+localPort = 43845
+externalPort = 4200
 
 [[ports]]
 localPort = 46339
