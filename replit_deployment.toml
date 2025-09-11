@@ -39,7 +39,7 @@ value = "ignore"
 run = ["pip", "install", "-r", "requirements.txt"]
 
 [deployment.run]
-run = ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers=1", "--timeout=30", "main:app"]
+run = ["gunicorn", "-c", "gunicorn.conf.py", "main:app"]
 
 [[deployment.ports]]
 localPort = 8080

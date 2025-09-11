@@ -39,15 +39,15 @@ function optimizedRenderFrequencyChart(frequencyData) {
     if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
         return;
     }
-    
+
     const barChartContainer = document.querySelector('.bar-chart-container');
     if (!barChartContainer) return;
-    
+
     // Use document fragment for batch DOM updates
     const fragment = document.createDocumentFragment();
     const frequencyChart = document.createElement('div');
     frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-center pb-2';
-    
+
     // Mobile-optimized styles
     Object.assign(frequencyChart.style, {
         height: window.innerWidth < 576 ? '150px' : '200px',
@@ -58,35 +58,35 @@ function optimizedRenderFrequencyChart(frequencyData) {
         margin: '0 auto',
         boxSizing: 'border-box'
     });
-    
+
     const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
     const maxFrequency = sortedData[0]?.frequency || 1;
     const top10Data = sortedData.slice(0, 10);
-    
+
     const colorClasses = ['bg-danger', 'bg-warning', 'bg-success'];
-    
+
     // Batch create all bars
     top10Data.forEach((item, index) => {
         const { number, frequency } = item;
-        
+
         const barColumn = document.createElement('div');
         barColumn.className = 'bar-column text-center position-relative';
-        
+
         const barContainer = document.createElement('div');
         barContainer.className = 'interactive-bar-container';
         barContainer.style.height = window.innerWidth < 576 ? '120px' : '170px';
         barContainer.style.display = 'flex';
         barContainer.style.alignItems = 'flex-end';
-        
+
         const bar = document.createElement('div');
         bar.className = `interactive-bar ${index < 3 ? colorClasses[index] : 'bg-primary'}`;
-        
+
         const minHeight = 25;
         const maxHeight = 100;
         const heightRange = maxHeight - minHeight;
         const normalizedFreq = frequency / maxFrequency;
         const heightPercentage = minHeight + (normalizedFreq * heightRange * 0.8);
-        
+
         Object.assign(bar.style, {
             height: `${heightPercentage}%`,
             width: window.innerWidth < 576 ? '28px' : '36px',
@@ -94,19 +94,19 @@ function optimizedRenderFrequencyChart(frequencyData) {
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             transition: 'transform 0.15s ease'
         });
-        
+
         const numberLabel = document.createElement('div');
         numberLabel.className = 'number-label mt-1';
         numberLabel.textContent = number;
         numberLabel.style.fontSize = window.innerWidth < 576 ? '0.75rem' : '0.875rem';
-        
+
         // Optimized touch events for mobile
         if ('ontouchstart' in window) {
             bar.addEventListener('touchstart', function(e) {
                 e.preventDefault();
                 this.style.transform = 'scaleY(1.05)';
             }, { passive: false });
-            
+
             bar.addEventListener('touchend', function(e) {
                 e.preventDefault();
                 this.style.transform = 'scaleY(1)';
@@ -116,21 +116,21 @@ function optimizedRenderFrequencyChart(frequencyData) {
             bar.addEventListener('mouseenter', function() {
                 this.style.transform = 'scaleY(1.05)';
             });
-            
+
             bar.addEventListener('mouseleave', function() {
                 this.style.transform = 'scaleY(1)';
             });
         }
-        
+
         barContainer.appendChild(bar);
         barColumn.appendChild(barContainer);
         barColumn.appendChild(numberLabel);
         frequencyChart.appendChild(barColumn);
     });
-    
+
     // Single DOM update
     fragment.appendChild(frequencyChart);
-    
+
     // Add legend
     const legend = document.createElement('div');
     legend.className = 'frequency-legend d-flex justify-content-center mt-3 small text-muted';
@@ -141,7 +141,7 @@ function optimizedRenderFrequencyChart(frequencyData) {
         <div><span class="badge bg-success">&nbsp;</span> 3rd</div>
     `;
     fragment.appendChild(legend);
-    
+
     // Batch DOM update
     barChartContainer.innerHTML = '';
     barChartContainer.appendChild(fragment);
@@ -151,7 +151,7 @@ function optimizedRenderFrequencyChart(frequencyData) {
 const optimizedScrollHandler = throttle(function() {
     // Handle scroll-based optimizations
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
+
     // Hide/show elements based on scroll position for performance
     if (scrollTop > 100) {
         document.body.classList.add('scrolled');
@@ -193,11 +193,11 @@ function initMobileOptimizations() {
     // Add event listeners
     window.addEventListener('scroll', optimizedScrollHandler, { passive: true });
     window.addEventListener('resize', optimizedResizeHandler, { passive: true });
-    
+
     // Optimize touch interactions
     if ('ontouchstart' in window) {
         document.body.classList.add('touch-device');
-        
+
         // Disable hover effects on touch devices
         const style = document.createElement('style');
         style.textContent = `
@@ -209,11 +209,11 @@ function initMobileOptimizations() {
         `;
         document.head.appendChild(style);
     }
-    
+
     // Reduce animations on slower devices
     if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
         document.body.classList.add('reduced-animations');
-        
+
         const style = document.createElement('style');
         style.textContent = `
             .reduced-animations * {
@@ -223,28 +223,28 @@ function initMobileOptimizations() {
         `;
         document.head.appendChild(style);
     }
-    
+
     // Optimize images for mobile
     const images = document.querySelectorAll('img');
     images.forEach(img => {
         img.loading = 'lazy';
         img.style.willChange = 'auto';
     });
-    
+
     // Add performance monitoring
     if (document.readyState === 'complete') {
         performanceMonitor();
     } else {
         window.addEventListener('load', performanceMonitor);
     }
-    
+
     console.log('Mobile optimizations initialized');
 }
 
 // Optimized lottery card rendering
 function optimizedLotteryCardRender() {
     const cards = document.querySelectorAll('.result-card');
-    
+
     // Use Intersection Observer for lazy rendering
     if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver((entries) => {
@@ -257,7 +257,7 @@ function optimizedLotteryCardRender() {
         }, {
             rootMargin: '50px'
         });
-        
+
         cards.forEach(card => observer.observe(card));
     }
 }
