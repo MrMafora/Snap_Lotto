@@ -3318,5 +3318,5 @@ if __name__ == '__main__':
     # Use PORT environment variable for Cloud Run deployment, fallback to 8080 for production
     port = int(os.environ.get('PORT', 8080))
     # Always disable debug mode in production deployment
-    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)
+    debug_mode = False
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)0.0.0.0', port=port, debug=debug_mode)

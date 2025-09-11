@@ -460,7 +460,7 @@ function renderDivisionChart(divisionData) {
                 // Position tooltip near segment
                 const rect = this.getBoundingClientRect();
                 tooltip.style.left = (rect.left + rect.width/2) + 'px';
-                tooltip.style.top = (rect.top + rect.height/2 - 40) + 'px';
+                tooltip.style.top = (rect.top - 40) + 'px';
 
                 document.body.appendChild(tooltip);
             });

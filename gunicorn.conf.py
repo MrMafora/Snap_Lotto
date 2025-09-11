@@ -6,12 +6,12 @@ import multiprocessing
 bind = f"0.0.0.0:{os.environ.get('PORT', 8080)}"
 backlog = 2048
 
-# Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+# Worker processes - optimized for Cloud Run
+workers = 1
 worker_class = "gthread"
-threads = 2
-worker_connections = 1000
-max_requests = 1000
+threads = 4
+worker_connections = 500
+max_requests = 800
 max_requests_jitter = 50
 preload_app = True
 

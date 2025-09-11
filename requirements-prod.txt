@@ -1,3 +1,4 @@
+
 # Core Flask Application
 flask>=3.1.0
 flask-sqlalchemy>=3.1.1
@@ -11,10 +12,10 @@ wtforms>=3.2.1
 sqlalchemy>=2.0.40
 psycopg2-binary>=2.9.10
 
-# AI Services (only Google Generative AI - actually used in code)
+# AI Services (only essential)
 google-generativeai>=0.8.5
 
-# Data Processing
+# Data Processing (minimal)
 requests>=2.32.3
 beautifulsoup4>=4.13.3
 
