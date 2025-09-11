@@ -1,0 +1,65 @@
+# Exclude large assets directory to reduce build context
+attached_assets/
+
+# Development files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+tests/
+test_*
+
+# Development configuration
+.env
+.env.local
+.env.development
+.env.test
+
+# Large packages that shouldn't be in Docker
+node_modules/
+*.tar.gz
+*.zip
+
+# Replit specific files
+.replit
+replit.nix

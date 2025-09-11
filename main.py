@@ -367,6 +367,11 @@ class DrawResult:
         except:
             return []
 
+@app.route('/health')
+def health():
+    """Health check endpoint for Docker/Cloud Run"""
+    return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()}, 200
+
 @app.route('/home')  
 def home():
     """Homepage route - alias for index"""
