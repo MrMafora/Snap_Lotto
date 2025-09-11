@@ -108,22 +108,12 @@ class WorkerSafeLotteryScheduler:
                             
                             logger.info("Step 4b: FRESH prediction generation for next draws...")
                             try:
-                                # Use the new fresh prediction system to ensure unique numbers for each draw
+                                # Use ONLY the intelligent fresh prediction system to ensure unique numbers for each draw
                                 from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
                                 fresh_predictions_success = generate_fresh_predictions_for_new_draws()
+                                logger.info(f"✅ WORKER-SAFE FRESH PREDICTION SUCCESS: Generated fresh predictions using intelligent system only")
                                 
-                                # Also run the existing system as backup
-                                predictions_generated = self._generate_immediate_predictions()
-                                logger.info(f"✅ WORKER-SAFE FRESH PREDICTION SUCCESS: Generated fresh predictions using new system")
-                                
-                                # Step 4c: Fill any prediction gaps
-                                logger.info("Step 4c: Checking for and filling prediction gaps...")
-                                gaps_filled = self._fill_prediction_gaps()
-                                if gaps_filled > 0:
-                                    logger.info(f"✅ WORKER-SAFE GAP FILLING: Filled {gaps_filled} prediction gaps")
-                                    predictions_generated += gaps_filled
-                                else:
-                                    logger.info("✅ WORKER-SAFE GAP FILLING: No prediction gaps found")
+                                predictions_generated = 1 if fresh_predictions_success else 0
                                 
                                 # Log success with predictions and validation
                                 self._log_automation_run(start_time, datetime.now(SA_TIMEZONE), True, 

@@ -41,7 +41,7 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **Frontend**: Responsive web interface with mobile-friendly design and PWA functionality, ensuring visual consistency.
 -   **Backend**: Python Flask framework.
 -   **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage, adhering to authentic data.
--   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and lottery prediction.
+-   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and lottery prediction using exclusively the Fresh Draw-Specific Prediction Engine for maximum accuracy.
     **Unified Prediction Algorithm Details:**
     -   **Core Engine**: Hybrid Frequency-Gap Analysis with Near-Miss Learning (unified across all game types)
     -   **Historical Analysis**: 40+ historical draws per game with extended pattern recognition
