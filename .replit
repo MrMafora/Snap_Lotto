@@ -79,6 +79,15 @@ mode = "sequential"
 task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=1 --timeout=60 main:app"
 
+[[workflows.workflow]]
+name = "Deploy"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:$PORT --workers=1 --threads=4 --timeout=60 --preload main:app"
+
 [[ports]]
 localPort = 3000
 externalPort = 3000

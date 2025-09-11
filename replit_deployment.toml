@@ -1,7 +1,6 @@
-
 [deployment]
 deploymentTarget = "cloudrun"
-ignorePorts = true
+ignorePorts = false
 
 [[deployment.env]]
 key = "FLASK_APP"
@@ -16,31 +15,11 @@ key = "PYTHONUNBUFFERED"
 value = "1"
 
 [[deployment.env]]
-key = "PIP_NO_CACHE_DIR"
-value = "1"
-
-[[deployment.env]]
-key = "PIP_DISABLE_PIP_VERSION_CHECK"
-value = "1"
-
-[[deployment.env]]
-key = "PYTHONDONTWRITEBYTECODE"
-value = "1"
-
-[[deployment.env]]
-key = "PIP_BREAK_SYSTEM_PACKAGES"
-value = "1"
-
-[[deployment.env]]
-key = "PIP_ROOT_USER_ACTION"
-value = "ignore"
-
-[[deployment.env]]
-key = "PIP_NO_BUILD_ISOLATION"
-value = "1"
+key = "PORT"
+value = "8080"
 
 [deployment.build]
-run = ["pip", "install", "--no-cache-dir", "--no-compile", "--prefer-binary", "--only-binary=:all:", "-r", "requirements-prod.txt"]
+run = ["pip", "install", "--no-cache-dir", "-r", "requirements-prod.txt"]
 
 [deployment.run]
-run = ["gunicorn", "--bind", "0.0.0.0:${PORT:-8080}", "--workers=1", "--timeout=60", "main:app"]
+run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers=1", "--threads=4", "--timeout=60", "--preload", "main:app"]

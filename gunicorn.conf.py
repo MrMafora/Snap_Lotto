@@ -2,21 +2,21 @@
 import os
 import multiprocessing
 
-# Server socket
+# Server socket - Use PORT environment variable
 bind = f"0.0.0.0:{os.environ.get('PORT', 8080)}"
 backlog = 2048
 
 # Worker processes - optimized for Cloud Run
 workers = 1
-worker_class = "gthread"
+worker_class = "gthread" 
 threads = 4
-worker_connections = 500
-max_requests = 800
+worker_connections = 1000
+max_requests = 1000
 max_requests_jitter = 50
 preload_app = True
 
-# Timeout settings
-timeout = 30
+# Timeout settings - increased for better stability
+timeout = 60
 keepalive = 2
 graceful_timeout = 30
 
@@ -33,10 +33,6 @@ access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
 
 # Process naming
 proc_name = "sa-lottery-app"
-
-# Restart workers
-max_requests = 1200
-max_requests_jitter = 50
 
 # Environment
 raw_env = [
