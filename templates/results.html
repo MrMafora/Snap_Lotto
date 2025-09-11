@@ -92,8 +92,11 @@
                             </div>
                             
                             <!-- AI Prediction Display -->
-                            {% if predictions_data and result.lottery_type in predictions_data %}
-                                {% set prediction = predictions_data[result.lottery_type] %}
+                            <!-- DEBUG: result.lottery_type = {{ result.lottery_type }}, predictions_data keys = {{ predictions_data.keys() | list }} -->
+                            <!-- DEBUG: prediction lookup result = {{ predictions_data.get(result.lottery_type) }} -->
+                            {% set prediction = predictions_data.get(result.lottery_type) %}
+                            <!-- DEBUG: prediction set to = {{ prediction }} -->
+                            {% if prediction %}
                                 <div class="ai-prediction-section mt-3 pt-3" style="border-top: 1px solid #dee2e6;">
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <span class="badge bg-primary" style="font-size: 0.75rem;">
@@ -102,6 +105,7 @@
                                     </div>
                                     
                                     <div class="prediction-balls-container text-center">
+                                        <!-- DEBUG: prediction.predicted_numbers = {{ prediction.predicted_numbers }} -->
                                         {% for num in prediction.predicted_numbers %}
                                             <span class="lottery-ball lottery-ball-prediction" style="
                                                 width: 28px; 

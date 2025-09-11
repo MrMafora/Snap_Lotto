@@ -27,6 +27,11 @@ from security_utils import limiter, sanitize_input, validate_form_data, RateLimi
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Enable template auto-reload for immediate template changes
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
+
 # Configure app settings directly from environment
 app.secret_key = os.environ.get("SESSION_SECRET")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
@@ -130,6 +135,81 @@ def get_current_predictions(conn, lottery_types=None):
             
     except Exception as e:
         logging.getLogger(__name__).error(f"Error in get_current_predictions: {e}")
+        return {}
+
+def get_historical_predictions(conn, lottery_types=None):
+    """
+    Get the AI predictions that were made for the current/latest completed draws.
+    This is used by results pages to show predictions that were validated against actual results.
+    
+    Returns a dictionary keyed by lottery_type with prediction data.
+    """
+    try:
+        with conn.cursor() as cur:
+            # Build the WHERE clause for lottery types filter
+            types_filter = ""
+            params = []
+            if lottery_types:
+                types_filter = "AND lp.game_type = ANY(%s)"
+                params.append(lottery_types)
+            
+            query = f"""
+                WITH latest_completed AS (
+                    SELECT lottery_type, MAX(draw_number) as latest_draw_number
+                    FROM lottery_results 
+                    GROUP BY lottery_type
+                )
+                SELECT DISTINCT ON (lp.game_type)
+                    lp.game_type,
+                    lp.predicted_numbers,
+                    lp.bonus_numbers,
+                    lp.confidence_score,
+                    lp.reasoning,
+                    lp.target_draw_date,
+                    lp.created_at,
+                    lp.linked_draw_id,
+                    lp.validation_status,
+                    lp.main_number_matches,
+                    lp.bonus_number_matches,
+                    lp.accuracy_percentage,
+                    lp.prize_tier
+                FROM lottery_predictions lp
+                JOIN latest_completed lc ON lc.lottery_type = lp.game_type
+                WHERE lp.linked_draw_id = lc.latest_draw_number
+                  {types_filter}
+                ORDER BY lp.game_type, lp.created_at DESC
+            """
+            
+            cur.execute(query, params)
+            
+            predictions_data = {}
+            for row in cur.fetchall():
+                (game_type, predicted_nums, bonus_nums, confidence, reasoning, 
+                 target_date, created_at, linked_draw_id, status, main_matches, 
+                 bonus_matches, accuracy, prize) = row
+                
+                # Parse predicted numbers with consistent logic
+                main_numbers = parse_prediction_numbers(predicted_nums)
+                bonus_numbers = parse_prediction_numbers(bonus_nums)
+                
+                predictions_data[game_type] = {
+                    'predicted_numbers': sorted(main_numbers) if main_numbers else [],
+                    'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                    'confidence_score': confidence,
+                    'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
+                    'target_date': target_date,
+                    'linked_draw_id': linked_draw_id,
+                    'status': status,
+                    'main_matches': main_matches or 0,
+                    'bonus_matches': bonus_matches or 0, 
+                    'accuracy_percentage': accuracy or 0.0,
+                    'prize_tier': prize or 'No Prize'
+                }
+            
+            return predictions_data
+            
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error in get_historical_predictions: {e}")
         return {}
 
 def parse_prediction_numbers(nums):
@@ -576,17 +656,54 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
             
-            # Fetch prediction data for result cards using unified function
+            # Fetch historical prediction data for result cards (predictions that were made for these draws)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
-                    predictions_data = get_current_predictions(conn)
+                    historical_predictions = get_historical_predictions(conn)
+                    logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
+                    
+                    # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
+                    predictions_data = {}
+                    for game_type, pred_data in historical_predictions.items():
+                        logger.info(f"PREDICTION DEBUG: Processing {game_type}: {type(pred_data)} with keys: {list(pred_data.keys()) if isinstance(pred_data, dict) else 'not dict'}")
+                        try:
+                            predictions_data[game_type] = {
+                                'predicted_numbers': pred_data.get('predicted_numbers', []),
+                                'bonus_numbers': pred_data.get('bonus_numbers', []),
+                                'confidence_score': pred_data.get('confidence_score', 0),
+                                'linked_draw_id': pred_data.get('linked_draw_id', None),
+                                'status': pred_data.get('status', 'pending'),
+                                'main_matches': pred_data.get('main_matches', 0),
+                                'bonus_matches': pred_data.get('bonus_matches', 0),
+                                'accuracy_percentage': pred_data.get('accuracy_percentage', 0.0),
+                                'prize_tier': pred_data.get('prize_tier', 'No Prize')
+                            }
+                            logger.info(f"PREDICTION DEBUG: Transformed {game_type} numbers: {predictions_data[game_type]['predicted_numbers']}")
+                        except Exception as e:
+                            logger.error(f"PREDICTION DEBUG: Error transforming {game_type}: {e}")
+                            predictions_data[game_type] = {
+                                'predicted_numbers': [],
+                                'bonus_numbers': [],
+                                'confidence_score': 0,
+                                'linked_draw_id': None,
+                                'status': 'error'
+                            }
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
                 predictions_data = {}
             
             logger.info(f"FILTERED RESULTS DEBUG: Found {len(predictions_data)} prediction entries: {list(predictions_data.keys())}")
             logger.info(f"FILTERED RESULTS DEBUG: Latest results keys: {list(latest_results.keys())}")
+            
+            # Debug prediction data structure for template
+            logger.info(f"FILTERED RESULTS DEBUG: predictions_data type: {type(predictions_data)}")
+            for game_type, pred_data in predictions_data.items():
+                logger.info(f"FILTERED RESULTS DEBUG: {game_type} - pred_data type: {type(pred_data)}, keys: {list(pred_data.keys()) if isinstance(pred_data, dict) else 'not a dict'}")
+                if pred_data and 'predicted_numbers' in pred_data:
+                    logger.info(f"FILTERED RESULTS DEBUG: {game_type} prediction numbers: {pred_data['predicted_numbers']} (type: {type(pred_data['predicted_numbers'])})")
+                else:
+                    logger.info(f"FILTERED RESULTS DEBUG: {game_type} has no predicted_numbers or empty data: {pred_data}")
             
             return render_template('results.html', 
                                  results=results, 
@@ -716,17 +833,54 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
             
-            # Fetch prediction data for result cards using unified function
+            # Fetch historical prediction data for result cards (predictions that were made for these draws)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
-                    predictions_data = get_current_predictions(conn)
+                    historical_predictions = get_historical_predictions(conn)
+                    logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
+                    
+                    # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
+                    predictions_data = {}
+                    for game_type, pred_data in historical_predictions.items():
+                        logger.info(f"PREDICTION DEBUG: Processing {game_type}: {type(pred_data)} with keys: {list(pred_data.keys()) if isinstance(pred_data, dict) else 'not dict'}")
+                        try:
+                            predictions_data[game_type] = {
+                                'predicted_numbers': pred_data.get('predicted_numbers', []),
+                                'bonus_numbers': pred_data.get('bonus_numbers', []),
+                                'confidence_score': pred_data.get('confidence_score', 0),
+                                'linked_draw_id': pred_data.get('linked_draw_id', None),
+                                'status': pred_data.get('status', 'pending'),
+                                'main_matches': pred_data.get('main_matches', 0),
+                                'bonus_matches': pred_data.get('bonus_matches', 0),
+                                'accuracy_percentage': pred_data.get('accuracy_percentage', 0.0),
+                                'prize_tier': pred_data.get('prize_tier', 'No Prize')
+                            }
+                            logger.info(f"PREDICTION DEBUG: Transformed {game_type} numbers: {predictions_data[game_type]['predicted_numbers']}")
+                        except Exception as e:
+                            logger.error(f"PREDICTION DEBUG: Error transforming {game_type}: {e}")
+                            predictions_data[game_type] = {
+                                'predicted_numbers': [],
+                                'bonus_numbers': [],
+                                'confidence_score': 0,
+                                'linked_draw_id': None,
+                                'status': 'error'
+                            }
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
                 predictions_data = {}
             
             logger.info(f"RESULTS DEBUG: Found {len(predictions_data)} prediction entries: {list(predictions_data.keys())}")
             logger.info(f"RESULTS DEBUG: Latest results keys: {list(latest_results.keys())}")
+            
+            # Debug prediction data structure for template
+            logger.info(f"RESULTS DEBUG: predictions_data type: {type(predictions_data)}")
+            for game_type, pred_data in predictions_data.items():
+                logger.info(f"RESULTS DEBUG: {game_type} - pred_data type: {type(pred_data)}, keys: {list(pred_data.keys()) if isinstance(pred_data, dict) else 'not a dict'}")
+                if pred_data and 'predicted_numbers' in pred_data:
+                    logger.info(f"RESULTS DEBUG: {game_type} prediction numbers: {pred_data['predicted_numbers']} (type: {type(pred_data['predicted_numbers'])})")
+                else:
+                    logger.info(f"RESULTS DEBUG: {game_type} has no predicted_numbers or empty data: {pred_data}")
             
             return render_template('results.html', 
                                  results=results,
