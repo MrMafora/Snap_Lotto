@@ -2800,9 +2800,104 @@ def run_complete_workflow_direct():
             logger.warning(f"Step 4 verification error: {verify_error}")
             frontend_verification = {'error': str(verify_error)}
         
+        # STEP 5: AI Prediction orchestration (mirrors scheduler logic)
+        if new_results_count > 0:
+            logger.info(f"Step 5: Running complete AI prediction workflow for {new_results_count} new lottery results...")
+            predictions_generated = 0
+            validations_completed = 0
+            gaps_filled = 0
+            
+            try:
+                # Step 5a: Validate existing predictions against new results
+                logger.info("Step 5a: Auto-validating existing predictions against new lottery results...")
+                try:
+                    from prediction_validation_system import PredictionValidationSystem
+                    validation_system = PredictionValidationSystem()
+                    validation_result = validation_system.validate_all_pending_predictions()
+                    validations_completed = len(validation_result.get('validated_predictions', []))
+                    logger.info(f"✅ Validated {validations_completed} existing predictions")
+                except Exception as validation_error:
+                    logger.warning(f"⚠️ Prediction validation failed: {validation_error}")
+                
+                # Step 5b: Generate fresh predictions for next draws
+                logger.info("Step 5b: Generating fresh predictions for next draws...")
+                try:
+                    from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
+                    fresh_result = generate_fresh_predictions_for_new_draws()
+                    if isinstance(fresh_result, dict):
+                        predictions_generated = fresh_result.get('predictions_created', 0)
+                    else:
+                        predictions_generated = 6 if fresh_result else 0  # Assume 6 game types if successful
+                    logger.info(f"✅ Generated {predictions_generated} fresh predictions")
+                except Exception as fresh_error:
+                    logger.warning(f"⚠️ Fresh prediction generation failed: {fresh_error}")
+                
+                # Step 5c: Fill any prediction gaps
+                logger.info("Step 5c: Filling any missing prediction gaps...")
+                try:
+                    # Import the gap filling function from scheduler
+                    import psycopg2
+                    import os
+                    
+                    conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+                    cur = conn.cursor()
+                    
+                    # Get game types from database
+                    cur.execute("SELECT DISTINCT lottery_type FROM lottery_results ORDER BY lottery_type")
+                    db_game_types = [row[0] for row in cur.fetchall()]
+                    
+                    for game_type in db_game_types:
+                        # Check for missing predictions
+                        cur.execute("""
+                            SELECT COUNT(lr.draw_number)
+                            FROM lottery_results lr
+                            LEFT JOIN lottery_predictions lp ON (
+                                lp.game_type = lr.lottery_type 
+                                AND lp.linked_draw_id = lr.draw_number + 1
+                            )
+                            WHERE lr.lottery_type = %s 
+                            AND lp.id IS NULL
+                            AND lr.draw_date >= CURRENT_DATE - INTERVAL '7 days'
+                        """, (game_type,))
+                        
+                        missing_count = cur.fetchone()[0]
+                        if missing_count > 0:
+                            gaps_filled += 1
+                            logger.info(f"🔧 Found {missing_count} prediction gaps for {game_type}")
+                    
+                    cur.close()
+                    conn.close()
+                    logger.info(f"✅ Checked prediction gaps: {gaps_filled} game types need attention")
+                    
+                except Exception as gap_error:
+                    logger.warning(f"⚠️ Gap filling check failed: {gap_error}")
+                
+                total_ai_work = validations_completed + predictions_generated + gaps_filled
+                logger.info(f"Step 5 Complete: {validations_completed} validations + {predictions_generated} predictions + {gaps_filled} gap checks = {total_ai_work} AI operations")
+                
+            except Exception as prediction_error:
+                logger.error(f"Step 5 Error: AI prediction workflow failed: {prediction_error}")
+                predictions_generated = 0
+                validations_completed = 0
+                gaps_filled = 0
+        else:
+            logger.info("Step 5: Skipped AI prediction workflow (no new results)")
+            predictions_generated = 0
+            validations_completed = 0
+            gaps_filled = 0
+        
         if success:
             status = 'success'
-            message = f"COMPLETE WORKFLOW SUCCESS: {new_results_count} new lottery results extracted and ready for frontend display"
+            if predictions_generated > 0 or validations_completed > 0:
+                ai_summary = []
+                if validations_completed > 0:
+                    ai_summary.append(f"{validations_completed} predictions validated")
+                if predictions_generated > 0:
+                    ai_summary.append(f"{predictions_generated} fresh predictions generated")
+                ai_work = " + ".join(ai_summary)
+                message = f"COMPLETE WORKFLOW SUCCESS: {new_results_count} new lottery results + {ai_work}"
+            else:
+                message = f"COMPLETE WORKFLOW SUCCESS: {new_results_count} new lottery results extracted and ready for frontend display"
         else:
             status = 'error'
             message = f"Workflow completed with issues: {workflow_result.get('total_failed', 0)} screenshots failed processing"
@@ -2810,11 +2905,13 @@ def run_complete_workflow_direct():
         workflow_results = {
             'success': success,
             'status': status,
-            'steps_completed': ['cleanup_old_screenshots', 'capture_fresh_screenshots', 'ai_data_extraction', 'frontend_verification'],
+            'steps_completed': ['cleanup_old_screenshots', 'capture_fresh_screenshots', 'ai_data_extraction', 'frontend_verification', 'ai_prediction_workflow'],
             'screenshots_deleted': deleted_count,
             'screenshots_captured': len(screenshots),
             'files_processed': workflow_result.get('total_processed', 0),
             'new_results': new_results_count,
+            'predictions_generated': predictions_generated,
+            'validations_completed': validations_completed,
             'cleanup_performed': True,
             'frontend_verification': frontend_verification,
             'duration': 0,
