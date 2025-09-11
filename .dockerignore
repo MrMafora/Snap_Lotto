@@ -1,0 +1,70 @@
+# Development and runtime files
+logs/
+app.log
+*.log
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Instance and upload directories - runtime data
+instance/
+uploads/
+screenshots/
+.pytest_cache/
+*.pytest_cache
+
+# Development tools and configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Documentation and development files
+README.md
+*.md
+.replit
+replit.nix
+
+# Test files
+test_*.py
+tests/
+*_test.py
+
+# Development requirements (use production instead)
+requirements.txt
+requirements-minimal.txt
+pyproject.toml
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Large development assets that aren't needed for production
+attached_assets/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+# Keep only essential icons and logos in static/
+!static/icons/
+!static/img/
