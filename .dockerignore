@@ -60,6 +60,17 @@ node_modules/
 *.tar.gz
 *.zip
 
+# Additional large files and directories
+screenshots/
+uploads/
+*.log
+logs/
+.pythonlibs/
+poetry.lock
+*.db
+*.sqlite
+*.sqlite3
+
 # Replit specific files
 .replit
 replit.nix
