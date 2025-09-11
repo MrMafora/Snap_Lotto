@@ -44,11 +44,12 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and lottery prediction using exclusively the Fresh Draw-Specific Prediction Engine for maximum accuracy.
     **Unified Prediction Algorithm Details:**
     -   **Core Engine**: Hybrid Frequency-Gap Analysis with Near-Miss Learning (unified across all game types)
-    -   **Historical Analysis**: 40+ historical draws per game with extended pattern recognition
-    -   **Learning Framework**: Hot number frequency patterns, cold number mean reversion, statistical balance validation, near-miss learning
+    -   **Historical Analysis**: 180-day analysis (up to 100 draws) with robust data parsing and frequency mapping
+    -   **Learning Framework**: Hot number frequency patterns (50% selection weight), cold number mean reversion (20% weight), neutral statistical balance (30% weight), weighted bonus number selection
     -   **Performance Integration**: Incorporates accuracy feedback from validated predictions to improve future predictions
-    -   **Confidence Scoring**: 45-65% confidence scores based on historical frequency patterns and pattern strength
+    -   **Confidence Scoring**: 45-75% evidence-based confidence scores using historical frequency patterns, hot/cold number balance, and data quality indicators
     -   **Individual Game Rules**: LOTTO (6 main, 1-52), LOTTO PLUS 1/2 (6 main, 1-52), POWERBALL/PLUS (5 main 1-50 + 1 bonus 1-20), DAILY LOTTO (5 main, 1-36)
+    -   **Phase 1 AI Implementation**: Replaced random number generation with genuine frequency-based intelligent selection, evidence-based confidence scoring, and game-specific prediction strategies
 -   **Automation Workflow**: A robust 4-step daily automation process utilizing Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification, with anti-detection measures. The scheduler uses the same proven system as the manual trigger for consistency. Predictions are automatically generated and validated as part of this workflow, linking predictions to specific future draw IDs.
 -   **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, centralized error handling, and admin-only access for sensitive AI features.
 -   **Performance**: Optimized database queries, critical performance indexes, and a cache manager. Decoupled card heights for optimal content display.
