@@ -2740,8 +2740,9 @@ def run_complete_workflow_direct():
         logger.info("Step 2: Capturing 6 fresh screenshots")
         
         try:
-            from screenshot_capture import capture_all_lottery_screenshots
-            capture_results = capture_all_lottery_screenshots()
+            import robust_screenshot_capture
+            robust_screenshot_capture.main()
+            capture_results = "Screenshots captured successfully"
             logger.info(f"Screenshot capture results: {capture_results}")
             
             # Verify we have exactly 6 screenshots
