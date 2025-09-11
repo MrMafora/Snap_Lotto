@@ -228,7 +228,8 @@ def generate_fresh_predictions_for_new_draws():
             cold_bonus_numbers = [num for num, freq in bonus_frequency.most_common()[-5:]] if bonus_frequency else []
             
             # Phase 2: Try Neural Network System First (Advanced AI)
-            neural_prediction = None
+            neural_main = None
+            neural_bonus = None
             neural_confidence = None
             neural_reasoning = None
             
