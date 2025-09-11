@@ -674,8 +674,8 @@ def results(lottery_type=None):
                                 'confidence_score': pred_data.get('confidence_score', 0),
                                 'linked_draw_id': pred_data.get('linked_draw_id', None),
                                 'status': pred_data.get('status', 'pending'),
-                                'main_matches': pred_data.get('main_matches', 0),
-                                'bonus_matches': pred_data.get('bonus_matches', 0),
+                                'main_matches': pred_data.get('main_number_matches', 0),
+                                'bonus_matches': pred_data.get('bonus_number_matches', 0),
                                 'accuracy_percentage': pred_data.get('accuracy_percentage', 0.0),
                                 'prize_tier': pred_data.get('prize_tier', 'No Prize')
                             }
@@ -851,8 +851,8 @@ def results(lottery_type=None):
                                 'confidence_score': pred_data.get('confidence_score', 0),
                                 'linked_draw_id': pred_data.get('linked_draw_id', None),
                                 'status': pred_data.get('status', 'pending'),
-                                'main_matches': pred_data.get('main_matches', 0),
-                                'bonus_matches': pred_data.get('bonus_matches', 0),
+                                'main_matches': pred_data.get('main_number_matches', 0),
+                                'bonus_matches': pred_data.get('bonus_number_matches', 0),
                                 'accuracy_percentage': pred_data.get('accuracy_percentage', 0.0),
                                 'prize_tier': pred_data.get('prize_tier', 'No Prize')
                             }
