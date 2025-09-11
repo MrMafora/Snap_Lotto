@@ -41,15 +41,20 @@ The platform features a modular codebase designed for enhanced security and perf
 -   **Frontend**: Responsive web interface with mobile-friendly design and PWA functionality, ensuring visual consistency.
 -   **Backend**: Python Flask framework.
 -   **Database**: PostgreSQL with optimized architecture including performance indexes and efficient storage, adhering to authentic data.
--   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and lottery prediction using exclusively the Fresh Draw-Specific Prediction Engine for maximum accuracy.
-    **Unified Prediction Algorithm Details:**
-    -   **Core Engine**: Hybrid Frequency-Gap Analysis with Near-Miss Learning (unified across all game types)
-    -   **Historical Analysis**: 180-day analysis (up to 100 draws) with robust data parsing and frequency mapping
-    -   **Learning Framework**: Hot number frequency patterns (50% selection weight), cold number mean reversion (20% weight), neutral statistical balance (30% weight), weighted bonus number selection
-    -   **Performance Integration**: Incorporates accuracy feedback from validated predictions to improve future predictions
-    -   **Confidence Scoring**: 45-75% evidence-based confidence scores using historical frequency patterns, hot/cold number balance, and data quality indicators
+-   **AI Integration**: Google Gemini 2.5 Pro powers AI-driven ticket scanning, data extraction, pattern analysis, and advanced neural network lottery prediction using multi-phase intelligent systems for maximum accuracy.
+    **Advanced Prediction System Details:**
+    -   **Phase 1 - Frequency Analysis Engine**: Hybrid Frequency-Gap Analysis with Near-Miss Learning (unified across all game types)
+        -   Historical Analysis: 180-day analysis (up to 100 draws) with robust data parsing and frequency mapping
+        -   Learning Framework: Hot number frequency patterns (50% selection weight), cold number mean reversion (20% weight), neutral statistical balance (30% weight), weighted bonus number selection
+        -   Confidence Scoring: 45-75% evidence-based confidence scores using historical frequency patterns and data quality indicators
+    -   **Phase 2 - Neural Network Ensemble (Production Ready)**: Advanced multi-model ensemble with genuine machine learning
+        -   Core Models: Random Forest + Gradient Boosting + Neural Network with performance-weighted aggregation
+        -   Training: Uses 180+ days of historical data with proper temporal alignment for forward prediction
+        -   Bonus Prediction: Dedicated bonus number models for POWERBALL games with intelligent fallback to Phase 1
+        -   Confidence Scoring: 50-85% evidence-based scores using model agreement, ensemble performance, and data quality
+        -   Smart Selection: Automatically uses Phase 2 when sufficient data available (≥20 samples), falls back to Phase 1 otherwise
     -   **Individual Game Rules**: LOTTO (6 main, 1-52), LOTTO PLUS 1/2 (6 main, 1-52), POWERBALL/PLUS (5 main 1-50 + 1 bonus 1-20), DAILY LOTTO (5 main, 1-36)
-    -   **Phase 1 AI Implementation**: Replaced random number generation with genuine frequency-based intelligent selection, evidence-based confidence scoring, and game-specific prediction strategies
+    -   **Performance Integration**: Incorporates accuracy feedback from validated predictions to improve future predictions across both phases
 -   **Automation Workflow**: A robust 4-step daily automation process utilizing Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification, with anti-detection measures. The scheduler uses the same proven system as the manual trigger for consistency. Predictions are automatically generated and validated as part of this workflow, linking predictions to specific future draw IDs.
 -   **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, centralized error handling, and admin-only access for sensitive AI features.
 -   **Performance**: Optimized database queries, critical performance indexes, and a cache manager. Decoupled card heights for optimal content display.
