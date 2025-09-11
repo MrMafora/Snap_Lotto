@@ -188,7 +188,8 @@ def generate_fresh_predictions_for_new_draws():
                 lr.lottery_type,
                 lr.draw_number as completed_draw,
                 lr.draw_date,
-                lr.draw_number + 1 as next_draw_needed
+                lr.draw_number + 1 as next_draw_needed,
+                lr.next_draw_date
             FROM lottery_results lr
             WHERE lr.draw_date >= CURRENT_DATE - make_interval(days => 1)
               AND NOT EXISTS (
@@ -208,7 +209,7 @@ def generate_fresh_predictions_for_new_draws():
             return True
         
         # Generate fresh predictions for each missing next draw
-        for lottery_type, completed_draw, draw_date, next_draw in new_draws_needed:
+        for lottery_type, completed_draw, draw_date, next_draw, next_draw_date in new_draws_needed:
             logger.info(f"🔄 Generating INTELLIGENT prediction for {lottery_type} Draw {next_draw} (after completed draw {completed_draw})")
             
             config = configs[lottery_type]
@@ -338,7 +339,7 @@ def generate_fresh_predictions_for_new_draws():
                 confidence_score,  
                 prediction_method,
                 reasoning,
-                draw_date + timedelta(days=1),
+                next_draw_date,
                 next_draw, 'pending', False, datetime.now()
             ))
             
