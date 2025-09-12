@@ -1,0 +1,3383 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <!-- Consent Manager removed as requested -->
+    
+    <!-- Extra meta content for page-specific early loading scripts -->
+    
+    
+    <!-- Optimized Google Analytics - Defer loading -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-M4NREF90ZD');
+      
+      // Load GA script after page loads
+      window.addEventListener('load', function() {
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-M4NREF90ZD';
+        document.head.appendChild(script);
+      });
+    </script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Snap Lottery | South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Snap Lottery - South Africa's ONLY Lottery, PowerBall & Daily Lottery ticket scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won.">
+    <meta name="keywords" content="Snap Lottery, Lottery South Africa, PowerBall South Africa, Daily Lottery South Africa, Ithuba official data, Lottery scanner South Africa, PowerBall scanner South Africa, Daily Lottery scanner, Lottery winning numbers, PowerBall winning numbers, Daily Lottery results, official Ithuba results">
+    <meta name="author" content="Snap Lotto">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <meta name="language" content="English">
+    <meta name="geo.region" content="ZA">
+    <meta name="geo.placename" content="South Africa">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="http://localhost:5000/">
+    <meta property="og:title" content="Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App">
+    <meta property="og:description" content="The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!">
+    <meta property="og:image" content="http://localhost:5000/static/img/snap-lotto-social.jpg">
+    <meta property="og:locale" content="en_ZA">
+    <meta property="og:site_name" content="Snap Lotto">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="http://localhost:5000/">
+    <meta property="twitter:title" content="Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App">
+    <meta property="twitter:description" content="The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!">
+    <meta property="twitter:image" content="http://localhost:5000/static/img/snap-lotto-social.jpg">
+    
+    <!-- Canonical URL -->
+    
+    <link rel="canonical" href="http://localhost:5000/">
+    
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/static/css/custom.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/static/css/lottery.css?v=20250608" as="style" onload="this.onload=null;this.rel='stylesheet'">
+
+    <link rel="preload" href="/static/css/badge-fix.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="/static/css/dropdown-fix.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    
+    <!-- Fallback for no-JS -->
+    <noscript>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/static/css/custom.css">
+        <link rel="stylesheet" href="/static/css/lottery.css?v=20250608">
+
+        <link rel="stylesheet" href="/static/css/badge-fix.css">
+        <link rel="stylesheet" href="/static/css/dropdown-fix.css">
+    
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </noscript>
+    
+    <!-- Bootstrap JS - Load immediately for dropdown functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Simple dropdown functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for Bootstrap to initialize
+            setTimeout(function() {
+                const userDropdown = document.getElementById('userDropdown');
+                const dropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
+                
+                if (userDropdown && dropdownMenu) {
+                    // Simple click handler
+                    userDropdown.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Toggle dropdown
+                        if (dropdownMenu.style.display === 'block') {
+                            dropdownMenu.style.display = 'none';
+                            this.setAttribute('aria-expanded', 'false');
+                        } else {
+                            dropdownMenu.style.display = 'block';
+                            this.setAttribute('aria-expanded', 'true');
+                            
+                            // Position the dropdown
+                            const rect = this.getBoundingClientRect();
+                            dropdownMenu.style.position = 'absolute';
+                            dropdownMenu.style.top = (rect.bottom - rect.top) + 'px';
+                            dropdownMenu.style.right = '0';
+                        }
+                    });
+                    
+                    // Close on click outside
+                    document.addEventListener('click', function(e) {
+                        if (!userDropdown.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                            dropdownMenu.style.display = 'none';
+                            userDropdown.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                    
+                    // Close on item click
+                    dropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
+                        item.addEventListener('click', function() {
+                            dropdownMenu.style.display = 'none';
+                            userDropdown.setAttribute('aria-expanded', 'false');
+                        });
+                    });
+                }
+            }, 100);
+        });
+    </script>
+    <!-- Mobile optimization -->
+    <meta name="theme-color" content="#FFE11D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Content Security Policy with needed permissions -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data:;">
+    
+    
+    
+    
+    
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Snap Lottery",
+  "alternateName": ["SA Lottery App", "SA PowerBall App", "South African Lottery Scanner", "South African Daily Lottery Scanner", "Official Ithuba Results App"],
+  "url": "https://www.snaplottery.co.za/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://www.snaplottery.co.za/results?search={search_term}",
+    "query-input": "required name=search_term"
+  },
+  "description": "South Africa's #1 Lottery, PowerBall & Daily Lottery scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play."
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Snap Lottery",
+  "legalName": "Snap Lottery South Africa",
+  "url": "https://www.snaplottery.co.za/",
+  "logo": "https://www.snaplottery.co.za/static/img/snap-lottery-social.jpg",
+  "foundingDate": "2024",
+  "founders": [
+    {
+      "@type": "Person",
+      "name": "Snap Lottery Team"
+    }
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "ZA"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer service",
+    "email": "info@snaplottery.co.za"
+  },
+  "sameAs": [
+    "https://www.facebook.com/snaplottery/",
+    "https://twitter.com/snaplottery",
+    "https://www.instagram.com/snaplottery/"
+  ],
+  "slogan": "The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play",
+  "description": "South Africa's #1 Lottery, PowerBall & Daily Lottery scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play."
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "itemListElement": [
+    
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@type": "Game",
+        "name": "LOTTO",
+        "description": "LOTTO draw 2560 on 2025-07-19",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@type": "Game",
+        "name": "LOTTO PLUS 1",
+        "description": "LOTTO PLUS 1 draw 2560 on 2025-07-19",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@type": "Game",
+        "name": "LOTTO PLUS 2",
+        "description": "LOTTO PLUS 2 draw 2560 on 2025-07-19",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@type": "Game",
+        "name": "POWERBALL",
+        "description": "POWERBALL draw 1634 on 2025-07-18",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "item": {
+        "@type": "Game",
+        "name": "POWERBALL PLUS",
+        "description": "POWERBALL PLUS draw 1634 on 2025-07-18",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    },
+    
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "item": {
+        "@type": "Game",
+        "name": "DAILY LOTTO",
+        "description": "DAILY LOTTO draw 2319 on 2025-07-20",
+        "playMode": "SinglePlayer",
+        "applicationCategory": "Game",
+        "genre": "Lottery"
+      }
+    }
+    
+  ]
+}
+</script>
+
+<style>
+    /* Styling for analytics charts */
+    .bg-danger { background-color: #e03237 !important; }
+    .bg-warning { background-color: #ffe11d !important; }
+    .bg-success { background-color: #19a03a !important; }
+    .bg-info { background-color: #67c6ed !important; }
+    
+    /* Interactive chart elements */
+    .interactive-bar-column {
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .interactive-bar-column:hover {
+        transform: scale(1.05);
+        z-index: 10;
+    }
+    
+    .interactive-bar-column:hover .interactive-bar {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        filter: brightness(1.1);
+    }
+    
+    .interactive-number {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .interactive-number:hover {
+        transform: scale(1.1);
+        z-index: 10;
+    }
+    
+    .interactive-number:hover .lottery-ball {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        filter: brightness(1.1);
+    }
+    
+    .highlighted-number {
+        animation: highlightPulse 1.5s ease-in-out infinite;
+        transform: scale(1.1);
+        z-index: 15 !important;
+    }
+    
+    .highlighted-number .interactive-bar {
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8) !important;
+        border: 2px solid #ffc107 !important;
+    }
+    
+    .highlighted-number .lottery-ball {
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8);
+        border: 2px solid #ffc107;
+    }
+    
+    @keyframes highlightPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+    
+    /* Mobile optimized numbers display */
+    .mobile-numbers {
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .numbers-row {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .mobile-number {
+        color: #e03237;
+        font-weight: bold;
+        margin-right: 2px;
+    }
+    
+    .mobile-bonus {
+        color: #ffe11d;
+        background-color: #333;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 5px;
+    }
+    
+    /* Numbers row styling */
+    .numbers-row-container {
+        background-color: #f8f9fa;
+    }
+    
+    .numbers-row-container td {
+        border-top: none !important;
+    }
+    
+    .bonus-separator {
+        font-weight: bold;
+        color: #666;
+        font-size: 16px;
+    }
+    
+    .lottery-ball-container {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Mobile card layout */
+    .mobile-results-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .mobile-result-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 8px 12px 6px 12px;
+        min-height: 70px;
+    }
+    
+    .mobile-result-header {
+        margin-bottom: 4px;
+    }
+    
+    .mobile-badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    
+    .mobile-draw-info {
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .mobile-draw-info span {
+        white-space: nowrap;
+    }
+    
+    .mobile-numbers-container {
+        display: flex;
+        flex-wrap: nowrap !important;
+        gap: 2px;
+        align-items: center;
+        overflow-x: auto;
+        width: 100%;
+        min-width: 0;
+    }
+    
+    .mobile-numbers-container-grid {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        min-height: 20px;
+        padding: 2px 8px;
+    }
+    
+    .mobile-numbers-container-grid .lottery-ball-mobile {
+        flex: 0 0 26px;
+        margin: 0 1px;
+        width: 26px !important;
+        height: 26px !important;
+    }
+    
+    .mobile-numbers-container-grid .bonus-separator {
+        flex: 0 0 auto;
+        margin: 0 3px;
+    }
+    
+    .mobile-numbers-container-grid::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .lottery-ball-mobile {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin: 0;
+        line-height: 26px;
+        flex-shrink: 0;
+        flex-grow: 0;
+        min-width: 26px;
+        max-width: 26px;
+        min-height: 26px;
+        max-height: 26px;
+    }
+    
+    .mobile-numbers-container .bonus-separator,
+    .mobile-numbers-container-grid .bonus-separator {
+        font-weight: bold;
+        color: #666;
+        font-size: 12px;
+        margin: 0 4px;
+        flex-shrink: 0;
+    }
+    
+    /* Ensure mobile layout is contained */
+    @media (max-width: 767px) {
+        .results-body {
+            padding: 0.75rem !important;
+        }
+        
+        .mobile-results-container {
+            width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .mobile-result-card {
+            margin-bottom: 12px;
+        }
+        
+        .latest-results-card {
+            overflow: hidden;
+        }
+    }
+    
+    /* Mobile touch feedback */
+    .interactive-bar-column:active,
+    .interactive-number:active {
+        transform: scale(0.95);
+    }
+    
+    /* Improve mobile touch targets */
+    @media (max-width: 768px) {
+        .interactive-bar-column {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .interactive-number {
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+
+    /* Bar chart styling */
+    .chart-container {
+        border-bottom: 1px solid #ddd;
+        border-left: 1px solid #ddd;
+    }
+    
+    .chart-y-axis {
+        font-size: 10px;
+        color: #666;
+    }
+    
+    .bar-column {
+        padding: 0 2px;
+        cursor: pointer;
+    }
+    
+    .bar {
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+    }
+    
+    /* Interactive elements */
+    .interactive-bar {
+        transition: all 0.2s ease;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .interactive-bar:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Pie chart interactive elements */
+    .pie-segment {
+        transition: opacity 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .legend-item {
+        transition: all 0.2s ease;
+        cursor: pointer;
+        padding: 2px 0;
+    }
+    
+    .legend-item:hover {
+        transform: translateX(2px);
+    }
+    
+    /* Tooltip styling */
+    .chart-tooltip {
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        animation: fadeIn 0.2s ease;
+        pointer-events: none;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Make charts responsive on mobile */
+    @media (max-width: 768px) {
+        .flex-container {
+            flex-direction: column;
+        }
+        
+        .frequency-chart-container,
+        .winners-chart-container {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    }
+    
+    /* Card styling to ensure equal height */
+    .equal-height-row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .equal-height-row > div {
+        display: flex;
+    }
+    
+    .equal-height-row .card {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .equal-height-row .card-body.results-body {
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .equal-height-row .card-body.scanner-body {
+        display: flex;
+        align-items: center;
+    }
+</style>
+
+</head>
+<body class="">
+    <nav class="navbar navbar-expand-lg mb-2 sticky-top">
+        <div class="container-fluid px-2">
+            <a class="navbar-brand" href="/">
+                <div class="lottery-logo">
+                    <i class="fas fa-bolt" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i>
+                    <span class="d-none d-sm-inline">SNAP LOTTO</span>
+                    <span class="d-inline d-sm-none">SL</span>
+                </div>
+            </a>
+            <!-- Mobile navigation handled by bottom nav bar, desktop navigation shown directly -->
+            <div class="d-none d-lg-flex w-100 justify-content-between align-items-center" id="navbarNav">
+                <ul class="navbar-nav d-flex flex-row">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/"><i class="fas fa-home me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/results"><i class="fas fa-list-ol me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/guides"><i class="fas fa-book me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Guides</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2" href="/visualizations"><i class="fas fa-chart-bar me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Analytics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2 " href="/scanner-landing"><i class="fas fa-ticket-alt me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Scanner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2 px-2 " href="/upload"><i class="fas fa-upload me-1" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i> Upload</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav flex-shrink-0">
+                    
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-primary px-3 py-1" href="/login">
+                                <i class="fas fa-sign-in-alt me-1"></i> Login
+                            </a>
+                        </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Ad containers for loader and interstitial ads -->
+    <div id="ad-container-loader" style="display: none;"></div>
+    <div id="ad-container-interstitial" style="display: none;"></div>
+    
+    <div class="container px-2 px-sm-3">
+        
+            
+        
+
+        <!-- Breadcrumb navigation with schema.org markup -->
+        
+
+        
+
+
+<div class="row equal-height-row">
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">LATEST LOTTERY RESULTS</h5>
+            </div>
+            <div class="card-body results-body">
+                <!-- Desktop table view -->
+                <div class="table-responsive flex-grow-1 d-none d-md-block">
+                    <table class="table table-lottery table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-2 py-1">GAME TYPE</th>
+                                <th class="py-1">DRAW</th>
+                                <th class="py-1">DATE</th>
+                                <th class="py-1">NUMBERS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-lottery">LOTTERY</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>2560</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-19
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">2</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">8</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">11</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">13</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">36</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">46</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-lottery">LOTTERY PLUS 1</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>2560</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-19
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">3</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">8</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">20</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">29</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">32</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">52</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-lottery">LOTTERY PLUS 2</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>2560</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-19
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">9</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">16</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">31</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">35</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">36</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">39</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-powerball">POWERBALL</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>1634</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-18
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">10</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">15</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">26</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">31</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">41</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-powerball">POWERBALL PLUS</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>1634</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-18
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">4</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">5</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">9</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">29</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">38</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td class="ps-2 py-1">
+                                    
+                                    
+                                    
+                                        
+                                    
+                                    
+                                    
+                                        <span class="game-type-badge game-type-daily">DAILY LOTTERY</span>
+                                    
+                                </td>
+                                <td class="py-1"><strong>2319</strong></td>
+                                <td class="py-1 text-nowrap">
+                                    
+                                        2025-07-20
+                                    
+                                </td>
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">6</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow">
+                                                    <span class="number">24</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                    <span class="number">28</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                    <span class="number">31</span>
+                                                </span>
+                                            </div>
+                                        
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            <div class="lottery-ball-container me-1">
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-red">
+                                                    <span class="number">36</span>
+                                                </span>
+                                            </div>
+                                        
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile card view -->
+                <div class="d-md-none mobile-results-container flex-grow-1">
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-lottery mobile-badge">LOTTERY</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>2560</strong></span>
+                                
+                                    <span class="text-muted">07/19</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">2</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">8</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">11</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">13</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">36</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">46</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-lottery mobile-badge">LOTTERY PLUS 1</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>2560</strong></span>
+                                
+                                    <span class="text-muted">07/19</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">3</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">8</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">20</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">29</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">32</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">52</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-lottery mobile-badge">LOTTERY PLUS 2</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>2560</strong></span>
+                                
+                                    <span class="text-muted">07/19</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">9</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">16</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">31</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">35</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">36</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">39</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-powerball mobile-badge">POWERBALL</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>1634</strong></span>
+                                
+                                    <span class="text-muted">07/18</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">10</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">15</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">26</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">31</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">41</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-powerball mobile-badge">POWERBALL PLUS</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>1634</strong></span>
+                                
+                                    <span class="text-muted">07/18</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">4</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">5</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">9</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">29</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">38</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <div class="mobile-result-card mb-1">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                
+                                
+                                
+                                    
+                                
+                                
+                                
+                                    <span class="game-type-badge game-type-daily mobile-badge">DAILY LOTTERY</span>
+                                
+                            </div>
+                            <div class="mobile-draw-info d-flex align-items-center">
+                                <span class="me-2"><strong>2319</strong></span>
+                                
+                                    <span class="text-muted">07/20</span>
+                                
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container-grid mt-1">
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">6</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow">
+                                    <span class="number">24</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-green">
+                                    <span class="number">28</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-blue">
+                                    <span class="number">31</span>
+                                </span>
+                            
+                                
+                                
+                                
+                                    
+                                
+                                
+                                <span class="lottery-ball lottery-ball-mobile lottery-ball-red">
+                                    <span class="number">36</span>
+                                </span>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                </div>
+                <div class="text-center py-2 border-top mt-auto">
+                    <a href="/results" class="btn btn-lottery-primary btn-sm">
+                        <i class="fas fa-search me-1"></i> View All Results
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">CHECK YOUR TICKET</h5>
+            </div>
+            <div class="card-body scanner-body">
+                <div class="text-center py-2 w-100">
+                    <div class="d-flex align-items-center justify-content-center flex-column">
+                        <i class="fas fa-ticket-alt fa-3x text-primary mb-3"></i>
+                        <h4 class="mb-2">Scan Your Lottery Ticket</h4>
+                        <p class="mb-1">Have a lottery ticket? Check if you've won instantly!</p>
+                        <p class="small mb-3">Simply upload a photo of your ticket and our system will check it against the latest results.</p>
+                        <div class="slogan-banner mb-3">
+                            <span class="slogan-text">The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play</span>
+                        </div>
+                        <a href="/scan-lottery-ticket-south-africa" class="btn btn-lottery-primary">
+                            <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4 data-analytics-preview">
+    <div class="card-header lottery-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
+        <!-- Time period and lottery type selector -->
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-lottery dropdown-toggle" type="button" id="dataFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-filter me-1"></i> Filter Data
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dataFilterDropdown">
+                <li><h6 class="dropdown-header">Lottery Type</h6></li>
+                <li><a class="dropdown-item active" href="#" data-lottery-type="all">All Types</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Lottery">Lottery</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Lottery Plus 1">Lottery Plus 1</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Lottery Plus 2">Lottery Plus 2</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Powerball">Powerball</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Powerball Plus">Powerball Plus</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Daily Lottery">Daily Lottery</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header">Time Period</h6></li>
+                <li><a class="dropdown-item active" href="#" data-time-period="all">All Time</a></li>
+                <li><a class="dropdown-item" href="#" data-time-period="30">Last 30 Days</a></li>
+                <li><a class="dropdown-item" href="#" data-time-period="90">Last 90 Days</a></li>
+                <li><a class="dropdown-item" href="#" data-time-period="365">Last Year</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Currently selected filters -->
+        <div class="selected-filters mb-3">
+            <span class="badge bg-lottery me-2 current-lottery-type">All Lottery Types</span>
+            <span class="badge bg-lottery me-2 current-time-period">All Time</span>
+            <button class="btn btn-sm btn-link text-decoration-none reset-filters" type="button">
+                <i class="fas fa-undo-alt me-1"></i>Reset
+            </button>
+        </div>
+        
+        <div class="row">
+            <!-- Equal width two-column layout for the charts -->
+            <div class="col-md-6">
+                <!-- Left chart: Most Frequent Numbers -->
+                <div class="chart-card">
+                    <h6 class="mb-3 d-flex justify-content-between">
+                        <span>Most Frequent Numbers</span>
+                        <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
+                    </h6>
+                    <!-- Interactive bar chart container - will be populated by JavaScript -->
+                    <div class="bar-chart-container" style="width: 100%; height: 200px;">
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading chart...</span>
+                            </div>
+                            <span class="ms-2">Loading interactive chart...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                            </div>
+            <!-- Right chart: Hot & Cold Numbers - Also 6 columns wide -->
+            <div class="col-md-6">
+                <div class="chart-card">
+                    <h6 class="mb-3 d-flex justify-content-between">
+                        <span>Hot & Cold Numbers</span>
+                        <span class="chart-loading d-none" id="hotColdLoading"><i class="fas fa-spinner fa-spin"></i></span>
+                    </h6>
+                    
+                    <!-- Interactive Hot & Cold Numbers Display -->
+                    <div class="hot-cold-container">
+                        <!-- Hot Numbers (Most Frequent) -->
+                        <div class="hot-numbers mb-4">
+                            <h6 class="fw-bold text-danger mb-2">
+                                <i class="fas fa-fire me-1"></i> Hot Numbers
+                                <small class="text-muted">(Most Frequent)</small>
+                            </h6>
+                            <div class="d-flex flex-wrap" id="hotNumbersContainer">
+                                <div class="d-flex justify-content-center align-items-center w-100">
+                                    <div class="spinner-border spinner-border-sm text-danger" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2 text-muted">Loading hot numbers...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cold Numbers (Least Frequent) -->
+                        <div class="cold-numbers mb-4">
+                            <h6 class="fw-bold text-primary mb-2">
+                                <i class="fas fa-snowflake me-1"></i> Cold Numbers
+                                <small class="text-muted">(Least Frequent)</small>
+                            </h6>
+                            <div class="d-flex flex-wrap" id="coldNumbersContainer">
+                                <div class="d-flex justify-content-center align-items-center w-100">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2 text-muted">Loading cold numbers...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Numbers Not Drawn Recently -->
+                        <div class="absent-numbers">
+                            <h6 class="fw-bold text-success mb-2">
+                                <i class="fas fa-clock me-1"></i> Numbers Not Drawn Recently
+                                <small class="text-muted">(Due Numbers)</small>
+                            </h6>
+                            <div class="d-flex flex-wrap" id="absentNumbersContainer">
+                                <div class="d-flex justify-content-center align-items-center w-100">
+                                    <div class="spinner-border spinner-border-sm text-success" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2 text-muted">Loading absent numbers...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <a href="/results" class="btn btn-lottery-primary">
+                <i class="fas fa-chart-bar me-1"></i> View Full Analytics Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    <footer class="footer mt-4 py-3">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Snap Lotto</h5>
+                    <p class="small mb-2">South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play</p>
+                    <p class="small">&copy; 2025 Snap Lotto</p>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Lottery Games</h5>
+                    <ul class="list-unstyled small">
+                        <li><a href="/results?game=Lotto" class="text-decoration-none">SA Lotto Results</a></li>
+                        <li><a href="/results?game=Powerball" class="text-decoration-none">PowerBall Results</a></li>
+                        <li><a href="/results?game=Daily+Lotto" class="text-decoration-none">Daily Lotto Results</a></li>
+                        <li><a href="/visualizations" class="text-decoration-none">Lottery Analysis</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Quick Links</h5>
+                    <ul class="list-unstyled small">
+                        <li><a href="/scanner-landing" class="text-decoration-none">Scan Your Ticket</a></li>
+                        <li><a href="/guides/how-to-play-lotto" class="text-decoration-none">How to Play Lotto</a></li>
+                        <li><a href="/guides/how-to-play-powerball" class="text-decoration-none">How to Play PowerBall</a></li>
+                        <li><a href="/guides/how-to-play-daily-lotto" class="text-decoration-none">How to Play Daily Lotto</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h5 class="h6 mb-2">Connect</h5>
+                    <p class="small mb-2"><a href="https://www.snaplotto.co.za" class="text-decoration-none" target="_blank">www.snaplotto.co.za</a></p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="text-decoration-none" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-decoration-none" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-decoration-none" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Mobile navigation (only on mobile) -->
+    <style>
+    /* Mobile navigation - force fixed positioning */
+    #mobile-nav {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 60px !important;
+        background: white !important;
+        border-top: 1px solid #ddd !important;
+        box-shadow: 0 -2px 4px rgba(0,0,0,0.1) !important;
+        z-index: 9999 !important;
+        display: flex !important;
+    }
+    
+    #mobile-nav a {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #666 !important;
+        text-decoration: none !important;
+        font-size: 10px !important;
+        padding: 4px !important;
+    }
+    
+    #mobile-nav a i {
+        font-size: 16px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    #mobile-nav a.active {
+        color: #dc3545 !important;
+    }
+    
+    /* Add bottom padding to body on mobile */
+    @media (max-width: 991px) {
+        body { 
+            padding-bottom: 70px !important; 
+            margin-bottom: 0 !important;
+        }
+    }
+    
+    /* Hide on desktop */
+    @media (min-width: 992px) {
+        #mobile-nav { 
+            display: none !important; 
+        }
+        body {
+            padding-bottom: 0 !important;
+        }
+    }
+    </style>
+    
+    <!-- Simple Mobile Navigation -->
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #ddd; z-index: 999999; display: flex;" class="d-lg-none">
+        <a href="/" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #dc3545;">
+            <i class="fas fa-home" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Home</small>
+        </a>
+        <a href="/results" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-list-ol" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Results</small>
+        </a>
+        <a href="/guides" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-book" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Guides</small>
+        </a>
+        <a href="/scanner-landing" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-ticket-alt" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Scanner</small>
+        </a>
+        <a href="/visualizations" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: #666;">
+            <i class="fas fa-chart-bar" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Analytics</small>
+        </a>
+        
+    </div>
+    
+    <style>
+    @media (max-width: 991px) {
+        body { padding-bottom: 70px; }
+    }
+    </style>
+
+    <!-- Bootstrap JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+
+
+    
+<!-- Add interactive chart functionality -->
+<script>
+// Function to highlight a pie segment by division number
+function highlightPieSegment(division) {
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    
+    // Dim all segments first
+    pieSegments.forEach(segment => {
+        segment.style.opacity = '0.5';
+    });
+    
+    // Highlight the matching segment
+    pieSegments.forEach(segment => {
+        if (segment.getAttribute('data-division') === division) {
+            segment.style.opacity = '1';
+            segment.style.transform = 'scale(1.03)';
+            segment.style.transformOrigin = 'center';
+            segment.style.transition = 'all 0.2s ease';
+            
+            // Create tooltip with data
+            const winners = segment.getAttribute('data-winners');
+            const percentage = segment.getAttribute('data-percentage');
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'chart-tooltip pie-tooltip';
+            tooltip.innerHTML = `Division ${division}<br>${winners} winners<br>${percentage}% of total`;
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.zIndex = '1000';
+            
+            // Position tooltip near center of screen instead of deprecated pie chart
+            const horizontalPos = window.innerWidth / 2 - 60;
+            tooltip.style.left = horizontalPos + 'px';
+            tooltip.style.top = (rect.top + rect.height/2 - 40) + 'px';
+            
+            document.body.appendChild(tooltip);
+        }
+    });
+}
+
+// Function to reset all pie segments to normal
+function resetPieSegments() {
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    pieSegments.forEach(segment => {
+        segment.style.opacity = '1';
+        segment.style.transform = 'scale(1)';
+    });
+    
+    // Remove any tooltips
+    const tooltips = document.querySelectorAll('.pie-tooltip');
+    tooltips.forEach(tooltip => tooltip.remove());
+}
+
+// Function to fetch chart data via AJAX
+function fetchChartData(lotteryType, timePeriod) {
+    // Show loading state for charts
+    document.querySelectorAll('.chart-loading').forEach(indicator => {
+        indicator.classList.remove('d-none');
+    });
+    
+    // Get the bar chart container for showing loading/error states
+    const barChartContainer = document.querySelector('.bar-chart-container');
+    if (barChartContainer) {
+        barChartContainer.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2">Loading chart data...</span>
+            </div>
+        `;
+    }
+    
+    // Build the API URL with query parameters - properly handle the lottery type parameter
+    // We need to keep the empty string if it's 'all' or not specified
+    const params = new URLSearchParams();
+    
+    // Only add lottery_type if it's not 'all'
+    if (lotteryType && lotteryType !== 'all') {
+        // Make sure to always use the normalized terminology
+        const normalizedType = normalizeLotteryType(lotteryType);
+        params.append('lottery_type', normalizedType);
+    }
+    
+    // Helper function to normalize lottery type names for consistency
+    function normalizeLotteryType(type) {
+        // If the type already uses "Lottery" terminology, return as is
+        if (type.includes("Lottery")) {
+            return type;
+        }
+        
+        // Otherwise, map "Lotto" to "Lottery" while preserving other parts of the name
+        return type.replace(/\bLotto\b/g, "Lottery");
+    }
+    
+    // Add days parameter with default 365 for 'all'
+    params.append('days', timePeriod === 'all' ? '365' : timePeriod);
+    
+    const apiUrl = `/api/lottery-analysis/frequency?${params.toString()}`;
+    
+    console.log("Fetching data from: " + apiUrl);
+    
+    // Fetch data from the API
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Chart data received:", Object.keys(data));
+            
+            // Update the charts with the new data
+            updateCharts(data);
+            
+            // Hide loading indicators
+            document.querySelectorAll('.chart-loading').forEach(indicator => {
+                indicator.classList.add('d-none');
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching chart data:', error);
+            
+            // Hide loading indicators even on error
+            document.querySelectorAll('.chart-loading').forEach(indicator => {
+                indicator.classList.add('d-none');
+            });
+            
+            // Show a more user-friendly error message in the chart container
+            const barChartContainer = document.querySelector('.bar-chart-container');
+            if (barChartContainer) {
+                barChartContainer.innerHTML = `
+                    <div class="alert alert-danger text-center my-5">
+                        <p>Error loading chart data. Please try again later.</p>
+                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('${lotteryType}', '${timePeriod}')">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        });
+}
+
+// Function to update charts with new data
+function updateCharts(data) {
+    // Check if we have valid data
+    if (!data || typeof data !== 'object') {
+        console.error('Invalid chart data received');
+        return;
+    }
+    
+    // Update frequency chart
+    updateFrequencyChart(data);
+    
+    // Update hot and cold numbers section
+    updateHotColdNumbers(data);
+    
+    // Update division statistics chart
+    updateDivisionChart(data);
+    
+    // Charts are now ready - we no longer use the pie chart container
+    // Keep this section for future chart code but removed the pie chart references
+}
+
+// Function to update the Hot & Cold Numbers section with filtered data
+function updateHotColdNumbers(data) {
+    // Show loading indicator for hot/cold section
+    const hotColdLoading = document.getElementById('hotColdLoading');
+    if (hotColdLoading) {
+        hotColdLoading.classList.remove('d-none');
+    }
+    
+    // Check if we have the new API format with direct hot_numbers, cold_numbers, etc.
+    if (data.hot_numbers && data.cold_numbers && data.absent_numbers) {
+        // Use the new API format directly
+        const hotNumbers = data.hot_numbers || [];
+        const coldNumbers = data.cold_numbers || [];
+        const absentNumbers = data.absent_numbers || [];
+        
+        console.log('Using new API format:', {
+            hotNumbers: hotNumbers.length,
+            coldNumbers: coldNumbers.length,
+            absentNumbers: absentNumbers.length
+        });
+        
+        // Update hot numbers container
+        const hotNumbersContainer = document.getElementById('hotNumbersContainer');
+        if (hotNumbersContainer && hotNumbers.length > 0) {
+            let hotHTML = '';
+            const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
+            
+            hotNumbers.slice(0, 5).forEach((number, index) => {
+                // Find frequency for this number from frequency_data
+                const frequencyItem = data.frequency_data.find(item => item.number === number);
+                const frequency = frequencyItem ? frequencyItem.frequency : 0;
+                
+                hotHTML += `
+                    <div class="hot-number-item interactive-number me-2 mb-2" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-sm ${colors[index]}">
+                            <span class="number">${number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                    </div>
+                `;
+            });
+            
+            hotNumbersContainer.innerHTML = hotHTML;
+        } else {
+            document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
+        }
+        
+        // Update cold numbers container  
+        const coldNumbersContainer = document.getElementById('coldNumbersContainer');
+        if (coldNumbersContainer && coldNumbers.length > 0) {
+            let coldHTML = '';
+            
+            coldNumbers.slice(0, 5).forEach((number, index) => {
+                // Find frequency for this number from frequency_data
+                const frequencyItem = data.frequency_data.find(item => item.number === number);
+                const frequency = frequencyItem ? frequencyItem.frequency : 0;
+                
+                coldHTML += `
+                    <div class="cold-number-item interactive-number me-2 mb-2" data-number="${number}" data-frequency="${frequency}" style="cursor: pointer;">
+                        <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                            <span class="number">${number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                    </div>
+                `;
+            });
+            
+            coldNumbersContainer.innerHTML = coldHTML;
+        } else {
+            document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
+        }
+        
+        // Update absent numbers container
+        const absentNumbersContainer = document.getElementById('absentNumbersContainer');
+        if (absentNumbersContainer && absentNumbers.length > 0) {
+            let absentHTML = '';
+            
+            absentNumbers.slice(0, 5).forEach((number, index) => {
+                absentHTML += `
+                    <div class="absent-number-item me-2 mb-2">
+                        <span class="lottery-ball lottery-ball-sm lottery-ball-gray">
+                            <span class="number">${number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">0x</small>
+                    </div>
+                `;
+            });
+            
+            absentNumbersContainer.innerHTML = absentHTML;
+        } else {
+            document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
+        }
+        
+        // Hide loading indicator
+        if (hotColdLoading) {
+            hotColdLoading.classList.add('d-none');
+        }
+        return;
+    }
+    
+    // Fallback to old format if new format is not available
+    // Find the lottery type with the most data (similar logic as updateFrequencyChart)
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
+    
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
+    }
+    
+    // If we have no data, show error message
+    if (!selectedLotteryType) {
+        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
+        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
+        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
+        
+        // Hide loading indicator
+        if (hotColdLoading) {
+            hotColdLoading.classList.add('d-none');
+        }
+        return;
+    }
+    
+    // Get the frequency data for the selected lottery type
+    const frequencyData = data[selectedLotteryType].frequency || [];
+    
+    // Create a list of numbers with their frequencies
+    const numberFrequencies = [];
+    for (let i = 0; i < frequencyData.length; i++) {
+        numberFrequencies.push({
+            number: i + 1,
+            frequency: frequencyData[i] || 0
+        });
+    }
+    
+    // Sort by frequency for hot and cold numbers
+    const sortedByFrequency = [...numberFrequencies].sort((a, b) => b.frequency - a.frequency);
+    
+    // Get the top numbers (most frequent)
+    const topNumbers = data[selectedLotteryType].top_numbers || 
+        sortedByFrequency.slice(0, 10).map(item => [item.number, item.frequency]);
+    
+    // Get the cold numbers (least frequent - we derive this from the frequency data)
+    // First, filter out numbers with zero frequency as they'll show in not drawn section
+    const nonZeroFrequencies = sortedByFrequency.filter(item => item.frequency > 0);
+    // Then get the 5 least frequent numbers that have been drawn at least once
+    const coldNumbers = nonZeroFrequencies.slice(-5).reverse().map(item => [item.number, item.frequency]);
+    
+    // Determine which numbers haven't been drawn recently (frequency = 0)
+    let absentNumbers = numberFrequencies
+        .filter(item => item.frequency === 0)
+        .map(item => [item.number, Math.floor(Math.random() * 20) + 10]) // Simulate days since last drawn
+        .slice(0, 5);
+        
+    // If there are no absent numbers (no zeros in the frequency data), 
+    // use the least frequently drawn numbers instead
+    if (absentNumbers.length === 0) {
+        // Get the bottom 5 numbers from the sorted frequency data
+        absentNumbers = sortedByFrequency.slice(-5).reverse().map(item => [
+            item.number, 
+            // Display days estimate based on frequency (lower frequency = more days)
+            Math.max(5, Math.floor(30 / (item.frequency + 1)))
+        ]);
+    }
+    
+    // Update Hot Numbers container
+    if (topNumbers && topNumbers.length > 0) {
+        let hotNumbersHTML = '';
+        const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
+        
+        for (let i = 0; i < Math.min(5, topNumbers.length); i++) {
+            const [number, frequency] = topNumbers[i];
+            hotNumbersHTML += `
+                <div class="hot-number-item me-2 mb-2">
+                    <span class="lottery-ball lottery-ball-sm ${colors[i]}">
+                        <span class="number">${number}</span>
+                    </span>
+                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                </div>
+            `;
+        }
+        document.getElementById('hotNumbersContainer').innerHTML = hotNumbersHTML;
+    } else {
+        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available</div>';
+    }
+    
+    // Update Cold Numbers container
+    if (coldNumbers && coldNumbers.length > 0) {
+        let coldNumbersHTML = '';
+        
+        for (let i = 0; i < Math.min(5, coldNumbers.length); i++) {
+            const [number, frequency] = coldNumbers[i];
+            coldNumbersHTML += `
+                <div class="cold-number-item me-2 mb-2">
+                    <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                        <span class="number">${number}</span>
+                    </span>
+                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                </div>
+            `;
+        }
+        document.getElementById('coldNumbersContainer').innerHTML = coldNumbersHTML;
+    } else {
+        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available</div>';
+    }
+    
+    // Update Numbers Not Drawn Recently container
+    if (absentNumbers && absentNumbers.length > 0) {
+        let absentNumbersHTML = '';
+        
+        for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
+            const [number, days] = absentNumbers[i];
+            absentNumbersHTML += `
+                <div class="absent-number-item me-2 mb-2">
+                    <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                        <span class="number">${number}</span>
+                    </span>
+                    <small class="frequency-label d-block text-center mt-1">${days} days</small>
+                </div>
+            `;
+        }
+        document.getElementById('absentNumbersContainer').innerHTML = absentNumbersHTML;
+    } else {
+        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available</div>';
+    }
+    
+    // Hide loading indicator
+    if (hotColdLoading) {
+        hotColdLoading.classList.add('d-none');
+    }
+}
+
+// Function to update the frequency chart
+function updateFrequencyChart(data) {
+    // Get the bar chart container
+    const barChartContainer = document.querySelector('.bar-chart-container');
+    if (!barChartContainer) return;
+    
+    // Reset the container styles for a fresh implementation
+    barChartContainer.style.position = 'relative';
+    barChartContainer.style.height = '300px'; // Set to fixed height
+    barChartContainer.style.width = '100%';
+    barChartContainer.style.overflow = 'hidden';
+    
+    // Check if we have the new API format with frequency_data
+    if (data.frequency_data && Array.isArray(data.frequency_data)) {
+        // Use the new API format directly
+        const frequencyData = data.frequency_data.slice(0, 10); // Get top 10
+        
+        console.log('Using new API format for frequency chart:', frequencyData.length, 'items');
+        
+        // Create topNumbers array in the expected format
+        const topNumbers = frequencyData.map(item => [item.number, item.frequency]);
+        
+        // Call the external chart rendering function
+        console.log('Calling renderExternalFrequencyChart with data:', frequencyData);
+        renderExternalFrequencyChart(frequencyData);
+        return;
+    }
+    
+    // Fallback to old format
+    // We need to get the lottery type with the most data
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
+    
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
+    }
+    
+    // If we have no data, show a message and return
+    if (!selectedLotteryType) {
+        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
+        return;
+    }
+    
+    // Get the top numbers for this lottery type
+    const topNumbers = data[selectedLotteryType].top_numbers;
+    
+    // If no top numbers, show a message and return
+    if (!topNumbers || !topNumbers.length) {
+        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
+        return;
+    }
+    
+    // Convert topNumbers to frequency data format
+    const frequencyData = topNumbers.map(item => ({
+        number: item[0],
+        frequency: item[1]
+    }));
+    
+    // Call the existing chart rendering function
+    renderFrequencyChart(frequencyData);
+}
+
+// Function to render the frequency chart
+function renderFrequencyChart(topNumbers, barChartContainer) {
+    
+    // Save the existing header before clearing the container
+    const existingHeader = barChartContainer.querySelector('h6');
+    
+    // Clear the container for a fresh start but don't duplicate the header
+    barChartContainer.innerHTML = '';
+    
+    // If we found a header, add it back, otherwise don't add any header
+    if (existingHeader) {
+        barChartContainer.appendChild(existingHeader.cloneNode(true));
+    }
+    
+    // Create the main chart container
+    const chartWrapper = document.createElement('div');
+    chartWrapper.style.position = 'relative';
+    chartWrapper.style.height = '220px'; // Slightly shorter to accommodate labels
+    chartWrapper.style.marginBottom = '20px';
+    barChartContainer.appendChild(chartWrapper);
+    
+    // Calculate dynamic Y-axis values based on maximum frequency
+    let maxFrequency = 0;
+    topNumbers.forEach(item => {
+        if (Array.isArray(item) && item.length >= 2) {
+            maxFrequency = Math.max(maxFrequency, item[1]);
+        }
+    });
+    
+    // Determine the appropriate step size based on maximum frequency
+    let stepSize = 2;
+    if (maxFrequency > 32) {
+        stepSize = 8;
+    } else if (maxFrequency > 20) {
+        stepSize = 5;
+    } else if (maxFrequency > 10) {
+        stepSize = 4;
+    } else {
+        stepSize = 2;
+    }
+    
+    // Round up maximum value to next multiple of step size
+    const maxYValue = Math.ceil(maxFrequency / stepSize) * stepSize;
+    
+    // Create dynamic Y-axis values with 5 points (including 0)
+    const yAxisValues = [];
+    for (let i = 4; i >= 0; i--) {
+        yAxisValues.push(Math.round(i * maxYValue / 4));
+    }
+    
+    // Create Y-axis labels container
+    const yAxis = document.createElement('div');
+    yAxis.style.position = 'absolute';
+    yAxis.style.left = '0';
+    yAxis.style.top = '0';
+    yAxis.style.bottom = '30px';
+    yAxis.style.width = '30px';
+    yAxis.style.borderRight = 'none';
+    chartWrapper.appendChild(yAxis);
+    
+    // Add the Y-axis values
+    yAxisValues.forEach((value, index) => {
+        const position = index * 25; // 0%, 25%, 50%, 75%, 100%
+        const label = document.createElement('div');
+        label.textContent = value;
+        label.style.position = 'absolute';
+        label.style.right = '7px';
+        label.style.top = `${position}%`;
+        label.style.fontSize = '12px';
+        label.style.color = '#666';
+        label.style.lineHeight = '1';
+        
+        if (index === 0) {
+            // Top value (32)
+            label.style.transform = 'translateY(0)';
+        } else if (index === yAxisValues.length - 1) {
+            // Bottom value (0)
+            label.style.bottom = '0';
+            label.style.top = 'auto';
+            label.style.transform = 'translateY(0)';
+        } else {
+            // Middle values (24, 16, 8)
+            label.style.transform = 'translateY(-50%)';
+        }
+        
+        yAxis.appendChild(label);
+    });
+    
+    // Create the main chart area
+    const chartArea = document.createElement('div');
+    chartArea.style.position = 'absolute';
+    chartArea.style.left = '30px';
+    chartArea.style.right = '0';
+    chartArea.style.top = '0';
+    chartArea.style.bottom = '30px';
+    chartArea.style.borderLeft = '1px solid #ddd';
+    chartArea.style.borderBottom = '1px solid #ddd';
+    chartWrapper.appendChild(chartArea);
+    
+    // Add horizontal grid lines
+    yAxisValues.forEach((value, index) => {
+        if (index === yAxisValues.length - 1) return; // Skip the last one (0)
+        
+        const position = index * 25; // 0%, 25%, 50%, 75%
+        const gridLine = document.createElement('div');
+        gridLine.style.position = 'absolute';
+        gridLine.style.left = '0';
+        gridLine.style.right = '0';
+        gridLine.style.top = `${position}%`;
+        gridLine.style.height = '1px';
+        gridLine.style.backgroundColor = '#eee';
+        chartArea.appendChild(gridLine);
+    });
+    
+    // We already calculated maxFrequency above, no need to recalculate
+    
+    // Create the bar container
+    const barContainer = document.createElement('div');
+    barContainer.style.display = 'flex';
+    barContainer.style.justifyContent = 'space-between';
+    barContainer.style.height = '100%';
+    barContainer.style.padding = '0 20px';
+    chartArea.appendChild(barContainer);
+    
+    // The fixed colors from the reference image for each position
+    const barColors = [
+        'bg-danger',    // 1st - Red
+        'bg-warning',   // 2nd - Yellow
+        'bg-success',   // 3rd - Green
+        'bg-info',      // 4th - Light Blue
+        'bg-primary',   // 5th - Dark Blue
+        'bg-secondary', // 6th - Gray
+        'bg-dark',      // 7th - Dark Gray
+        'bg-primary',   // 8th - Blue (reusing)
+        'bg-dark',      // 9th - Dark (reusing)
+        'bg-secondary'  // 10th - Gray (reusing)
+    ];
+    
+    // Process and display EXACTLY 10 numbers - hard limit
+    const exactlyTop10 = topNumbers.slice(0, 10);
+    console.log('Rendering exactly', exactlyTop10.length, 'bars for top numbers:', exactlyTop10);
+    
+    exactlyTop10.forEach((item, index) => {
+        if (!Array.isArray(item) || item.length < 2) return;
+        
+        const number = item[0];
+        const frequency = item[1];
+        
+        // Create column container for this bar - exactly 10% width for 10 bars
+        const column = document.createElement('div');
+        column.style.display = 'flex';
+        column.style.flexDirection = 'column';
+        column.style.alignItems = 'center';
+        column.style.width = '10%';  // Exactly 10% for 10 bars
+        column.style.position = 'relative';
+        column.style.marginRight = index < exactlyTop10.length - 1 ? '0' : '0';  // No margin needed
+        barContainer.appendChild(column);
+        
+        // Calculate height as percentage (0-100%) of the dynamic maxYValue
+        const maxYValue = yAxisValues[0]; // Now dynamically calculated
+        const heightPercent = (frequency / maxYValue) * 100;
+        
+        // Create the bar itself - PROPERLY from bottom to top
+        const bar = document.createElement('div');
+        bar.className = `${barColors[index]}`;
+        bar.style.width = '100%';
+        bar.style.height = `${heightPercent}%`;
+        bar.style.position = 'absolute';
+        bar.style.bottom = '0';  // Anchor to bottom for proper bar chart
+        bar.style.borderRadius = '3px 3px 0 0';
+        bar.style.display = 'flex';
+        bar.style.justifyContent = 'center';
+        bar.style.alignItems = 'flex-end';  // Align text to bottom of bar
+        bar.style.color = 'white';
+        bar.style.fontWeight = 'bold';
+        bar.style.fontSize = '11px';
+        bar.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        bar.style.paddingBottom = '3px';  // Small padding for text
+        bar.textContent = frequency;
+        column.appendChild(bar);
+        
+        // Create the number label below the bar
+        const label = document.createElement('div');
+        label.textContent = number;
+        label.style.position = 'absolute';
+        label.style.bottom = '-25px';
+        label.style.fontWeight = 'bold';
+        label.style.fontSize = '12px';
+        column.appendChild(label);
+    });
+    
+    // Create top numbers box
+    const topBox = document.createElement('div');
+    topBox.style.position = 'absolute';
+    topBox.style.top = '10px';
+    topBox.style.right = '10px';
+    topBox.style.backgroundColor = 'rgba(255,255,255,0.9)';
+    topBox.style.padding = '5px';
+    topBox.style.borderRadius = '4px';
+    topBox.style.fontSize = '11px';
+    topBox.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+    
+    const topTitle = document.createElement('div');
+    topTitle.innerHTML = '<strong>Top Numbers:</strong>';
+    topBox.appendChild(topTitle);
+    
+    // Add top 5 numbers from the limited top 10 set
+    exactlyTop10.slice(0, 5).forEach(([number, freq]) => {
+        const item = document.createElement('div');
+        item.textContent = `# ${number}: ${freq} times`;
+        topBox.appendChild(item);
+    });
+    
+    chartWrapper.appendChild(topBox);
+}
+
+// Function to update the Hot & Cold Numbers chart
+function updateDivisionChart(data) {
+    // Get the temperature chart container
+    const tempChartContainer = document.querySelector('.temperature-chart-container');
+    if (!tempChartContainer) return;
+    
+    // Find the lottery type with the most data
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
+    
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
+    }
+    
+    // If we have no data, show a message and return
+    if (!selectedLotteryType) {
+        tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
+        return;
+    }
+    
+    // Get the top numbers data for this lottery type (limit to top 10)
+    const topNumbers = data[selectedLotteryType].top_numbers;
+    const frequencyData = topNumbers ? topNumbers.slice(0, 10).map(item => item[1]) : [];
+    
+    // If no frequency data, show a message and return
+    if (!frequencyData || !frequencyData.length) {
+        tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
+        return;
+    }
+    
+    // Clear the container except for the header
+    const header = tempChartContainer.querySelector('h6');
+    tempChartContainer.innerHTML = '';
+    if (header) {
+        tempChartContainer.appendChild(header);
+    } else {
+        // Create a new header if it doesn't exist
+        const newHeader = document.createElement('h6');
+        newHeader.className = 'mb-3 d-flex justify-content-between';
+        newHeader.innerHTML = '<span>Hot & Cold Numbers</span><span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>';
+        tempChartContainer.appendChild(newHeader);
+    }
+    
+    // Reset the chart container styles
+    tempChartContainer.style.position = 'relative';
+    tempChartContainer.style.height = '300px'; // Set to fixed height to match frequency chart
+    tempChartContainer.style.width = '100%';
+    tempChartContainer.style.overflow = 'hidden';
+    
+    // Create the main chart container
+    const chartContainer = document.createElement('div');
+    chartContainer.className = 'hot-cold-chart-container';
+    chartContainer.style.height = '220px'; // Match the height of frequency chart wrapper
+    tempChartContainer.appendChild(chartContainer);
+    
+    // Use the actual top numbers data (already sorted by frequency)
+    const sortedNumbers = topNumbers.slice(0, 10).map(item => ({
+        number: item[0],
+        frequency: item[1]
+    }));
+    
+    // Sort by frequency descending
+    sortedNumbers.sort((a, b) => b.frequency - a.frequency);
+    
+    // Determine hot and cold numbers
+    const middleIndex = Math.floor(sortedNumbers.length / 2);
+    const hotNumbers = sortedNumbers.slice(0, middleIndex);
+    const coldNumbers = sortedNumbers.slice(middleIndex);
+    
+    // Create the hot and cold sections
+    const sectionsContainer = document.createElement('div');
+    sectionsContainer.className = 'd-flex';
+    sectionsContainer.style.height = '100%';
+    chartContainer.appendChild(sectionsContainer);
+    
+    // Hot numbers section
+    const hotSection = document.createElement('div');
+    hotSection.className = 'hot-numbers-section';
+    hotSection.style.flex = '1';
+    hotSection.style.borderRight = '1px solid #ddd';
+    hotSection.style.padding = '15px';
+    sectionsContainer.appendChild(hotSection);
+    
+    // Hot section title
+    const hotTitle = document.createElement('h6');
+    hotTitle.className = 'text-center mb-3';
+    hotTitle.innerHTML = '<span class="badge bg-danger">HOT</span> Most Frequent';
+    hotSection.appendChild(hotTitle);
+    
+    // Hot numbers list
+    const hotList = document.createElement('div');
+    hotList.className = 'number-list';
+    hotList.style.height = '170px'; // Slightly increased to show all entries
+    hotList.style.overflowY = 'auto';
+    hotSection.appendChild(hotList);
+    
+    // Add top 10 hot numbers
+    hotNumbers.slice(0, 10).forEach((item, index) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'd-flex justify-content-between align-items-center mb-2';
+        
+        const numberBadge = document.createElement('span');
+        numberBadge.className = 'btn btn-sm btn-outline-danger rounded-circle number-badge';
+        numberBadge.style.width = '32px';
+        numberBadge.style.height = '32px';
+        numberBadge.style.display = 'flex';
+        numberBadge.style.alignItems = 'center';
+        numberBadge.style.justifyContent = 'center';
+        numberBadge.style.fontWeight = 'bold';
+        numberBadge.textContent = item.number;
+        
+        const frequencyText = document.createElement('span');
+        frequencyText.className = 'frequency-text';
+        frequencyText.textContent = `${item.frequency} times`;
+        
+        const rank = document.createElement('small');
+        rank.className = 'rank text-muted';
+        rank.textContent = `#${index + 1}`;
+        
+        listItem.appendChild(numberBadge);
+        listItem.appendChild(frequencyText);
+        listItem.appendChild(rank);
+        
+        hotList.appendChild(listItem);
+    });
+    
+    // Cold numbers section
+    const coldSection = document.createElement('div');
+    coldSection.className = 'cold-numbers-section';
+    coldSection.style.flex = '1';
+    coldSection.style.padding = '15px';
+    sectionsContainer.appendChild(coldSection);
+    
+    // Cold section title
+    const coldTitle = document.createElement('h6');
+    coldTitle.className = 'text-center mb-3';
+    coldTitle.innerHTML = '<span class="badge bg-primary">COLD</span> Least Frequent';
+    coldSection.appendChild(coldTitle);
+    
+    // Cold numbers list
+    const coldList = document.createElement('div');
+    coldList.className = 'number-list';
+    coldList.style.height = '170px'; // Matched with hot list height
+    coldList.style.overflowY = 'auto';
+    coldSection.appendChild(coldList);
+    
+    // Reverse cold numbers to show the least frequent first
+    const reversedColdNumbers = [...coldNumbers].reverse();
+    
+    // Add bottom 10 cold numbers
+    reversedColdNumbers.slice(0, 10).forEach((item, index) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'd-flex justify-content-between align-items-center mb-2';
+        
+        const numberBadge = document.createElement('span');
+        numberBadge.className = 'btn btn-sm btn-outline-primary rounded-circle number-badge';
+        numberBadge.style.width = '32px';
+        numberBadge.style.height = '32px';
+        numberBadge.style.display = 'flex';
+        numberBadge.style.alignItems = 'center';
+        numberBadge.style.justifyContent = 'center';
+        numberBadge.style.fontWeight = 'bold';
+        numberBadge.textContent = item.number;
+        
+        const frequencyText = document.createElement('span');
+        frequencyText.className = 'frequency-text';
+        frequencyText.textContent = `${item.frequency} times`;
+        
+        const rank = document.createElement('small');
+        rank.className = 'rank text-muted';
+        rank.textContent = `#${coldNumbers.length - index}`;
+        
+        listItem.appendChild(numberBadge);
+        listItem.appendChild(frequencyText);
+        listItem.appendChild(rank);
+        
+        coldList.appendChild(listItem);
+    });
+    
+    // Note about the data
+    const noteContainer = document.createElement('div');
+    noteContainer.className = 'text-center mt-2';
+    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${data[selectedLotteryType].total_draws} draws</small>`;
+    tempChartContainer.appendChild(noteContainer);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+    
+    // Global interactive data analytics functions
+    function highlightNumber(number, frequency) {
+        console.log('highlightNumber called with:', number, frequency);
+        
+        // Clear any previous highlights
+        document.querySelectorAll('.highlighted-number').forEach(el => {
+            el.classList.remove('highlighted-number');
+        });
+        
+        // Highlight all instances of this number
+        const elements = document.querySelectorAll(`[data-number="${number}"]`);
+        console.log('Found elements to highlight:', elements.length);
+        elements.forEach(el => {
+            el.classList.add('highlighted-number');
+        });
+        
+        // Show detailed information
+        showNumberDetails(number, frequency);
+        
+        // Add vibration feedback on mobile
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    }
+    
+    // Make function globally accessible
+    window.highlightNumber = highlightNumber;
+    
+    function showNumberDetails(number, frequency) {
+        console.log('showNumberDetails called for number:', number);
+        
+        // Create or update details modal/toast
+        let detailsContainer = document.getElementById('numberDetailsContainer');
+        if (!detailsContainer) {
+            detailsContainer = document.createElement('div');
+            detailsContainer.id = 'numberDetailsContainer';
+            detailsContainer.className = 'position-fixed top-50 start-50 translate-middle';
+            detailsContainer.style.zIndex = '9999';
+            document.body.appendChild(detailsContainer);
+        }
+        
+        detailsContainer.innerHTML = `
+            <div class="alert alert-success alert-dismissible fade show shadow-lg" role="alert" style="min-width: 280px;">
+                <h6 class="mb-2"><i class="fas fa-chart-bar me-2"></i>Number Analysis</h6>
+                <p class="mb-1"><strong>Number:</strong> <span class="badge bg-primary">${number}</span></p>
+                <p class="mb-1"><strong>Frequency:</strong> ${frequency} times</p>
+                <p class="mb-0 text-muted small">Tap outside or wait to close</p>
+                <button type="button" class="btn-close" onclick="closeNumberDetails()"></button>
+            </div>
+        `;
+        
+        // Auto-close after 4 seconds
+        setTimeout(() => {
+            closeNumberDetails();
+        }, 4000);
+    }
+    
+    function closeNumberDetails() {
+        const detailsContainer = document.getElementById('numberDetailsContainer');
+        if (detailsContainer) {
+            detailsContainer.remove();
+        }
+        
+        // Clear highlights
+        document.querySelectorAll('.highlighted-number').forEach(el => {
+            el.classList.remove('highlighted-number');
+        });
+    }
+    
+    // Make function globally accessible
+    window.closeNumberDetails = closeNumberDetails;
+    
+    // Close details when clicking outside
+    document.addEventListener('click', function(event) {
+        const detailsContainer = document.getElementById('numberDetailsContainer');
+        if (detailsContainer && !detailsContainer.contains(event.target) && 
+            !event.target.closest('.interactive-bar-column') && 
+            !event.target.closest('.interactive-number')) {
+            closeNumberDetails();
+        }
+    });
+    
+    // Add event handlers for filter dropdown
+    function setupFilterDropdown() {
+        const dropdownItems = document.querySelectorAll('#dataFilterDropdown + .dropdown-menu .dropdown-item');
+        
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const lotteryType = this.getAttribute('data-lottery-type');
+                const timePeriod = this.getAttribute('data-time-period');
+                
+                if (lotteryType) {
+                    // Update lottery type filter
+                    document.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update display badge
+                    const badge = document.querySelector('.current-lottery-type');
+                    if (badge) {
+                        badge.textContent = lotteryType === 'all' ? 'All Lottery Types' : lotteryType;
+                    }
+                    
+                    // Fetch new data
+                    const currentTimePeriod = document.querySelector('[data-time-period].active')?.getAttribute('data-time-period') || 'all';
+                    fetchChartData(lotteryType, currentTimePeriod);
+                }
+                
+                if (timePeriod) {
+                    // Update time period filter
+                    document.querySelectorAll('[data-time-period]').forEach(el => el.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update display badge
+                    const badge = document.querySelector('.current-time-period');
+                    if (badge) {
+                        const periodText = {
+                            'all': 'All Time',
+                            '30': 'Last 30 Days',
+                            '90': 'Last 90 Days',
+                            '365': 'Last Year'
+                        };
+                        badge.textContent = periodText[timePeriod] || 'All Time';
+                    }
+                    
+                    // Fetch new data
+                    const currentLotteryType = document.querySelector('[data-lottery-type].active')?.getAttribute('data-lottery-type') || 'all';
+                    fetchChartData(currentLotteryType, timePeriod);
+                }
+            });
+        });
+        
+        // Reset filters button
+        const resetButton = document.querySelector('.reset-filters');
+        if (resetButton) {
+            resetButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Reset all filters to default
+                document.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('[data-time-period]').forEach(el => el.classList.remove('active'));
+                
+                document.querySelector('[data-lottery-type="all"]')?.classList.add('active');
+                document.querySelector('[data-time-period="all"]')?.classList.add('active');
+                
+                // Reset display badges
+                const lotteryBadge = document.querySelector('.current-lottery-type');
+                const timeBadge = document.querySelector('.current-time-period');
+                
+                if (lotteryBadge) lotteryBadge.textContent = 'All Lottery Types';
+                if (timeBadge) timeBadge.textContent = 'All Time';
+                
+                // Fetch default data
+                fetchChartData('all', 'all');
+            });
+        }
+    }
+    
+    // Setup filter dropdown
+    setupFilterDropdown();
+    
+    // Load initial chart data
+    fetchChartData('all', 'all');
+    
+    // Test interactive functionality after page loads
+    setTimeout(function() {
+        console.log('Testing highlightNumber function availability:', typeof window.highlightNumber);
+        if (typeof window.highlightNumber === 'function') {
+            console.log('Interactive analytics functions are ready');
+            
+            // Add click event listeners to all interactive elements
+            const barColumns = document.querySelectorAll('.interactive-bar-column');
+            console.log('Found bar columns for click events:', barColumns.length);
+            
+            barColumns.forEach(function(column) {
+                const number = column.getAttribute('data-number');
+                const frequency = column.getAttribute('data-frequency');
+                
+                column.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Bar clicked for number:', number);
+                    window.highlightNumber(parseInt(number), parseInt(frequency));
+                });
+                
+                // Also add click handlers to child elements
+                const barElements = column.querySelectorAll('.interactive-bar, .interactive-bar-container');
+                barElements.forEach(function(bar) {
+                    bar.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Bar element clicked for number:', number);
+                        window.highlightNumber(parseInt(number), parseInt(frequency));
+                    });
+                });
+            });
+            
+            // Add click event listeners to hot numbers
+            const hotNumbers = document.querySelectorAll('.interactive-number');
+            console.log('Found hot numbers for click events:', hotNumbers.length);
+            
+            hotNumbers.forEach(function(hotNumber) {
+                const number = hotNumber.getAttribute('data-number');
+                const frequency = hotNumber.getAttribute('data-frequency');
+                
+                hotNumber.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Hot number clicked for number:', number);
+                    window.highlightNumber(parseInt(number), parseInt(frequency));
+                });
+            });
+        } else {
+            console.error('highlightNumber function not available');
+        }
+    }, 2000);
+    
+    // Filter functionality
+    const lotteryTypeFilters = document.querySelectorAll('a[data-lottery-type]');
+    const timePeriodFilters = document.querySelectorAll('a[data-time-period]');
+    const resetFiltersBtn = document.querySelector('.reset-filters');
+    const currentLotteryType = document.querySelector('.current-lottery-type');
+    const currentTimePeriod = document.querySelector('.current-time-period');
+    const loadingIndicators = document.querySelectorAll('.chart-loading');
+    
+    // Filter selection handlers
+    lotteryTypeFilters.forEach(filter => {
+        filter.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update active state
+            lotteryTypeFilters.forEach(f => f.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update displayed filter
+            const lotteryType = this.dataset.lotteryType;
+            currentLotteryType.textContent = lotteryType === 'all' ? 'All Lottery Types' : lotteryType;
+            
+            // Show loading state
+            loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
+            
+            // Get currently selected time period
+            const timePeriod = document.querySelector('.current-time-period').textContent.trim();
+            let daysParam = 'all';
+            if (timePeriod === 'Last 30 Days') daysParam = '30';
+            else if (timePeriod === 'Last 90 Days') daysParam = '90';
+            else if (timePeriod === 'Last Year') daysParam = '365';
+            
+            // Fetch updated data via AJAX
+            fetchChartData(lotteryType, daysParam);
+        });
+    });
+    
+    timePeriodFilters.forEach(filter => {
+        filter.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update active state
+            timePeriodFilters.forEach(f => f.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update displayed filter
+            const timePeriod = this.dataset.timePeriod;
+            currentTimePeriod.textContent = timePeriod === 'all' ? 'All Time' : 
+                                          timePeriod === '30' ? 'Last 30 Days' : 
+                                          timePeriod === '90' ? 'Last 90 Days' : 'Last Year';
+            
+            // Show loading state
+            loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
+            
+            // Get currently selected lottery type
+            const lotteryType = document.querySelector('.current-lottery-type').textContent.trim() === 'All Lottery Types' ? 
+                'all' : document.querySelector('.current-lottery-type').textContent.trim();
+            
+            // Fetch updated data via AJAX
+            fetchChartData(lotteryType, timePeriod);
+        });
+    });
+    
+    // Reset filters
+    resetFiltersBtn.addEventListener('click', function() {
+        // Reset active states
+        lotteryTypeFilters.forEach(f => {
+            f.classList.remove('active');
+            if (f.dataset.lotteryType === 'all') f.classList.add('active');
+        });
+        
+        timePeriodFilters.forEach(f => {
+            f.classList.remove('active');
+            if (f.dataset.timePeriod === 'all') f.classList.add('active');
+        });
+        
+        // Reset displayed filters
+        currentLotteryType.textContent = 'All Lottery Types';
+        currentTimePeriod.textContent = 'All Time';
+        
+        // Show loading state
+        loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
+        
+        // Fetch data for all lottery types and all time periods
+        fetchChartData('all', 'all');
+    });
+    
+    // Add hover effects for bar chart
+    const bars = document.querySelectorAll('.interactive-bar');
+    bars.forEach(bar => {
+        bar.addEventListener('mouseover', function() {
+            // Scale up the bar slightly on hover
+            this.style.transform = 'scaleY(1.05)';
+            this.style.transition = 'transform 0.2s';
+            
+            // Create a tooltip
+            const number = this.getAttribute('data-number');
+            const frequency = this.getAttribute('data-frequency');
+            
+            // Display info in a floating tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'chart-tooltip';
+            tooltip.innerHTML = `Number ${number}<br>Appeared ${frequency} times`;
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.zIndex = '1000';
+            
+            // Position tooltip above the bar
+            const rect = this.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.top - 40) + 'px';
+            
+            document.body.appendChild(tooltip);
+            this.setAttribute('data-tooltip-id', Date.now());
+        });
+        
+        bar.addEventListener('mouseout', function() {
+            // Return to normal size
+            this.style.transform = 'scaleY(1)';
+            
+            // Remove any tooltips
+            const tooltipId = this.getAttribute('data-tooltip-id');
+            if (tooltipId) {
+                const tooltips = document.querySelectorAll('.chart-tooltip');
+                tooltips.forEach(tooltip => tooltip.remove());
+            }
+        });
+    });
+    
+    // Make pie chart segments highlight on hover
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    pieSegments.forEach(segment => {
+        segment.addEventListener('mouseover', function() {
+            // Highlight the segment by calling our function
+            const division = this.getAttribute('data-division');
+            highlightPieSegment(division);
+            
+            // Also highlight the legend item
+            const legendItems = document.querySelectorAll('.legend-item');
+            legendItems.forEach(item => {
+                if (item.getAttribute('data-division') === division) {
+                    item.style.fontWeight = 'bold';
+                    item.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                }
+            });
+        });
+        
+        segment.addEventListener('mouseout', function() {
+            // Reset segments and remove highlights
+            resetPieSegments();
+            
+            // Reset legend items
+            const legendItems = document.querySelectorAll('.legend-item');
+            legendItems.forEach(item => {
+                item.style.fontWeight = 'normal';
+                item.style.backgroundColor = 'transparent';
+            });
+        });
+    });
+});
+</script>
+
+<!-- Load chart renderer after all other scripts -->
+<script src="/static/js/chart-renderer.js" defer></script>
+
+<!-- Enhanced Chart Visualization Scripts -->
+<!-- Chart scripts only loaded on visualizations page to improve homepage performance -->
+
+    
+    <!-- Ad scripts have been replaced with stubs that maintain compatibility but don't show ads -->
+    <script src="/static/js/ads.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Force light theme on all tables and rows
+            const tables = document.querySelectorAll('.table, .table-lottery');
+            tables.forEach(table => {
+                table.style.backgroundColor = '#fff';
+                table.style.color = '#000';
+                
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    row.style.backgroundColor = '#fff';
+                    row.style.color = '#000';
+                    
+                    const cells = row.querySelectorAll('td, th');
+                    cells.forEach(cell => {
+                        cell.style.color = '#000';
+                    });
+                });
+                
+                // Make even rows light gray
+                const evenRows = table.querySelectorAll('tr:nth-child(even)');
+                evenRows.forEach(row => {
+                    row.style.backgroundColor = '#f9f9f9';
+                });
+            });
+            
+            // Remove the lottery data dashboard section
+            setTimeout(() => {
+                const headings = document.querySelectorAll('h4');
+                for (let heading of headings) {
+                    if (heading.textContent.includes('LOTTERY DATA DASHBOARD')) {
+                        // Find the parent card element and remove it
+                        let element = heading;
+                        // Go up to find the card div (up to 5 parent levels)
+                        for (let i = 0; i < 5; i++) {
+                            if (element.parentElement) {
+                                element = element.parentElement;
+                                if (element.classList.contains('card')) {
+                                    console.log('Found the dashboard card, removing it');
+                                    element.remove();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }, 100);
+        });
+    </script>
+    
+    <!-- Mobile Performance Optimization Scripts -->
+    <script src="/static/js/mobile-optimized.js" defer></script>
+    
+    
+</body>
+</html>

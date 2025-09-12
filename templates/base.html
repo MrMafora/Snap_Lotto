@@ -2,17 +2,17 @@
 <html lang="en" data-bs-theme="light">
 <head>
     <!-- Consent Manager removed as requested -->
-
+    
     <!-- Extra meta content for page-specific early loading scripts -->
     {% block extra_meta %}{% endblock %}
-
+    
     <!-- Optimized Google Analytics - Defer loading -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-M4NREF90ZD');
-
+      
       // Load GA script after page loads
       window.addEventListener('load', function() {
         var script = document.createElement('script');
@@ -21,11 +21,11 @@
         document.head.appendChild(script);
       });
     </script>
-
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}Snap Lotto{% endblock %}</title>
-
+    
     <!-- SEO Meta Tags -->
     <meta name="description" content="{% block meta_description %}Snap Lotto - South Africa's #1 Lotto, Lottery, PowerBall & Daily Lotto Scanner App. The ONLY app with DIRECT access to Ithuba National Lottery database, Snap Scan and Win = Phanda Phusha Play{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}Snap Lotto, Lotto South Africa, SA Lotto, Lotto results, Lotto scanner, Lotto numbers, PowerBall South Africa, Daily Lotto, Ithuba National Lottery database, direct Ithuba data, official Lotto results, Lotto ticket scanner, Lotto winning numbers, SA Lotto Plus 1, SA Lotto Plus 2, Lotto draw results, South African Lotto{% endblock %}">
@@ -34,7 +34,7 @@
     <meta name="language" content="English">
     <meta name="geo.region" content="ZA">
     <meta name="geo.placename" content="South Africa">
-
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
@@ -43,21 +43,21 @@
     <meta property="og:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
     <meta property="og:locale" content="en_ZA">
     <meta property="og:site_name" content="Snap Lotto">
-
+    
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.url }}">
     <meta property="twitter:title" content="{% block twitter_title %}Snap Lotto | South Africa's #1 Lotto, Lottery, PowerBall & Daily Lotto Scanner App{% endblock %}">
     <meta property="twitter:description" content="{% block twitter_description %}The ONLY app with DIRECT access to Ithuba National Lottery database, Snap Scan and Win = Phanda Phusha Play{% endblock %}">
     <meta property="twitter:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
-
+    
     <!-- Canonical URL -->
     {% if request.path == '/ticket-scanner' or request.path == '/scanner-landing' %}
     <link rel="canonical" href="{{ url_for('scanner_landing', _external=True) }}">
     {% else %}
     <link rel="canonical" href="{{ request.url }}">
     {% endif %}
-
+    
     <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -68,10 +68,10 @@
     <meta name="msapplication-TileImage" content="{{ url_for('static', filename='icons/icon-144x144.png') }}">
     <meta name="theme-color" content="#1a472a">
     <meta name="color-scheme" content="light">
-
+    
     <!-- PWA Manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-
+    
     <!-- PWA Icons -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/icon-96x96.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/icon-72x72.png') }}">
@@ -84,17 +84,17 @@
     <link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static', filename='icons/icon-72x72.png') }}">
     <link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='icons/icon-72x72.png') }}">
     <link rel="apple-touch-icon" sizes="57x57" href="{{ url_for('static', filename='icons/icon-72x72.png') }}">
-
+    
     <!-- Microsoft Windows/Edge -->
     <meta name="msapplication-config" content="{{ url_for('static', filename='browserconfig.xml') }}">
     <meta name="msapplication-navbutton-color" content="#1a472a">
     <meta name="msapplication-starturl" content="/">
-
+    
     <!-- iOS Safari specific -->
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
+    
     <!-- Preload critical resources -->
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="{{ url_for('static', filename='css/custom.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -112,7 +112,7 @@
     <link rel="preload" href="{{ url_for('static', filename='css/mobile-charts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-
+    
     <!-- Fallback for no-JS -->
     <noscript>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
@@ -125,13 +125,13 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery-results-fix.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/pwa-mobile.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-charts.css') }}">
-
+    
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </noscript>
-
+    
     <!-- Bootstrap JS - Load immediately for dropdown functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    
     <!-- Bootstrap dropdown functionality for all dropdowns -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -140,13 +140,13 @@
                 // Handle user dropdown (if exists)
                 const userDropdown = document.getElementById('userDropdown');
                 const userDropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
-
+                
                 if (userDropdown && userDropdownMenu) {
                     // Simple click handler for user dropdown
                     userDropdown.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-
+                        
                         // Toggle dropdown
                         if (userDropdownMenu.style.display === 'block') {
                             userDropdownMenu.style.display = 'none';
@@ -154,7 +154,7 @@
                         } else {
                             userDropdownMenu.style.display = 'block';
                             this.setAttribute('aria-expanded', 'true');
-
+                            
                             // Position the dropdown
                             const rect = this.getBoundingClientRect();
                             userDropdownMenu.style.position = 'absolute';
@@ -162,7 +162,7 @@
                             userDropdownMenu.style.right = '0';
                         }
                     });
-
+                    
                     // Close on click outside
                     document.addEventListener('click', function(e) {
                         if (!userDropdown.contains(e.target) && !userDropdownMenu.contains(e.target)) {
@@ -170,7 +170,7 @@
                             userDropdown.setAttribute('aria-expanded', 'false');
                         }
                     });
-
+                    
                     // Close on item click
                     userDropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
                         item.addEventListener('click', function() {
@@ -186,10 +186,10 @@
                 const dataFilterDropdownMenu = document.querySelector('#dataFilterDropdown + .dropdown-menu');
                 console.log('DROPDOWN DEBUG: dataFilterDropdown:', dataFilterDropdown);
                 console.log('DROPDOWN DEBUG: dataFilterDropdownMenu:', dataFilterDropdownMenu);
-
+                
                 if (dataFilterDropdown && dataFilterDropdownMenu) {
                     console.log('DROPDOWN DEBUG: Found data filter dropdown elements');
-
+                    
                     // Try Bootstrap initialization first
                     if (window.bootstrap && window.bootstrap.Dropdown) {
                         try {
@@ -203,19 +203,19 @@
                         console.warn('DROPDOWN DEBUG: Bootstrap not available, using custom dropdown');
                         initializeCustomDropdown();
                     }
-
+                    
                     function initializeCustomDropdown() {
                         console.log('DROPDOWN DEBUG: Initializing custom dropdown');
-
+                        
                         // Simple click handler for filter dropdown
                         dataFilterDropdown.addEventListener('click', function(e) {
                             e.preventDefault();
                             e.stopPropagation();
                             console.log('DROPDOWN DEBUG: Filter dropdown clicked');
-
+                            
                             // Toggle dropdown visibility
                             const isOpen = dataFilterDropdownMenu.style.display === 'block';
-
+                            
                             if (isOpen) {
                                 dataFilterDropdownMenu.style.display = 'none';
                                 this.setAttribute('aria-expanded', 'false');
@@ -231,14 +231,14 @@
                                 dataFilterDropdownMenu.style.left = 'auto';
                                 dataFilterDropdownMenu.style.zIndex = '1050';
                                 dataFilterDropdownMenu.style.display = 'block';
-
+                                
                                 this.setAttribute('aria-expanded', 'true');
                                 this.classList.add('show');
                                 dataFilterDropdownMenu.classList.add('show');
                                 console.log('DROPDOWN DEBUG: Dropdown opened');
                             }
                         });
-
+                        
                         // Close on click outside
                         document.addEventListener('click', function(e) {
                             if (!dataFilterDropdown.contains(e.target) && !dataFilterDropdownMenu.contains(e.target)) {
@@ -248,17 +248,17 @@
                                 dataFilterDropdownMenu.classList.remove('show');
                             }
                         });
-
+                        
                         // Handle filter selection
                         dataFilterDropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
                             item.addEventListener('click', function(e) {
                                 e.preventDefault();
                                 console.log('DROPDOWN DEBUG: Filter item clicked:', this.textContent);
-
+                                
                                 // Remove active class from siblings
                                 const isLotteryType = this.hasAttribute('data-lottery-type');
                                 const isTimePeriod = this.hasAttribute('data-time-period');
-
+                                
                                 if (isLotteryType) {
                                     dataFilterDropdownMenu.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
                                     this.classList.add('active');
@@ -266,7 +266,7 @@
                                     dataFilterDropdownMenu.querySelectorAll('[data-time-period]').forEach(el => el.classList.remove('active'));
                                     this.classList.add('active');
                                 }
-
+                                
                                 // Close dropdown after selection
                                 dataFilterDropdownMenu.style.display = 'none';
                                 dataFilterDropdown.setAttribute('aria-expanded', 'false');
@@ -285,12 +285,12 @@
                         console.log('DROPDOWN DEBUG: Manual click detected on filter button');
                         const button = e.target.id === 'dataFilterDropdown' ? e.target : e.target.closest('#dataFilterDropdown');
                         const menu = button.nextElementSibling;
-
+                        
                         if (menu && menu.classList.contains('dropdown-menu')) {
                             e.preventDefault();
                             e.stopPropagation();
                             console.log('DROPDOWN DEBUG: Manual dropdown toggle');
-
+                            
                             if (menu.style.display === 'block' || menu.classList.contains('show')) {
                                 menu.style.display = 'none';
                                 menu.classList.remove('show');
@@ -313,12 +313,12 @@
     <meta name="format-detection" content="telephone=no">
     <!-- Content Security Policy with needed permissions -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data:;">
-
+    
     {% if config.get('ENVIRONMENT') == 'production' %}
     <!-- Google AdSense - Only loaded in production environment -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3172540139156466" crossorigin="anonymous"></script>
     {% endif %}
-
+    
     {% block additional_head %}{% endblock %}
     {% block head_content %}{% endblock %}
 </head>
@@ -382,7 +382,7 @@
     <!-- Ad containers for loader and interstitial ads -->
     <div id="ad-container-loader" style="display: none;"></div>
     <div id="ad-container-interstitial" style="display: none;"></div>
-
+    
     <div class="{% block container_class %}container{% endblock %} px-2 px-sm-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -461,7 +461,7 @@
             </div>
         </div>
     </footer>
-
+    
     <!-- Mobile navigation (only on mobile) -->
     <style>
     /* Mobile navigation - force fixed positioning */
@@ -478,7 +478,7 @@
         z-index: 9999 !important;
         display: flex !important;
     }
-
+    
     #mobile-nav a {
         flex: 1 !important;
         display: flex !important;
@@ -490,16 +490,16 @@
         font-size: 10px !important;
         padding: 4px !important;
     }
-
+    
     #mobile-nav a i {
         font-size: 16px !important;
         margin-bottom: 2px !important;
     }
-
+    
     #mobile-nav a.active {
         color: #dc3545 !important;
     }
-
+    
     /* Add bottom padding to body on mobile */
     @media (max-width: 991px) {
         body { 
@@ -507,7 +507,7 @@
             margin-bottom: 0 !important;
         }
     }
-
+    
     /* Hide on desktop */
     @media (min-width: 992px) {
         #mobile-nav { 
@@ -518,7 +518,7 @@
         }
     }
     </style>
-
+    
     <!-- Simple Mobile Navigation -->
     <div style="position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #ddd; z-index: 999999; display: flex;" class="d-lg-none">
         <a href="/" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/' %}#dc3545{% else %}#666{% endif %};">
@@ -554,13 +554,13 @@
         </a>
         {% endif %}
     </div>
-
+    
     <!-- PWA Install Button -->
     <button id="pwa-install-btn" type="button">
         <i class="fas fa-download"></i>
         Install App
     </button>
-
+    
     <style>
     @media (max-width: 991px) {
         body { padding-bottom: 70px; }
@@ -569,7 +569,7 @@
 
     <!-- Bootstrap JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    
 
 
     {% block scripts %}{% endblock %}
@@ -578,7 +578,7 @@
     <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
     <!-- Dedicated dropdown fix for filter button -->
     <script src="{{ url_for('static', filename='js/dropdown-fix.js') }}"></script>
-
+    
     <!-- PWA Service Worker Registration -->
     <script>
         // Register service worker for PWA functionality
@@ -587,26 +587,26 @@
                 navigator.serviceWorker.register('/static/sw.js')
                     .then(function(registration) {
                         console.log('Snap Lotto SW: Service worker registered successfully:', registration.scope);
-
+                        
                         // Check for updates periodically
                         setInterval(function() {
                             registration.update();
                         }, 60000); // Check every minute
-
+                        
                     })
                     .catch(function(error) {
                         console.log('Snap Lotto SW: Service worker registration failed:', error);
                     });
             });
         }
-
+        
         // Install prompt for PWA
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', function(e) {
             console.log('Snap Lotto PWA: Install prompt available');
             e.preventDefault();
             deferredPrompt = e;
-
+            
             // Show custom install button if needed
             const installButton = document.getElementById('pwa-install-btn');
             if (installButton) {
@@ -625,24 +625,24 @@
                 });
             }
         });
-
+        
         // PWA installed event
         window.addEventListener('appinstalled', function(evt) {
             console.log('Snap Lotto PWA: App was installed successfully');
-
+            
             // Hide install button if visible
             const installButton = document.getElementById('pwa-install-btn');
             if (installButton) {
                 installButton.style.display = 'none';
             }
         });
-
+        
         // iOS Safari standalone mode detection
         if (window.navigator.standalone === true) {
             console.log('Snap Lotto PWA: Running in iOS standalone mode');
             document.body.classList.add('ios-standalone');
         }
-
+        
         // Android Chrome standalone mode detection
         if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
             console.log('Snap Lotto PWA: Running in Android standalone mode');
@@ -657,25 +657,25 @@
             tables.forEach(table => {
                 table.style.backgroundColor = '#fff';
                 table.style.color = '#000';
-
+                
                 const rows = table.querySelectorAll('tr');
                 rows.forEach(row => {
                     row.style.backgroundColor = '#fff';
                     row.style.color = '#000';
-
+                    
                     const cells = row.querySelectorAll('td, th');
                     cells.forEach(cell => {
                         cell.style.color = '#000';
                     });
                 });
-
+                
                 // Make even rows light gray
                 const evenRows = table.querySelectorAll('tr:nth-child(even)');
                 evenRows.forEach(row => {
                     row.style.backgroundColor = '#f9f9f9';
                 });
             });
-
+            
             // Remove the lottery data dashboard section
             setTimeout(() => {
                 const headings = document.querySelectorAll('h4');
@@ -699,10 +699,10 @@
             }, 100);
         });
     </script>
-
+    
     <!-- Mobile Performance Optimization Scripts -->
     <script src="{{ url_for('static', filename='js/mobile-optimized.js') }}" defer></script>
-
+    
     {% block page_scripts %}{% endblock %}
 </body>
 </html>

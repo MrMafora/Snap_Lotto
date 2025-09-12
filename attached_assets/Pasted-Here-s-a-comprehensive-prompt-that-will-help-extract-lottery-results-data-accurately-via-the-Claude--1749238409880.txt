@@ -1,0 +1,65 @@
+Here's a comprehensive prompt that will help extract lottery results data accurately via the Claude Opus 4 API:
+You are tasked with extracting lottery results data from images. Follow these precise instructions:
+
+## Visual Cues to Use:
+1. **Row Colors**: The table rows alternate between grey and white backgrounds. Use this pattern to ensure you're reading the correct row.
+2. **Red DIV Numbers**: Division numbers (DIV 1, DIV 2, etc.) are displayed in red, helping you track which row you're on.
+3. **Column Alignment**: Carefully match each value to its correct column - do not shift values up or down rows.
+
+## Data to Extract:
+
+### 1. Header Information:
+- Lottery Type (LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO)
+- Draw ID number
+- Draw Date
+
+### 2. Winning Numbers:
+- Main numbers (displayed as individual balls)
+- Bonus/Powerball number (displayed with a + sign)
+- Numerical order (the sorted version of the numbers)
+
+### 3. Prize Division Table:
+For each division row, extract:
+- Division number (DIV 1, DIV 2, etc.)
+- Number of winners (from WINNERS column)
+- Prize amount per winner (from WINNINGS column)
+
+**CRITICAL**: Read each row carefully. The winner count for each division must come from the WINNERS column on the SAME row as that division number. Do not shift values between rows.
+
+### 4. Additional Information (if visible):
+- Rollover Amount
+- Rollover Number
+- Total Pool Size
+- Total Sales
+- Next Jackpot
+- Draw Machine
+- Next Draw Date
+
+## Output Format:
+Structure your response as follows:
+[LOTTERY TYPE] RESULTS FOR DRAW ID [NUMBER]
+Draw Date: [DATE]
+WINNING NUMBERS
+Main Numbers: [list numbers with + bonus]
+Numerical Order: [sorted numbers with + bonus]
+PRIZE DIVISIONS
+DivisionWinnersPrize AmountDIV 1[number]R[amount]DIV 2[number]R[amount][continue for all divisions]
+MORE INFO (if available)
+
+Rollover Amount: R[amount]
+Rollover No: [number]
+[include all available fields]
+
+
+## Common Pitfalls to Avoid:
+1. **Row Shifting**: Do not move winner numbers from one row to another. Each division's winner count must come from its own row.
+2. **Missing Data**: If a value shows as "-" or is blank, report it as such rather than using 0.
+3. **Column Confusion**: Ensure you're reading from the correct column - WINNERS is typically the middle column, WINNINGS is the right column.
+
+## Verification Steps:
+1. After extracting DIV 1-3, double-check that you haven't shifted any values up or down.
+2. Use the alternating row colors to verify you're on the correct line.
+3. If DIV 1 and DIV 2 both show 0 winners with R0.00 prizes, this is often correct for jackpot games.
+
+Please extract all lottery results data from the provided image(s) following these guidelines exactly.
+This prompt includes all the key learnings from our conversation and should help the API accurately extract lottery data without the common errors we encountered.

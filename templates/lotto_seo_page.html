@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}SA Lotto Results, Numbers & Scanner | Official South African Lotto | Snap Lotto{% endblock %}
+
+{% block meta_description %}SA Lotto results, numbers & official Lotto scanner. Check Lotto Plus 1, Lotto Plus 2 results. The ONLY app with DIRECT access to Ithuba National Lottery database. Scan Lotto tickets instantly!{% endblock %}
+
+{% block meta_keywords %}SA Lotto, South African Lotto, Lotto results, Lotto numbers, Lotto Plus 1, Lotto Plus 2, Lotto scanner, Lotto ticket scanner, SA Lotto results, Lotto winning numbers, Lotto draw results, Ithuba National Lottery database, direct Ithuba data, official Lotto results, SA Lotto draw, Lotto jackpot, South Africa Lotto{% endblock %}
+
+{% block og_title %}SA Lotto Results, Numbers & Scanner | Official South African Lotto{% endblock %}
+{% block og_description %}Get the latest SA Lotto results, Lotto Plus 1 & Lotto Plus 2 numbers. Scan your Lotto tickets instantly with our DIRECT Ithuba National Lottery database access!{% endblock %}
+
+{% block twitter_title %}SA Lotto Results, Numbers & Scanner | Official South African Lotto{% endblock %}
+{% block twitter_description %}Get the latest SA Lotto results, Lotto Plus 1 & Lotto Plus 2 numbers. Scan your Lotto tickets instantly with our DIRECT Ithuba National Lottery database access!{% endblock %}
+
+{% block head_content %}
+<!-- Structured Data for SA Lotto SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "SA Lotto Results & Scanner",
+  "description": "Official SA Lotto results, Lotto Plus 1, Lotto Plus 2 numbers and instant Lotto ticket scanner with DIRECT Ithuba National Lottery database access",
+  "mainEntity": {
+    "@type": "Game",
+    "name": "SA Lotto",
+    "description": "South African National Lottery Lotto game with Lotto Plus 1 and Lotto Plus 2 options",
+    "genre": "Lottery",
+    "playMode": "SinglePlayer",
+    "applicationCategory": "Game"
+  },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "{{ url_for('index', _external=True) }}"
+    },{
+      "@type": "ListItem",
+      "position": 2,
+      "name": "SA Lotto",
+      "item": "{{ request.url }}"
+    }]
+  }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [{
+    "@type": "Question",
+    "name": "What is SA Lotto?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "SA Lotto is South Africa's main lottery game operated by Ithuba Holdings. Players choose 6 numbers from 1-52, with draws twice weekly on Wednesday and Saturday evenings."
+    }
+  },{
+    "@type": "Question", 
+    "name": "What is Lotto Plus 1 and Lotto Plus 2?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Lotto Plus 1 and Lotto Plus 2 are additional games you can play with the same Lotto numbers. They have separate draws with their own jackpots and prize divisions."
+    }
+  },{
+    "@type": "Question",
+    "name": "How do I check my Lotto ticket?",
+    "acceptedAnswer": {
+      "@type": "Answer", 
+      "text": "Use our official Lotto ticket scanner with DIRECT Ithuba National Lottery database access to instantly check if your SA Lotto, Lotto Plus 1, or Lotto Plus 2 ticket is a winner. Simply upload a photo of your ticket."
+    }
+  }]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-4 mb-3">SA Lotto Results & Scanner</h1>
+                <p class="lead">Official South African Lotto results, Lotto Plus 1 & Lotto Plus 2 numbers, plus instant Lotto ticket scanning</p>
+            </div>
+            
+            <!-- SA Lotto Information Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">About SA Lotto</h2>
+                </div>
+                <div class="card-body">
+                    <p>SA Lotto is South Africa's premier lottery game, operated by Ithuba Holdings under license from the National Lottery Commission. The SA Lotto draw takes place twice weekly on Wednesday and Saturday evenings. We are the ONLY app with direct access to the Ithuba National Lottery database.</p>
+                    
+                    <h3 class="h5 mt-4">SA Lotto Games Available:</h3>
+                    <ul>
+                        <li><strong>SA Lotto</strong> - Main game with jackpots starting at R2 million</li>
+                        <li><strong>Lotto Plus 1</strong> - Additional game with R1 million starting jackpot</li>
+                        <li><strong>Lotto Plus 2</strong> - Bonus game with R100,000 starting jackpot</li>
+                    </ul>
+                    
+                    <h3 class="h5 mt-4">How to Play SA Lotto:</h3>
+                    <ol>
+                        <li>Choose 6 numbers from 1 to 52</li>
+                        <li>Add Lotto Plus 1 and/or Lotto Plus 2 for extra chances</li>
+                        <li>Wait for the official Lotto draw results</li>
+                        <li>Check your ticket with our Lotto scanner</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Lotto Scanner CTA -->
+            <div class="card mb-4 bg-light">
+                <div class="card-body text-center">
+                    <h3 class="h4 mb-3">Scan Your SA Lotto Ticket</h3>
+                    <p>Got a Lotto ticket? Use our official scanner with DIRECT Ithuba National Lottery database access to check if you've won instantly!</p>
+                    <a href="{{ url_for('scanner_landing') }}" class="btn btn-lottery-primary btn-lg">
+                        <i class="fas fa-qrcode me-2"></i>Scan Lotto Ticket Now
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Latest Lotto Results -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h2 class="h4 mb-0">Latest SA Lotto Results</h2>
+                </div>
+                <div class="card-body">
+                    <p>View the most recent SA Lotto, Lotto Plus 1, and Lotto Plus 2 winning numbers:</p>
+                    <a href="{{ url_for('results') }}" class="btn btn-outline-success">
+                        <i class="fas fa-trophy me-2"></i>View All Lotto Results
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,7 +5,9 @@ channel = "stable-24_05"
 packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xsimd", "zlib"]
 
 [deployment]
-run = ["sh", "-c", "pip install -r requirements-production.txt && gunicorn -c gunicorn.conf.py main:app"]
+deploymentTarget = "cloudrun"
+run = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=2 --worker-class=gthread --threads=2 --timeout=0 main:app"]
+build = ["sh", "-c", "pip install --force-reinstall --no-deps pyee==12.1.1 && pip install -r requirements.txt"]
 
 [workflows]
 runButton = "Web Server"
@@ -70,23 +72,9 @@ mode = "sequential"
 task = "shell.exec"
 args = "gunicorn -c gunicorn.conf.py main:app"
 
-[[workflows.workflow]]
-name = "Production Deploy"
-author = 40744859
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=1 --timeout=60 main:app"
-
-[[workflows.workflow]]
-name = "Deploy"
-author = 40744859
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:$PORT --workers=1 --threads=4 --timeout=60 --preload main:app"
+[[ports]]
+localPort = 3000
+externalPort = 3000
 
 [[ports]]
 localPort = 5000
@@ -95,6 +83,10 @@ externalPort = 5000
 [[ports]]
 localPort = 8080
 externalPort = 80
+
+[[ports]]
+localPort = 34345
+externalPort = 3001
 
 [agent]
 integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]

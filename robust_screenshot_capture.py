@@ -1,165 +1,210 @@
+#!/usr/bin/env python3
 """
-Robust screenshot capture system with error handling
+Robust Screenshot Capture System with Enhanced Error Handling
+Designed to handle network issues and provide detailed diagnostics
 """
+
 import logging
-import asyncio
+import sys
 import os
-import pathlib
+import time
+import glob
+import asyncio
 from datetime import datetime
 from playwright.async_api import async_playwright
 
-logger = logging.getLogger(__name__)
+# Add current directory to path
+sys.path.append('.')
 
-def main():
-    """Main screenshot capture function"""
+def setup_logging():
+    """Configure logging for screenshot capture"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('screenshot_capture.log'),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    return logging.getLogger(__name__)
+
+def test_network_connectivity(url, logger):
+    """Test if we can reach the lottery website using requests"""
     try:
-        logger.info("Starting robust screenshot capture process")
-        
-        # Mock robust capture process - implement actual logic as needed
-        lottery_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
-        
-        captured_count = 0
-        for lottery_type in lottery_types:
-            try:
-                logger.info(f"Capturing screenshot for {lottery_type}")
-                # Mock capture success
-                captured_count += 1
-            except Exception as e:
-                logger.error(f"Failed to capture {lottery_type}: {e}")
-        
-        logger.info(f"Robust screenshot capture completed: {captured_count}/{len(lottery_types)} successful")
-        return {
-            'success': True,
-            'captured_count': captured_count,
-            'total_attempts': len(lottery_types),
-            'timestamp': datetime.now().isoformat()
-        }
-        
+        import requests
+        response = requests.head(url, timeout=10, allow_redirects=True)
+        logger.info(f"Network test: {url} returned status {response.status_code}")
+        return response.status_code == 200
     except Exception as e:
-        logger.error(f"Error in robust screenshot capture: {e}")
-        return {
-            'success': False,
-            'error': str(e),
-            'captured_count': 0
-        }
+        logger.error(f"Network test failed for {url}: {e}")
+        return False
+
+async def capture_with_retry(page, url, lottery_type, filepath, logger, max_retries=3):
+    """Capture screenshot with robust retry logic"""
+    
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Attempt {attempt + 1}/{max_retries}: Navigating to {url}")
+            
+            # Navigate with progressive timeout increases
+            timeout = 20000 + (attempt * 10000)  # 20s, 30s, 40s
+            await page.goto(url, wait_until='domcontentloaded', timeout=timeout)
+            
+            # Wait for content to load
+            await page.wait_for_timeout(2000 + (attempt * 1000))
+            
+            # Check if page loaded properly
+            title = await page.title()
+            logger.info(f"Page loaded: {title[:50]}...")
+            
+            # Take screenshot
+            await page.screenshot(path=filepath, full_page=True)
+            
+            # Verify file was created and has reasonable size
+            if os.path.exists(filepath):
+                file_size = os.path.getsize(filepath)
+                if file_size > 10000:  # At least 10KB
+                    logger.info(f"✅ Successfully captured {lottery_type}: {os.path.basename(filepath)} ({file_size:,} bytes)")
+                    return True
+                else:
+                    logger.warning(f"Screenshot too small ({file_size} bytes), retrying...")
+                    os.remove(filepath)
+            
+        except Exception as e:
+            logger.error(f"Attempt {attempt + 1} failed for {lottery_type}: {str(e)}")
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 2  # Progressive backoff: 2s, 4s, 6s
+                logger.info(f"Waiting {wait_time}s before retry...")
+                await asyncio.sleep(wait_time)
+            
+            # Clean up failed file
+            if os.path.exists(filepath):
+                os.remove(filepath)
+    
+    logger.error(f"❌ Failed to capture {lottery_type} after {max_retries} attempts")
+    return False
 
 async def robust_screenshot_capture():
-    """
-    Async function for capturing lottery screenshots using Playwright + Chromium
-    This is the actual working implementation the automation workflow expects
-    """
+    """Main screenshot capture function with enhanced error handling"""
+    
+    logger = setup_logging()
+    logger.info("=== STARTING ROBUST SCREENSHOT CAPTURE ===")
+    
+    # Lottery URLs
+    lottery_urls = {
+        'lotto': 'https://www.nationallottery.co.za/results/lotto',
+        'lotto_plus_1': 'https://www.nationallottery.co.za/results/lotto-plus-1-results',
+        'lotto_plus_2': 'https://www.nationallottery.co.za/results/lotto-plus-2-results',
+        'powerball': 'https://www.nationallottery.co.za/results/powerball',
+        'powerball_plus': 'https://www.nationallottery.co.za/results/powerball-plus',
+        'daily_lotto': 'https://www.nationallottery.co.za/results/daily-lotto'
+    }
+    
+    # Create screenshots directory
+    os.makedirs('screenshots', exist_ok=True)
+    
+    # Test network connectivity first
+    logger.info("Testing network connectivity...")
+    test_url = lottery_urls['lotto']
+    if not test_network_connectivity(test_url, logger):
+        logger.error("Network connectivity test failed - aborting screenshot capture")
+        return 0
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    successful_captures = 0
+    start_time = time.time()
+    
     try:
-        logger.info("Starting robust Playwright screenshot capture...")
-        
-        # Ensure screenshots directory exists
-        screenshots_dir = pathlib.Path('screenshots')
-        screenshots_dir.mkdir(exist_ok=True)
-        
-        # South African lottery websites and their screenshot settings
-        lottery_sites = [
-            {
-                'name': 'LOTTO',
-                'url': 'https://www.nationallottery.co.za/lotto',
-                'filename': 'lotto.png',
-                'wait_selector': '.lottery-results, .draw-results, .winning-numbers'
-            },
-            {
-                'name': 'LOTTO PLUS 1', 
-                'url': 'https://www.nationallottery.co.za/lotto-plus-1',
-                'filename': 'lotto_plus_1.png',
-                'wait_selector': '.lottery-results, .draw-results, .winning-numbers'
-            },
-            {
-                'name': 'LOTTO PLUS 2',
-                'url': 'https://www.nationallottery.co.za/lotto-plus-2', 
-                'filename': 'lotto_plus_2.png',
-                'wait_selector': '.lottery-results, .draw-results, .winning-numbers'
-            },
-            {
-                'name': 'POWERBALL',
-                'url': 'https://www.nationallottery.co.za/powerball',
-                'filename': 'powerball.png',
-                'wait_selector': '.lottery-results, .draw-results, .winning-numbers'
-            },
-            {
-                'name': 'POWERBALL PLUS',
-                'url': 'https://www.nationallottery.co.za/powerball-plus',
-                'filename': 'powerball_plus.png', 
-                'wait_selector': '.lottery-results, .draw-results, .winning-numbers'
-            },
-            {
-                'name': 'DAILY LOTTO',
-                'url': 'https://www.nationallottery.co.za/daily-lotto',
-                'filename': 'daily_lotto.png',
-                'wait_selector': '.lottery-results, .draw-results, .winning-numbers'
-            }
-        ]
-        
-        captured_count = 0
-        
         async with async_playwright() as p:
-            # Launch Chromium browser
-            browser = await p.chromium.launch(
-                headless=True,
-                args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-            )
+            # Try multiple browser paths
+            browser_paths = [
+                "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium",
+                "/usr/bin/chromium-browser", 
+                "/usr/bin/chromium",
+                None  # Use Playwright's bundled browser
+            ]
             
-            context = await browser.new_context(
-                viewport={'width': 1920, 'height': 1080},
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-            )
-            
-            for site in lottery_sites:
+            browser = None
+            for browser_path in browser_paths:
                 try:
-                    logger.info(f"Capturing screenshot for {site['name']} from {site['url']}")
-                    
-                    page = await context.new_page()
-                    
-                    # Navigate to the lottery page
-                    await page.goto(site['url'], wait_until='networkidle', timeout=30000)
-                    
-                    # Wait for lottery results to load
-                    try:
-                        await page.wait_for_selector(site['wait_selector'], timeout=10000)
-                    except:
-                        logger.warning(f"Selector {site['wait_selector']} not found for {site['name']}, taking screenshot anyway")
-                    
-                    # Additional wait for content to fully render
-                    await page.wait_for_timeout(2000)
-                    
-                    # Take full page screenshot
-                    screenshot_path = screenshots_dir / site['filename']
-                    await page.screenshot(
-                        path=str(screenshot_path),
-                        full_page=True,
-                        type='png'
-                    )
-                    
-                    # Verify screenshot was created
-                    if screenshot_path.exists() and screenshot_path.stat().st_size > 1000:
-                        captured_count += 1
-                        logger.info(f"✅ Successfully captured {site['name']} screenshot: {screenshot_path}")
+                    if browser_path:
+                        logger.info(f"Trying browser path: {browser_path}")
+                        browser = await p.chromium.launch(
+                            executable_path=browser_path,
+                            headless=True,
+                            args=[
+                                '--no-sandbox',
+                                '--disable-setuid-sandbox', 
+                                '--disable-dev-shm-usage',
+                                '--disable-gpu',
+                                '--disable-web-security',
+                                '--disable-features=VizDisplayCompositor',
+                                '--no-first-run',
+                                '--disable-extensions',
+                                '--disable-default-apps',
+                                '--disable-background-timer-throttling',
+                                '--disable-backgrounding-occluded-windows',
+                                '--disable-renderer-backgrounding'
+                            ]
+                        )
                     else:
-                        logger.error(f"❌ Failed to capture valid screenshot for {site['name']}")
+                        logger.info("Using Playwright's bundled Chromium")
+                        browser = await p.chromium.launch(headless=True)
                     
-                    await page.close()
+                    logger.info("Browser launched successfully")
+                    break
                     
                 except Exception as e:
-                    logger.error(f"❌ Error capturing {site['name']}: {str(e)}")
-                    try:
-                        await page.close()
-                    except:
-                        pass
+                    logger.warning(f"Failed to launch browser with path {browser_path}: {e}")
+                    continue
+            
+            if not browser:
+                logger.error("Failed to launch any browser")
+                return 0
+            
+            # Create browser context with optimized settings
+            context = await browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            )
+            
+            page = await context.new_page()
+            
+            # Process each lottery type
+            for lottery_type, url in lottery_urls.items():
+                # Safety check - abort if taking too long
+                if time.time() - start_time > 600:  # 10 minutes max
+                    logger.warning("Screenshot capture taking too long, aborting remaining captures")
+                    break
+                
+                # Generate filename
+                filename = f"{timestamp}_{lottery_type}.png"
+                filepath = os.path.join('screenshots', filename)
+                
+                # Attempt capture with retry logic
+                success = await capture_with_retry(page, url, lottery_type, filepath, logger)
+                
+                if success:
+                    successful_captures += 1
+                
+                # Small delay between captures to be respectful
+                await asyncio.sleep(1)
             
             await browser.close()
-        
-        logger.info(f"Robust screenshot capture completed: {captured_count}/6 successful")
-        return captured_count
-        
+            
     except Exception as e:
-        logger.error(f"Critical error in robust screenshot capture: {e}")
-        return 0
+        logger.error(f"Screenshot capture system failed: {str(e)}")
+    
+    # Final summary
+    total_time = time.time() - start_time
+    logger.info(f"Screenshot capture complete: {successful_captures}/6 successful in {total_time:.1f}s")
+    
+    return successful_captures
 
-def capture_all_lottery_screenshots():
-    """Alternative capture function"""
-    return main()
+def main():
+    """Entry point for script execution"""
+    return asyncio.run(robust_screenshot_capture())
+
+if __name__ == "__main__":
+    result = main()
+    sys.exit(0 if result > 0 else 1)

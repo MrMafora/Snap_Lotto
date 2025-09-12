@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}Preview: {{ ad.name }} | Snap Lotto{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .preview-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+        height: 0;
+        overflow: hidden;
+    }
+    .video-container iframe,
+    .video-container video,
+    .video-container img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        object-fit: contain;
+    }
+    .image-preview {
+        max-width: 100%;
+        max-height: 600px;
+        margin: 0 auto;
+        display: block;
+    }
+    .ad-info {
+        background-color: rgba(0,0,0,0.05);
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-eye me-2"></i> Advertisement Preview
+        </h1>
+        <div>
+            <a href="{{ url_for('ad_management.edit_ad', ad_id=ad.id) }}" class="btn btn-primary me-2">
+                <i class="fas fa-edit me-2"></i> Edit Ad
+            </a>
+            <a href="{{ url_for('ad_management.manage_ads') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Ads
+            </a>
+        </div>
+    </div>
+    
+    <div class="preview-container">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold">{{ ad.name }}</h6>
+            </div>
+            <div class="card-body">
+                <!-- Media Preview -->
+                {% if ad.file_path %}
+                    {% if ad.file_path.endswith('.mp4') or ad.file_path.endswith('.webm') %}
+                        <div class="video-container mb-4">
+                            <video controls autoplay loop>
+                                <source src="{{ url_for('static', filename=ad.file_path) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    {% else %}
+                        <div class="text-center mb-4">
+                            <img src="{{ url_for('static', filename=ad.file_path) }}" class="image-preview rounded" alt="{{ ad.name }}">
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-warning mb-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i> No media file associated with this advertisement
+                    </div>
+                {% endif %}
+                
+                <!-- Ad Info -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="p-3 ad-info">
+                            <h5>Advertisement Details</h5>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Name</dt>
+                                <dd class="col-sm-8">{{ ad.name }}</dd>
+                                
+                                <dt class="col-sm-4">Description</dt>
+                                <dd class="col-sm-8">{{ ad.description or 'No description provided.' }}</dd>
+                                
+                                <dt class="col-sm-4">Placement</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge {% if ad.placement == 'scanner' %}bg-primary{% elif ad.placement == 'results' %}bg-success{% else %}bg-info{% endif %}">
+                                        {{ ad.placement|title }}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-4">Duration</dt>
+                                <dd class="col-sm-8">{{ ad.duration }} seconds</dd>
+                                
+                                <dt class="col-sm-4">Status</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge {% if ad.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {% if ad.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="p-3 ad-info">
+                            <h5>Campaign & Scheduling</h5>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Campaign</dt>
+                                <dd class="col-sm-8">
+                                    {% if ad.campaign %}
+                                        <a href="{{ url_for('ad_management.campaign_details', campaign_id=ad.campaign.id) }}">
+                                            {{ ad.campaign.name }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">No campaign</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Start Date</dt>
+                                <dd class="col-sm-8">
+                                    {% if ad.start_date %}
+                                        {{ ad.start_date.strftime('%B %d, %Y') }}
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">End Date</dt>
+                                <dd class="col-sm-8">
+                                    {% if ad.end_date %}
+                                        {{ ad.end_date.strftime('%B %d, %Y') }}
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-4">Custom Message</dt>
+                                <dd class="col-sm-8">{{ ad.custom_message or 'None' }}</dd>
+                                
+                                <dt class="col-sm-4">Loading Duration</dt>
+                                <dd class="col-sm-8">{{ ad.loading_duration|default(10) }} seconds</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Preview Options -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold">Preview Options</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Placement Preview</h5>
+                        <p>See how this advertisement appears in different contexts:</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" id="previewScanner">
+                                <i class="fas fa-ticket-alt me-2"></i> Preview in Ticket Scanner
+                            </button>
+                            <button class="btn btn-success" id="previewResults">
+                                <i class="fas fa-list-ol me-2"></i> Preview in Results Page
+                            </button>
+                            {% if ad.placement == 'header' %}
+                            <button class="btn btn-info" id="previewHeader">
+                                <i class="fas fa-heading me-2"></i> Preview in Header
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Device Preview</h5>
+                        <p>Preview how this advertisement appears on different devices:</p>
+                        <div class="btn-group w-100 mb-3">
+                            <button class="btn btn-outline-primary active" id="previewDesktop">
+                                <i class="fas fa-desktop me-2"></i> Desktop
+                            </button>
+                            <button class="btn btn-outline-primary" id="previewTablet">
+                                <i class="fas fa-tablet-alt me-2"></i> Tablet
+                            </button>
+                            <button class="btn btn-outline-primary" id="previewMobile">
+                                <i class="fas fa-mobile-alt me-2"></i> Mobile
+                            </button>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="toggleAutoplay" checked>
+                            <label class="form-check-label" for="toggleAutoplay">
+                                Autoplay (video only)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="toggleLoop" checked>
+                            <label class="form-check-label" for="toggleLoop">
+                                Loop (video only)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Preview: {{ ad.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="previewFrame" class="border-0 w-100" style="height: 600px; max-height: 80vh;">
+                    {% if ad.file_path %}
+                        {% if ad.file_path.endswith('.mp4') or ad.file_path.endswith('.webm') %}
+                            <div class="position-relative w-100 h-100">
+                                <video id="previewVideo" class="position-absolute w-100 h-100" controls autoplay loop>
+                                    <source src="{{ url_for('static', filename=ad.file_path) }}" type="video/mp4">
+                                </video>
+                            </div>
+                        {% else %}
+                            <div class="d-flex align-items-center justify-content-center w-100 h-100">
+                                <img src="{{ url_for('static', filename=ad.file_path) }}" style="max-width: 100%; max-height: 100%;" alt="{{ ad.name }}">
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="d-flex align-items-center justify-content-center w-100 h-100">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i> No media file associated
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Device Preview Buttons
+    document.getElementById('previewDesktop').addEventListener('click', function() {
+        setDevicePreview('desktop');
+    });
+    
+    document.getElementById('previewTablet').addEventListener('click', function() {
+        setDevicePreview('tablet');
+    });
+    
+    document.getElementById('previewMobile').addEventListener('click', function() {
+        setDevicePreview('mobile');
+    });
+    
+    // Context Preview Buttons
+    document.getElementById('previewScanner').addEventListener('click', function() {
+        showPreviewModal('scanner');
+    });
+    
+    document.getElementById('previewResults').addEventListener('click', function() {
+        showPreviewModal('results');
+    });
+    
+    {% if ad.placement == 'header' %}
+    document.getElementById('previewHeader').addEventListener('click', function() {
+        showPreviewModal('header');
+    });
+    {% endif %}
+    
+    // Toggle Buttons
+    const toggleAutoplay = document.getElementById('toggleAutoplay');
+    const toggleLoop = document.getElementById('toggleLoop');
+    const previewVideo = document.getElementById('previewVideo');
+    
+    if (previewVideo) {
+        toggleAutoplay.addEventListener('change', function() {
+            previewVideo.autoplay = this.checked;
+            if (this.checked) {
+                previewVideo.play();
+            } else {
+                previewVideo.pause();
+            }
+        });
+        
+        toggleLoop.addEventListener('change', function() {
+            previewVideo.loop = this.checked;
+        });
+    }
+    
+    // Set device preview
+    function setDevicePreview(device) {
+        const buttons = document.querySelectorAll('#previewDesktop, #previewTablet, #previewMobile');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById('preview' + device.charAt(0).toUpperCase() + device.slice(1)).classList.add('active');
+        
+        const previewFrame = document.getElementById('previewFrame');
+        
+        switch (device) {
+            case 'desktop':
+                previewFrame.style.width = '100%';
+                break;
+            case 'tablet':
+                previewFrame.style.width = '768px';
+                break;
+            case 'mobile':
+                previewFrame.style.width = '375px';
+                break;
+        }
+    }
+    
+    // Show preview modal
+    function showPreviewModal(context) {
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        const modalTitle = document.getElementById('previewModalLabel');
+        
+        switch (context) {
+            case 'scanner':
+                modalTitle.textContent = 'Preview: Scanner Placement';
+                break;
+            case 'results':
+                modalTitle.textContent = 'Preview: Results Page Placement';
+                break;
+            case 'header':
+                modalTitle.textContent = 'Preview: Header Placement';
+                break;
+        }
+        
+        modal.show();
+    }
+</script>
+{% endblock %}
