@@ -6,19 +6,19 @@ import multiprocessing
 bind = f"0.0.0.0:{os.environ.get('PORT', 8080)}"
 backlog = 2048
 
-# Worker processes - optimized for Cloud Run
+# Worker processes - optimized for minimal memory usage
 workers = 1
 worker_class = "gthread" 
-threads = 4
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 50
+threads = 2
+worker_connections = 500
+max_requests = 500
+max_requests_jitter = 25
 preload_app = True
 
-# Timeout settings - increased for better stability
-timeout = 60
-keepalive = 2
-graceful_timeout = 30
+# Timeout settings - optimized for memory efficiency
+timeout = 30
+keepalive = 1
+graceful_timeout = 15
 
 # Security
 limit_request_line = 4096
