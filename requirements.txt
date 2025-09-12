@@ -1,4 +1,6 @@
 
+# Ultra-minimal production requirements for lightweight deployment
+
 # Core Flask Application - Essential only
 flask>=3.1.0
 flask-sqlalchemy>=3.1.1
@@ -23,9 +25,9 @@ email-validator>=2.2.0
 # Lightweight scheduler
 schedule>=1.2.2
 
-# Essential data processing
-openpyxl>=3.1.5
-pillow>=11.2.1
+# Essential data processing - REMOVED HEAVY PACKAGES
+# openpyxl>=3.1.5  # Excel processing - heavy, remove if not essential
+# pillow>=11.2.1   # Image processing - heavy, remove if not essential
 
 # Authentication & Security - minimal set
 flask-babel
@@ -37,10 +39,9 @@ oauthlib
 babel
 pydantic
 
-# Remove these heavy/duplicate packages:
-# - numpy, pandas, scikit-learn (ML packages not essential for core functionality)
-# - matplotlib, seaborn (visualization packages not essential)
-# - playwright, trafilatura (heavy scraping packages)
-# - All duplicate AI packages (openai, mistralai, anthropic already removed)
-# - psutil, apscheduler (already removed)
-# - Multiple duplicate entries
+# REMOVED HEAVY PACKAGES FOR DEPLOYMENT OPTIMIZATION:
+# - openpyxl (Excel processing - 10+ MB)
+# - pillow (Image processing library - 15+ MB) 
+# - All ML/data science packages already removed
+# - All duplicate AI packages already removed
+# - All system monitoring packages already removed
