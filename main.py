@@ -1787,14 +1787,13 @@ def run_prediction_cycle():
 
         logger.info("🎯 Starting validation-driven prediction cycle (same as manual workflow)")
 
-        # Use the exact same validator system we perfected manually
-        validator = PredictionValidator()
-
-        # Run validation against all pending predictions - follows fresh results principle
-        validation_results = validator.validate_all_pending_predictions()
-
-        # Close validator connection
-        validator.close()
+        # Use the exact same validator system we perfected manually - temporarily disabled
+        # validator = PredictionValidator()
+        # validation_results = validator.validate_all_pending_predictions()
+        # validator.close()
+        
+        # Temporary mock results while prediction system is unavailable
+        validation_results = []
 
         # Analyze results
         successful_validations = [r for r in validation_results if r.get('success')]
@@ -2001,9 +2000,9 @@ def process_ticket():
                     # Add winning numbers to result
                     extracted_data['winning_numbers'] = winning_numbers
 
-            except Exception as e:
-                logger.error(f"Error fetching winning numbers: {e}")
-                extracted_data['winning_numbers'] = {}
+                except Exception as e:
+                    logger.error(f"Error fetching winning numbers: {e}")
+                    extracted_data['winning_numbers'] = {}
 
             # Return the extracted lottery data
             return jsonify({
