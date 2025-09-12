@@ -1583,9 +1583,10 @@ def trigger_prediction_workflow():
         # 2. Generating new predictions for upcoming draws based on new results
         # 3. Filling any missing prediction gaps
         
-        # Import and call the core AI workflow function
-        from ai_prediction_orchestrator import run_full_prediction_workflow
-        results = run_full_prediction_workflow()
+        # Import and call the core AI workflow function - temporarily disabled
+        # from ai_prediction_orchestrator import run_full_prediction_workflow
+        # results = run_full_prediction_workflow()
+        results = {'message': 'AI prediction workflow temporarily unavailable'}
 
         # Report results back to the admin interface
         return jsonify({
@@ -1613,9 +1614,10 @@ def trigger_weekly_predictions():
         def run_predictions():
             """Background task for running predictions"""
             try:
-                # Use the same workflow function triggered by the admin route
-                from ai_prediction_orchestrator import run_full_prediction_workflow
-                results = run_full_prediction_workflow()
+                # Use the same workflow function triggered by the admin route - temporarily disabled
+                # from ai_prediction_orchestrator import run_full_prediction_workflow
+                # results = run_full_prediction_workflow()
+                results = {'message': 'AI prediction workflow temporarily unavailable'}
                 logger.info(f"Background prediction workflow completed: {results}")
             except Exception as e:
                 logger.error(f"Weekly predictions background task failed: {e}")
@@ -1781,7 +1783,7 @@ def run_prediction_cycle():
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
 
     try:
-        from PredictionValidationSystem import PredictionValidator # Corrected import based on common practice
+        # from PredictionValidationSystem import PredictionValidator # Temporarily disabled - module not available
 
         logger.info("🎯 Starting validation-driven prediction cycle (same as manual workflow)")
 
