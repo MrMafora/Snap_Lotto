@@ -12,21 +12,71 @@ def capture_all_lottery_screenshots():
     try:
         logger.info("Starting lottery screenshot capture process")
         
-        # Mock capture results - implement actual screenshot logic as needed
+        # Ensure screenshots directory exists
+        import pathlib
+        screenshots_dir = pathlib.Path('screenshots')
+        screenshots_dir.mkdir(exist_ok=True)
+        
+        # Create placeholder images for testing (replace with real screenshot logic later)
+        lottery_types = [
+            ('LOTTO', 'lotto.png'),
+            ('LOTTO PLUS 1', 'lotto_plus_1.png'),
+            ('LOTTO PLUS 2', 'lotto_plus_2.png'),
+            ('POWERBALL', 'powerball.png'),
+            ('POWERBALL PLUS', 'powerball_plus.png'),
+            ('DAILY LOTTO', 'daily_lotto.png')
+        ]
+        
+        screenshots_captured = []
+        total_success = 0
+        
+        for lottery_type, filename in lottery_types:
+            filepath = screenshots_dir / filename
+            try:
+                # Create a simple placeholder PNG file (1x1 pixel)
+                # In production, replace this with actual screenshot capture
+                import base64
+                # Simple 1x1 transparent PNG
+                png_data = base64.b64decode(
+                    b'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU77YwAAAABJRU5ErkJggg=='
+                )
+                
+                with open(filepath, 'wb') as f:
+                    f.write(png_data)
+                
+                # Verify file exists and use relative path
+                if filepath.exists():
+                    relative_path = str(filepath)  # This gives 'screenshots/filename.png'
+                    screenshots_captured.append({
+                        'lottery_type': lottery_type, 
+                        'success': True, 
+                        'filepath': relative_path
+                    })
+                    total_success += 1
+                    logger.info(f"Created placeholder screenshot: {relative_path}")
+                else:
+                    logger.error(f"Failed to create file: {filepath}")
+                    screenshots_captured.append({
+                        'lottery_type': lottery_type, 
+                        'success': False, 
+                        'error': 'File creation failed'
+                    })
+                    
+            except Exception as e:
+                logger.error(f"Error creating screenshot for {lottery_type}: {e}")
+                screenshots_captured.append({
+                    'lottery_type': lottery_type, 
+                    'success': False, 
+                    'error': str(e)
+                })
+        
         results = {
-            'success': True,
-            'total_success': 6,
-            'total_attempts': 6,
-            'screenshots_captured': [
-                {'lottery_type': 'LOTTO', 'success': True, 'filepath': '/screenshots/lotto.png'},
-                {'lottery_type': 'LOTTO PLUS 1', 'success': True, 'filepath': '/screenshots/lotto_plus_1.png'},
-                {'lottery_type': 'LOTTO PLUS 2', 'success': True, 'filepath': '/screenshots/lotto_plus_2.png'},
-                {'lottery_type': 'POWERBALL', 'success': True, 'filepath': '/screenshots/powerball.png'},
-                {'lottery_type': 'POWERBALL PLUS', 'success': True, 'filepath': '/screenshots/powerball_plus.png'},
-                {'lottery_type': 'DAILY LOTTO', 'success': True, 'filepath': '/screenshots/daily_lotto.png'}
-            ],
+            'success': total_success > 0,
+            'total_success': total_success,
+            'total_attempts': len(lottery_types),
+            'screenshots_captured': screenshots_captured,
             'timestamp': datetime.now().isoformat(),
-            'method': 'playwright'
+            'method': 'placeholder_for_testing'
         }
         
         logger.info(f"Screenshot capture completed: {results['total_success']}/{results['total_attempts']} successful")
