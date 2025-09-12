@@ -1,4 +1,6 @@
 
+# Ultra-minimal requirements for lightweight deployment (no AI features)
+
 # Core Flask Application - Essential only
 flask>=3.1.0
 flask-sqlalchemy>=3.1.1
@@ -20,5 +22,7 @@ requests>=2.32.3
 beautifulsoup4>=4.13.3
 email-validator>=2.2.0
 schedule>=1.2.2
-psutil>=7.0.0
-apscheduler>=3.11.0
+
+# Heavy packages removed:
+# - psutil (system monitoring)
+# - apscheduler (heavy scheduler)

@@ -22,7 +22,8 @@ beautifulsoup4>=4.13.3
 # Utilities
 email-validator>=2.2.0
 schedule>=1.2.2
-psutil>=7.0.0
-apscheduler>=3.11.0
+# Removed heavy packages for deployment optimization:
+# psutil>=7.0.0  # System monitoring - not essential for web functionality
+# apscheduler>=3.11.0  # Heavy scheduler - using lightweight 'schedule' instead
 
 
