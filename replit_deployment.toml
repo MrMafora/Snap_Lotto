@@ -18,8 +18,13 @@ value = "1"
 key = "PORT"
 value = "8080"
 
+# Conditional AI services - install only when these environment variables are set
+[[deployment.env]]
+key = "ENABLE_AI_FEATURES"
+value = "false"
+
 [deployment.build]
-run = ["pip", "install", "--no-cache-dir", "-r", "requirements-production.txt"]
+run = ["pip", "install", "--no-cache-dir", "-r", "requirements-minimal.txt"]
 
 [deployment.run]
 run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers=1", "--threads=1", "--timeout=30", "--max-requests=200", "--preload", "main:app"]

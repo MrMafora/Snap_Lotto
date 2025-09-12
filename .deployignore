@@ -32,10 +32,16 @@ requirements-minimal.txt
 requirements-prod.txt
 pyproject.toml
 
-# Heavy static assets
+# Heavy static assets (largest deployment size contributors)  
 static/js/chart.min.js
 static/icons/
 static/img/
+
+# Additional large files to exclude
+logs/
+*.log
+__pycache__/
+*.pyc
 
 # Development tools
 .vscode/

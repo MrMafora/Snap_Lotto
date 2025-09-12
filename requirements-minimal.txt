@@ -12,10 +12,13 @@ wtforms>=3.2.1
 sqlalchemy>=2.0.40
 psycopg2-binary>=2.9.10
 
-# Only Google Generative AI - core functionality
-google-generativeai>=0.8.5
+# AI dependencies excluded to reduce deployment size
+# google-generativeai>=0.8.5  # Install conditionally when AI features needed
 
 # Critical utilities only
 requests>=2.32.3
 beautifulsoup4>=4.13.3
 email-validator>=2.2.0
+schedule>=1.2.2
+psutil>=7.0.0
+apscheduler>=3.11.0
