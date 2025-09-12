@@ -19,7 +19,7 @@ key = "PORT"
 value = "8080"
 
 [deployment.build]
-run = ["pip", "install", "--no-cache-dir", "-r", "requirements-minimal.txt"]
+run = ["pip", "install", "--no-cache-dir", "-r", "requirements-production.txt"]
 
 [deployment.run]
-run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers=1", "--threads=2", "--timeout=30", "--max-requests=500", "--preload", "main:app"]
+run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers=1", "--threads=1", "--timeout=30", "--max-requests=200", "--preload", "main:app"]

@@ -1,0 +1,61 @@
+
+# Development files
+.replit
+replit.nix
+replit.md
+README.md
+*.md
+
+# Logs and temporary files
+logs/
+app.log
+*.log
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Instance and upload directories
+instance/
+uploads/
+screenshots/
+attached_assets/
+
+# Test files
+test_*.py
+tests/
+*_test.py
+
+# Development requirements
+requirements.txt
+requirements-minimal.txt
+requirements-prod.txt
+pyproject.toml
+
+# Heavy static assets
+static/js/chart.min.js
+static/icons/
+static/img/
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Version control
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python environments
+venv/
+env/
+.venv/
+
+# Cache directories
+.pytest_cache/
+.coverage

@@ -6,13 +6,13 @@ import multiprocessing
 bind = f"0.0.0.0:{os.environ.get('PORT', 8080)}"
 backlog = 2048
 
-# Worker processes - optimized for minimal memory usage
+# Worker processes - ultra-optimized for minimal memory
 workers = 1
 worker_class = "gthread" 
-threads = 2
-worker_connections = 500
-max_requests = 500
-max_requests_jitter = 25
+threads = 1
+worker_connections = 200
+max_requests = 200
+max_requests_jitter = 10
 preload_app = True
 
 # Timeout settings - optimized for memory efficiency
