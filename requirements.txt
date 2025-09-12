@@ -32,3 +32,4 @@ flask-limiter
 google-generativeai
 psutil
 sift-stack-py
+playwright
