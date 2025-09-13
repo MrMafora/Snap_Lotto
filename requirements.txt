@@ -46,3 +46,4 @@ anthropic
 tensorflow
 torch
 xgboost
+playwright
