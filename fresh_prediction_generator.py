@@ -21,7 +21,6 @@ try:
     NEURAL_NETWORK_AVAILABLE = True
     logger.info("✅ Phase 2 Neural Network system loaded successfully")
 except ImportError as e:
-    neural_network_prediction = None
     NEURAL_NETWORK_AVAILABLE = False
     logger.warning(f"⚠️ Phase 2 Neural Network system not available: {e}")
 
@@ -235,7 +234,7 @@ def generate_fresh_predictions_for_new_draws():
             neural_confidence = None
             neural_reasoning = None
             
-            if NEURAL_NETWORK_AVAILABLE and neural_network_prediction is not None and total_draws >= 20:
+            if NEURAL_NETWORK_AVAILABLE and total_draws >= 20:
                 logger.info(f"🧠 Attempting Phase 2 Neural Network prediction for {lottery_type}...")
                 try:
                     neural_main, neural_bonus, neural_confidence, neural_reasoning = neural_network_prediction(lottery_type, config)
