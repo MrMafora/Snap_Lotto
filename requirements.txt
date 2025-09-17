@@ -46,3 +46,5 @@ xgboost
 playwright
 tensorflow-cpu
 tensorflow-cpu
+scikit-learn
+scipy
