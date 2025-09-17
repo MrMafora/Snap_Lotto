@@ -64,7 +64,7 @@ def get_current_predictions(conn, lottery_types=None):
     """
     Get the current authoritative AI predictions for each lottery type.
     Returns a dictionary keyed by lottery_type with prediction data.
-    
+
     This is the single source of truth for AI predictions across all pages.
     """
     try:
@@ -75,7 +75,7 @@ def get_current_predictions(conn, lottery_types=None):
             if lottery_types:
                 types_filter = "AND lp.game_type = ANY(%s)"
                 params.append(lottery_types)
-            
+
             query = f"""
                 WITH latest_completed AS (
                     SELECT lottery_type, MAX(draw_number) as latest_draw_number
@@ -104,19 +104,19 @@ def get_current_predictions(conn, lottery_types=None):
                   {types_filter}
                 ORDER BY lp.game_type, lp.created_at DESC
             """
-            
+
             cur.execute(query, params)
-            
+
             predictions_data = {}
             for row in cur.fetchall():
                 (game_type, predicted_nums, bonus_nums, confidence, reasoning, 
                  target_date, created_at, linked_draw_id, status, main_matches, 
                  bonus_matches, accuracy, prize) = row
-                
+
                 # Parse predicted numbers with consistent logic
                 main_numbers = parse_prediction_numbers(predicted_nums)
                 bonus_numbers = parse_prediction_numbers(bonus_nums)
-                
+
                 predictions_data[game_type] = {
                     'predicted_numbers': sorted(main_numbers) if main_numbers else [],
                     'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
@@ -130,9 +130,9 @@ def get_current_predictions(conn, lottery_types=None):
                     'accuracy_percentage': accuracy or 0.0,
                     'prize_tier': prize or 'No Prize'
                 }
-            
+
             return predictions_data
-            
+
     except Exception as e:
         logging.getLogger(__name__).error(f"Error in get_current_predictions: {e}")
         return {}
@@ -141,7 +141,7 @@ def get_historical_predictions(conn, lottery_types=None):
     """
     Get the AI predictions that were made for the current/latest completed draws.
     This is used by results pages to show predictions that were validated against actual results.
-    
+
     Returns a dictionary keyed by lottery_type with prediction data.
     """
     try:
@@ -152,7 +152,7 @@ def get_historical_predictions(conn, lottery_types=None):
             if lottery_types:
                 types_filter = "AND lp.game_type = ANY(%s)"
                 params.append(lottery_types)
-            
+
             query = f"""
                 WITH latest_completed AS (
                     SELECT lottery_type, MAX(draw_number) as latest_draw_number
@@ -179,19 +179,19 @@ def get_historical_predictions(conn, lottery_types=None):
                   {types_filter}
                 ORDER BY lp.game_type, lp.created_at DESC
             """
-            
+
             cur.execute(query, params)
-            
+
             predictions_data = {}
             for row in cur.fetchall():
                 (game_type, predicted_nums, bonus_nums, confidence, reasoning, 
                  target_date, created_at, linked_draw_id, status, main_matches, 
                  bonus_matches, accuracy, prize) = row
-                
+
                 # Parse predicted numbers with consistent logic
                 main_numbers = parse_prediction_numbers(predicted_nums)
                 bonus_numbers = parse_prediction_numbers(bonus_nums)
-                
+
                 predictions_data[game_type] = {
                     'predicted_numbers': sorted(main_numbers) if main_numbers else [],
                     'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
@@ -205,9 +205,9 @@ def get_historical_predictions(conn, lottery_types=None):
                     'accuracy_percentage': accuracy or 0.0,
                     'prize_tier': prize or 'No Prize'
                 }
-            
+
             return predictions_data
-            
+
     except Exception as e:
         logging.getLogger(__name__).error(f"Error in get_historical_predictions: {e}")
         return {}
@@ -219,7 +219,7 @@ def parse_prediction_numbers(nums):
     """
     if not nums or str(nums) in ['{}', '[]', 'None']:
         return []
-    
+
     try:
         if isinstance(nums, list):
             # Already parsed as list (PostgreSQL array type)
@@ -244,10 +244,10 @@ def is_safe_url(target):
     """
     if not target:
         return False
-    
+
     # Parse the URL
     parsed = urlparse(target)
-    
+
     # Only allow relative URLs with no netloc (domain)
     # This prevents redirects like //evil.com/malicious-path
     return not parsed.netloc and parsed.scheme == ''
@@ -317,7 +317,7 @@ class DrawResult:
         self.total_sales = result.total_sales
         self.draw_machine = result.draw_machine
         self.next_draw_date = result.next_draw_date
-        
+
     def get_numbers_list(self):
         """Get main numbers as a sorted list (small to large)"""
         if isinstance(self.main_numbers, str):
@@ -328,7 +328,7 @@ class DrawResult:
                 return []
         numbers = self.main_numbers or []
         return sorted(numbers) if numbers else []
-    
+
     def get_bonus_numbers_list(self):
         """Get bonus numbers as a sorted list (small to large)"""
         try:
@@ -355,7 +355,7 @@ class DrawResult:
         except Exception as e:
             logging.error(f"BONUS DEBUG {self.lottery_type}: Error parsing bonus_numbers '{self.bonus_numbers}': {e}")
             return []
-    
+
     def get_parsed_divisions(self):
         """Get parsed divisions data"""
         if not self.divisions or self.divisions == '[]':
@@ -377,14 +377,14 @@ def index():
     """Homepage with latest lottery results"""
     try:
         logger.info("=== HOMEPAGE: Loading fresh lottery data from database ===")
-        
+
         # Use direct psycopg2 connection to bypass SQLAlchemy type issues
         import psycopg2
         import os
-        
+
         connection_string = os.environ.get('DATABASE_URL')
         latest_results = []
-        
+
         try:
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
@@ -397,7 +397,7 @@ def index():
                         ORDER BY draw_date DESC 
                         LIMIT 50
                     """)
-                    
+
                     for row in cur.fetchall():
                         # Create a fake LotteryResult object with the required methods
                         result_obj = type('Result', (), {})()
@@ -413,7 +413,7 @@ def index():
                         result_obj.total_sales = row[9]
                         result_obj.draw_machine = row[10]
                         result_obj.next_draw_date = row[11]
-                        
+
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
@@ -432,7 +432,7 @@ def index():
                                 logger.info(f"Returning sorted numbers directly: {sorted_numbers}")
                                 return sorted_numbers
                             return get_numbers_list
-                        
+
                         def make_get_bonus_numbers_list(obj):
                             def get_bonus_numbers_list():
                                 try:
@@ -459,7 +459,7 @@ def index():
                                     logger.error(f"BONUS DEBUG {obj.lottery_type}: Error parsing bonus_numbers '{obj.bonus_numbers}': {e}")
                                     return []
                             return get_bonus_numbers_list
-                        
+
                         def make_get_parsed_divisions(obj):
                             def get_parsed_divisions():
                                 if not obj.divisions or obj.divisions == '[]':
@@ -471,43 +471,43 @@ def index():
                                 except:
                                     return []
                             return get_parsed_divisions
-                        
+
                         result_obj.get_numbers_list = make_get_numbers_list(result_obj)
                         result_obj.get_bonus_numbers_list = make_get_bonus_numbers_list(result_obj)
                         result_obj.get_parsed_divisions = make_get_parsed_divisions(result_obj)
-                        
+
                         latest_results.append(result_obj)
         except Exception as e:
             logger.error(f"Direct database connection failed: {e}")
             latest_results = []
-        
+
         # Get unique lottery types with their latest results in proper order
         # Define the correct display order
         ordered_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
-        
+
         # Create a dictionary for quick lookup
         results_by_type = {}
         for result in latest_results:
             if result.lottery_type not in results_by_type:
                 results_by_type[result.lottery_type] = result
-        
+
         # Build unique_results in the correct order
         unique_results = []
         for lottery_type in ordered_types:
             if lottery_type in results_by_type:
                 unique_results.append(results_by_type[lottery_type])
-        
+
         # Debug: Log the ordering
         logger.info(f"HOMEPAGE: Ordered lottery types: {[r.lottery_type for r in unique_results]}")
         logger.info(f"HOMEPAGE: Loaded {len(unique_results)} results from database")
-        
+
         # Get authoritative AI predictions using unified function
         unvalidated_predictions = []
         try:
             conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
             predictions_data = get_current_predictions(conn)
             conn.close()
-            
+
             # Convert predictions_data to the format expected by the homepage template
             for game_type, pred_data in predictions_data.items():
                 unvalidated_predictions.append({
@@ -519,28 +519,28 @@ def index():
                     'target_date': pred_data['target_date'],
                     'linked_draw_id': pred_data['linked_draw_id']
                 })
-            
+
         except Exception as e:
             logger.error(f"Error fetching predictions for homepage: {e}")
-        
+
         logger.info(f"Homepage: Loaded {len(unvalidated_predictions)} AI predictions for display")
-        
+
         # Debug bonus numbers for template and ensure methods exist
         for result in unique_results:
             # Force the methods to exist on the DrawResult objects
             if not hasattr(result, 'get_bonus_numbers_list'):
                 logging.warning(f"TEMPLATE FIX: Adding missing get_bonus_numbers_list method to {result.lottery_type}")
                 result.get_bonus_numbers_list = result.__class__.get_bonus_numbers_list.__get__(result, result.__class__)
-            
+
             if hasattr(result, 'get_bonus_numbers_list'):
                 bonus_list = result.get_bonus_numbers_list()
                 logging.info(f"TEMPLATE DEBUG {result.lottery_type}: bonus='{result.bonus_numbers}' -> parsed={bonus_list}")
-        
+
         return render_template('index.html', 
                              results=unique_results,
                              unvalidated_predictions=unvalidated_predictions,
                              total_numbers=0)
-    
+
     except Exception as e:
         logger.error(f"Homepage error: {e}")
         logger.error(traceback.format_exc())
@@ -554,16 +554,16 @@ def results(lottery_type=None):
         if lottery_type:
             # Map display name to database types
             db_types = LOTTERY_TYPE_MAPPING.get(lottery_type, [lottery_type])
-            
+
             logger.info(f"Looking for lottery type '{lottery_type}' mapped to DB types '{db_types}'")
-            
+
             # Use direct psycopg2 connection to bypass SQLAlchemy type issues
             import psycopg2
             import os
-            
+
             connection_string = os.environ.get('DATABASE_URL')
             results = []
-            
+
             try:
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
@@ -575,7 +575,7 @@ def results(lottery_type=None):
                             ORDER BY draw_date DESC 
                             LIMIT 20
                         """, (db_types,))
-                        
+
                         for row in cur.fetchall():
                             # Create a fake LotteryResult object with the required methods
                             result_obj = type('Result', (), {})()
@@ -591,7 +591,7 @@ def results(lottery_type=None):
                             result_obj.total_sales = row[9]
                             result_obj.draw_machine = row[10]
                             result_obj.next_draw_date = row[11]
-                            
+
                             # Add the required methods with proper closure
                             def make_get_numbers_list(obj):
                                 def get_numbers_list():
@@ -602,7 +602,7 @@ def results(lottery_type=None):
                                             return []
                                     return obj.main_numbers or []
                                 return get_numbers_list
-                            
+
                             def make_get_bonus_numbers_list(obj):
                                 def get_bonus_numbers_list():
                                     try:
@@ -623,7 +623,7 @@ def results(lottery_type=None):
                                     except:
                                         return []
                                 return get_bonus_numbers_list
-                            
+
                             def make_get_parsed_divisions(obj):
                                 def get_parsed_divisions():
                                     if not obj.divisions or obj.divisions == '[]':
@@ -635,34 +635,34 @@ def results(lottery_type=None):
                                     except:
                                         return []
                                 return get_parsed_divisions
-                            
+
                             result_obj.get_numbers_list = make_get_numbers_list(result_obj)
                             result_obj.get_bonus_numbers_list = make_get_bonus_numbers_list(result_obj)
                             result_obj.get_parsed_divisions = make_get_parsed_divisions(result_obj)
-                            
+
                             results.append(result_obj)
             except Exception as e:
                 logger.error(f"Direct database connection failed: {e}")
                 results = []
-            
+
             logger.info(f"Found {len(results)} results")
-            
+
             # Create latest_results dict and lottery_types list for template compatibility
             latest_results = {}
             lottery_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
-            
+
             # Group filtered results by lottery type to get the latest for each
             for result in results:
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
-            
+
             # Fetch historical prediction data for result cards (predictions that were made for these draws)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
                     historical_predictions = get_historical_predictions(conn)
                     logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
-                    
+
                     # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
                     predictions_data = {}
                     for game_type, pred_data in historical_predictions.items():
@@ -692,10 +692,10 @@ def results(lottery_type=None):
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
                 predictions_data = {}
-            
+
             logger.info(f"FILTERED RESULTS DEBUG: Found {len(predictions_data)} prediction entries: {list(predictions_data.keys())}")
             logger.info(f"FILTERED RESULTS DEBUG: Latest results keys: {list(latest_results.keys())}")
-            
+
             # Debug prediction data structure for template
             logger.info(f"FILTERED RESULTS DEBUG: predictions_data type: {type(predictions_data)}")
             for game_type, pred_data in predictions_data.items():
@@ -704,7 +704,7 @@ def results(lottery_type=None):
                     logger.info(f"FILTERED RESULTS DEBUG: {game_type} prediction numbers: {pred_data['predicted_numbers']} (type: {type(pred_data['predicted_numbers'])})")
                 else:
                     logger.info(f"FILTERED RESULTS DEBUG: {game_type} has no predicted_numbers or empty data: {pred_data}")
-            
+
             return render_template('results.html', 
                                  results=results, 
                                  latest_results=latest_results,
@@ -716,12 +716,12 @@ def results(lottery_type=None):
             # Show all results using direct psycopg2 connection
             import psycopg2
             import os
-            
+
             connection_string = os.environ.get('DATABASE_URL')
             results = []
-            
+
             logger.info("=== RESULTS PAGE: Loading all lottery results ===")
-            
+
             try:
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
@@ -750,7 +750,7 @@ def results(lottery_type=None):
                                     ELSE 7
                                 END
                         """)
-                        
+
                         for row in cur.fetchall():
                             # Create a fake LotteryResult object with the required methods
                             result_obj = type('Result', (), {})()
@@ -766,7 +766,7 @@ def results(lottery_type=None):
                             result_obj.total_sales = row[9]
                             result_obj.draw_machine = row[10]
                             result_obj.next_draw_date = row[11]
-                            
+
                             # Add the required methods with proper closure
                             def make_get_numbers_list(obj):
                                 def get_numbers_list():
@@ -777,7 +777,7 @@ def results(lottery_type=None):
                                             return []
                                     return obj.main_numbers or []
                                 return get_numbers_list
-                            
+
                             def make_get_bonus_numbers_list(obj):
                                 def get_bonus_numbers_list():
                                     try:
@@ -799,7 +799,7 @@ def results(lottery_type=None):
                                     except:
                                         return []
                                 return get_bonus_numbers_list
-                            
+
                             def make_get_parsed_divisions(obj):
                                 def get_parsed_divisions():
                                     if not obj.divisions or obj.divisions == '[]':
@@ -811,35 +811,35 @@ def results(lottery_type=None):
                                     except:
                                         return []
                                 return get_parsed_divisions
-                            
+
                             result_obj.get_numbers_list = make_get_numbers_list(result_obj)
                             result_obj.get_bonus_numbers_list = make_get_bonus_numbers_list(result_obj)
                             result_obj.get_parsed_divisions = make_get_parsed_divisions(result_obj)
-                            
+
                             results.append(result_obj)
-                            
+
                 logger.info(f"RESULTS PAGE: Loaded {len(results)} lottery results")
             except Exception as e:
                 logger.error(f"Direct database connection failed: {e}")
                 logger.error(traceback.format_exc())
                 results = []
-            
+
             # Create latest_results dict and lottery_types list for the template
             latest_results = {}
             lottery_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
-            
+
             # Group results by lottery type to get the latest for each
             for result in results:
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
-            
+
             # Fetch historical prediction data for result cards (predictions that were made for these draws)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
                     historical_predictions = get_historical_predictions(conn)
                     logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
-                    
+
                     # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
                     predictions_data = {}
                     for game_type, pred_data in historical_predictions.items():
@@ -869,10 +869,10 @@ def results(lottery_type=None):
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
                 predictions_data = {}
-            
+
             logger.info(f"RESULTS DEBUG: Found {len(predictions_data)} prediction entries: {list(predictions_data.keys())}")
             logger.info(f"RESULTS DEBUG: Latest results keys: {list(latest_results.keys())}")
-            
+
             # Debug prediction data structure for template
             logger.info(f"RESULTS DEBUG: predictions_data type: {type(predictions_data)}")
             for game_type, pred_data in predictions_data.items():
@@ -881,13 +881,13 @@ def results(lottery_type=None):
                     logger.info(f"RESULTS DEBUG: {game_type} prediction numbers: {pred_data['predicted_numbers']} (type: {type(pred_data['predicted_numbers'])})")
                 else:
                     logger.info(f"RESULTS DEBUG: {game_type} has no predicted_numbers or empty data: {pred_data}")
-            
+
             return render_template('results.html', 
                                  results=results,
                                  latest_results=latest_results,
                                  predictions_data=predictions_data,
                                  lottery_types=lottery_types)
-            
+
     except Exception as e:
         logger.error(f"Results page error: {e}")
         logger.error(traceback.format_exc())
@@ -899,16 +899,16 @@ def draw_details(lottery_type, draw_number):
     try:
         # Handle URL encoding
         lottery_type = unquote(lottery_type)
-        
+
         logger.info(f"DRAW DETAILS: Looking for lottery_type='{lottery_type}', draw_number={draw_number}")
-        
+
         # Use direct psycopg2 connection to avoid SQLAlchemy type issues
         import psycopg2
         import os
-        
+
         connection_string = os.environ.get('DATABASE_URL')
         result = None
-        
+
         try:
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
@@ -922,7 +922,7 @@ def draw_details(lottery_type, draw_number):
                             id DESC
                         LIMIT 1
                     """, (lottery_type, draw_number))
-                    
+
                     row = cur.fetchone()
                     if row:
                         # Create a fake LotteryResult object with the required methods
@@ -939,7 +939,7 @@ def draw_details(lottery_type, draw_number):
                         result.total_sales = row[9]
                         result.draw_machine = row[10]
                         result.next_draw_date = row[11]
-                        
+
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
@@ -950,7 +950,7 @@ def draw_details(lottery_type, draw_number):
                                         return []
                                 return obj.main_numbers or []
                             return get_numbers_list
-                        
+
                         def make_get_bonus_numbers_list(obj):
                             def get_bonus_numbers_list():
                                 try:
@@ -972,7 +972,7 @@ def draw_details(lottery_type, draw_number):
                                 except:
                                     return []
                             return get_bonus_numbers_list
-                        
+
                         def make_get_parsed_divisions(obj):
                             def get_parsed_divisions():
                                 if not obj.divisions or obj.divisions == '[]' or obj.divisions == 'null':
@@ -987,13 +987,13 @@ def draw_details(lottery_type, draw_number):
                                 except Exception:
                                     return []
                             return get_parsed_divisions
-                        
+
                         result.get_numbers_list = make_get_numbers_list(result)
                         result.get_bonus_numbers_list = make_get_bonus_numbers_list(result)
                         result.get_parsed_divisions = make_get_parsed_divisions(result)
-                        
+
                         logger.info(f"DRAW DETAILS: Found draw {draw_number} for {lottery_type}")
-                    
+
                     # Fetch prediction data linked to this specific draw
                     prediction_result = None
                     try:
@@ -1009,7 +1009,7 @@ def draw_details(lottery_type, draw_number):
                             ORDER BY created_at DESC 
                             LIMIT 1
                         """, (lottery_type, draw_number))
-                        
+
                         validation_row = cur.fetchone()
                         if validation_row:
                             prediction_result = type('PredictionResult', (), {})()
@@ -1025,7 +1025,7 @@ def draw_details(lottery_type, draw_number):
                             prediction_result.validation_status = validation_row[9]
                             prediction_result.prediction_method = validation_row[10]
                             prediction_result.reasoning = validation_row[11]
-                            
+
                             # Parse matched numbers if they're in PostgreSQL array format
                             if prediction_result.matched_numbers and isinstance(prediction_result.matched_numbers, str):
                                 matched_str = str(prediction_result.matched_numbers)
@@ -1037,7 +1037,7 @@ def draw_details(lottery_type, draw_number):
                                         prediction_result.matched_numbers = json.loads(prediction_result.matched_numbers)
                                     except:
                                         prediction_result.matched_numbers = []
-                            
+
                             # Parse matched bonus numbers if they're in PostgreSQL array format
                             if prediction_result.matched_bonus and isinstance(prediction_result.matched_bonus, str):
                                 matched_bonus_str = str(prediction_result.matched_bonus)
@@ -1049,7 +1049,7 @@ def draw_details(lottery_type, draw_number):
                                         prediction_result.matched_bonus = json.loads(prediction_result.matched_bonus)
                                     except:
                                         prediction_result.matched_bonus = []
-                            
+
                             logger.info(f"DRAW DETAILS: Found prediction data linked to draw {draw_number}")
                             logger.info(f"TEMPLATE DEBUG: validation_result will be: {prediction_result is not None}")
                             if prediction_result:
@@ -1058,15 +1058,15 @@ def draw_details(lottery_type, draw_number):
                     except Exception as pred_e:
                         logger.error(f"Failed to fetch prediction data: {pred_e}")
                         prediction_result = None
-                    
+
         except Exception as db_e:
             logger.error(f"Database connection failed: {db_e}")
             logger.error(traceback.format_exc())
-        
+
         if not result:
             flash(f"Draw {draw_number} not found for {lottery_type}", 'error')
             return redirect(url_for('results'))
-        
+
         # Get display name for breadcrumb
         DISPLAY_NAME_MAPPING = {
             'LOTTO': 'Lottery',
@@ -1077,14 +1077,14 @@ def draw_details(lottery_type, draw_number):
             'DAILY LOTTO': 'Daily Lottery'
         }
         display_name = DISPLAY_NAME_MAPPING.get(lottery_type, lottery_type)
-        
+
         logger.info(f"TEMPLATE RENDER: Passing validation_result={prediction_result is not None}")
         return render_template('draw_details.html', 
                              result=result,
                              display_name=display_name,
                              lottery_type=lottery_type,
                              validation_result=prediction_result)
-        
+
     except Exception as e:
         logger.error(f"Draw details error: {e}")
         logger.error(traceback.format_exc())
@@ -1097,7 +1097,7 @@ class SimpleForm:
     def __init__(self):
         self.username = SimpleField('username', 'Username')
         self.password = SimpleField('password', 'Password')
-    
+
     def hidden_tag(self):
         return ''
 
@@ -1107,10 +1107,10 @@ class SimpleField:
         self.name = name
         self.label_text = label
         self.errors = []
-    
+
     def label(self, class_=None):
         return f'<label for="{self.name}" class="{class_ or ""}">{self.label_text}</label>'
-    
+
     def __call__(self, class_=None, placeholder=None, autocomplete=None):
         attrs = []
         if class_:
@@ -1119,7 +1119,7 @@ class SimpleField:
             attrs.append(f'placeholder="{placeholder}"')
         if autocomplete:
             attrs.append(f'autocomplete="{autocomplete}"')
-        
+
         field_type = "password" if self.name == "password" else "text"
         attr_str = ' '.join(attrs)
         return f'<input type="{field_type}" name="{self.name}" id="{self.name}" {attr_str}>'
@@ -1128,36 +1128,36 @@ class SimpleField:
 def login():
     """User login"""
     logger.info(f"LOGIN ROUTE ACCESSED: Method={request.method}")
-    
+
     if request.method == 'POST':
         logger.info("LOGIN: Processing POST request")
         username = request.form.get('username')
         password = request.form.get('password')
-        
+
         logger.info(f"LOGIN ATTEMPT: Username='{username}', Password length={len(password) if password else 0}")
         logger.info(f"LOGIN: Form data keys: {list(request.form.keys())}")
-        
+
         user = User.query.filter_by(username=username).first()
         logger.info(f"LOGIN DEBUG: User found={user is not None}")
-        
+
         if user:
             logger.info(f"LOGIN DEBUG: User ID={user.id}, Is Admin={user.is_admin}")
             password_valid = check_password_hash(user.password_hash, password)
             logger.info(f"LOGIN DEBUG: Password valid={password_valid}")
-            
+
             if password_valid:
                 login_result = login_user(user)
                 logger.info(f"LOGIN DEBUG: login_user result={login_result}")
                 flash('Login successful!', 'success')
-                
+
                 # Handle next URL parameter safely to prevent open redirect attacks
                 next_page = request.args.get('next')
                 logger.info(f"LOGIN DEBUG: Next page={next_page}")
-                
+
                 if next_page and is_safe_url(next_page):
                     logger.info(f"LOGIN DEBUG: Redirecting to next page: {next_page}")
                     return redirect(next_page)
-                
+
                 # Redirect admin users to admin dashboard
                 if user.is_admin:
                     logger.info("LOGIN DEBUG: Redirecting admin to admin dashboard")
@@ -1173,7 +1173,7 @@ def login():
             flash('Invalid username or password', 'error')
     else:
         logger.info("LOGIN: Showing login form (GET request)")
-    
+
     return render_template('login.html')
 
 @app.route('/admin-bypass')
@@ -1237,15 +1237,15 @@ def guide_detail(guide_name):
         'understanding-odds',
         'managing-lottery-winnings'
     ]
-    
+
     if guide_name not in available_guides:
         flash('Guide not found', 'error')
         return redirect(url_for('guides'))
-    
+
     # Convert guide name to template filename
     template_name = guide_name.replace('-', '_') + '.html'
     template_path = f'guides/{template_name}'
-    
+
     try:
         return render_template(template_path)
     except:
@@ -1260,7 +1260,7 @@ def visualizations():
         # Get lottery statistics for template data
         conn = psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI'])
         cur = conn.cursor()
-        
+
         # Get total draws and latest draw date
         cur.execute("""
             SELECT 
@@ -1272,7 +1272,7 @@ def visualizations():
         result = cur.fetchone()
         total_draws = result[0] if result else 0
         latest_draw_date = result[1] if result else None
-        
+
         # Get unique lottery types
         cur.execute("""
             SELECT DISTINCT lottery_type 
@@ -1281,7 +1281,7 @@ def visualizations():
             ORDER BY lottery_type
         """)
         lottery_types = [row[0] for row in cur.fetchall()]
-        
+
         # Get unvalidated predictions for display
         cur.execute("""
             SELECT 
@@ -1295,7 +1295,7 @@ def visualizations():
                 linked_draw_id
             FROM lottery_predictions 
             WHERE (validation_status = 'pending' OR validation_status IS NULL) 
-              AND is_verified = false
+                AND is_verified = false
             ORDER BY CASE game_type 
                         WHEN 'LOTTO' THEN 1
                         WHEN 'LOTTO PLUS 1' THEN 2 
@@ -1306,14 +1306,16 @@ def visualizations():
                         ELSE 7
                      END, target_draw_date ASC
         """)
-        
+
         unvalidated_predictions = []
         for row in cur.fetchall():
             game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, linked_draw_id = row
-            
+
             # Parse numbers from PostgreSQL format
             import json
-            main_numbers = []
+            import re
+
+            # Convert PostgreSQL array format to Python list
             if predicted_nums:
                 nums_str = str(predicted_nums)
                 if nums_str.startswith('{') and nums_str.endswith('}'):
@@ -1321,7 +1323,9 @@ def visualizations():
                     main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
                 else:
                     main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
-            
+            else:
+                main_numbers = []
+
             bonus_numbers = []
             if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
                 bonus_str = str(bonus_nums)
@@ -1330,7 +1334,7 @@ def visualizations():
                     bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
                 else:
                     bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
-            
+
             unvalidated_predictions.append({
                 'game_type': game_type,
                 'main_numbers': sorted(main_numbers) if main_numbers else [],
@@ -1340,18 +1344,18 @@ def visualizations():
                 'target_date': target_date,
                 'linked_draw_id': linked_draw_id
             })
-        
+
         cur.close()
         conn.close()
-        
+
         logger.info(f"Visualizations page data: {total_draws} draws, {len(lottery_types)} lottery types, {len(unvalidated_predictions)} unvalidated predictions")
-        
+
         return render_template('visualizations.html', 
                              total_draws=total_draws,
                              latest_draw_date=latest_draw_date,
                              lottery_types=lottery_types,
                              unvalidated_predictions=unvalidated_predictions)
-                             
+
     except Exception as e:
         logger.error(f"Error loading visualizations data: {e}")
         # Fallback with minimal data
@@ -1376,7 +1380,7 @@ def predictions():
         # Connect to database and fetch latest predictions
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
-        
+
         # Get exactly 1 LATEST UNVALIDATED prediction per game type for future draws only
         # Custom ordering: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO
         cur.execute("""
@@ -1403,13 +1407,13 @@ def predictions():
                      confidence_score DESC, 
                      created_at DESC
         """)
-        
-        # Get all results first, then custom sort
+
+        # Get all predictions first, then custom sort
         all_predictions = cur.fetchall()
-        
+
         # Define the desired order
         game_order = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
-        
+
         # Sort predictions by the custom order
         predictions_data = []
         for game in game_order:
@@ -1417,16 +1421,16 @@ def predictions():
                 if row[0] == game:  # game_type is first column
                     predictions_data.append(row)
                     break
-        
+
         predictions = []
-        
+
         for row in predictions_data:
             game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at = row
-            
+
             # Parse the PostgreSQL arrays
             import json
             import re
-            
+
             # Convert PostgreSQL array format to Python list
             if predicted_nums:
                 # Handle both {1,2,3} and [1,2,3] formats
@@ -1440,7 +1444,7 @@ def predictions():
                     main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
             else:
                 main_numbers = []
-            
+
             # Parse bonus numbers similarly
             if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
                 bonus_str = str(bonus_nums)
@@ -1451,7 +1455,7 @@ def predictions():
                     bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
             else:
                 bonus_numbers = []
-            
+
             # Parse matched numbers if available
             matched_numbers = []
             if matched_nums and str(matched_nums) not in ['{}', '[]', 'None']:
@@ -1461,7 +1465,7 @@ def predictions():
                     matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
                 else:
                     matched_numbers = json.loads(matched_nums) if isinstance(matched_nums, str) else matched_nums
-            
+
             predictions.append({
                 'game_type': game_type,
                 'main_numbers': sorted(main_numbers) if main_numbers else [],
@@ -1479,18 +1483,18 @@ def predictions():
                 'matched_numbers': sorted(matched_numbers) if matched_numbers else [],
                 'verified_at': verified_at
             })
-        
+
         cur.close()
         conn.close()
-        
+
         logger.info(f"Loaded {len(predictions)} AI predictions for display")
-        
+
         return render_template('ai_predictions_simple.html', 
                              predictions=predictions,
                              debug_user_authenticated=current_user.is_authenticated,
                              debug_user_admin=getattr(current_user, 'is_admin', False) if current_user.is_authenticated else False,
                              debug_username=current_user.username if current_user.is_authenticated else 'Not logged in')
-        
+
     except Exception as e:
         logger.error(f"Error loading predictions: {e}")
         return render_template('ai_predictions_simple.html', predictions=[])
@@ -1503,24 +1507,24 @@ def trigger_weekly_predictions():
     try:
         import subprocess
         import threading
-        
+
         def run_predictions():
             try:
                 # DISABLED: Using unified scheduler instead
                 logger.info("Weekly predictions managed by unified scheduler")
             except Exception as e:
                 logger.error(f"Weekly predictions failed: {e}")
-        
+
         # Run in background thread
         thread = threading.Thread(target=run_predictions)
         thread.daemon = True
         thread.start()
-        
+
         return jsonify({
             'success': True,
             'message': 'Weekly predictions started in background'
         })
-        
+
     except Exception as e:
         logger.error(f"Failed to trigger weekly predictions: {e}")
         return jsonify({
@@ -1536,10 +1540,10 @@ def api_predictions():
         import psycopg2
         import json
         from psycopg2.extras import RealDictCursor
-        
+
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Get latest predictions for each game type with draw ID linking
         cur.execute("""
             SELECT id, game_type, predicted_numbers, bonus_numbers, confidence_score, 
@@ -1549,7 +1553,7 @@ def api_predictions():
             ORDER BY created_at DESC 
             LIMIT 50
         """)
-        
+
         predictions = []
         for row in cur.fetchall():
             # Convert PostgreSQL array format {1,2,3} to JSON array [1,2,3]
@@ -1560,7 +1564,7 @@ def api_predictions():
                 else:
                     # Convert PostgreSQL array format to list
                     main_numbers = row['predicted_numbers']
-            
+
             bonus_numbers = []
             if row['bonus_numbers']:
                 if isinstance(row['bonus_numbers'], list):
@@ -1568,7 +1572,7 @@ def api_predictions():
                 else:
                     # Convert PostgreSQL array format to list
                     bonus_numbers = row['bonus_numbers']
-            
+
             predictions.append({
                 'id': row['id'],
                 'game_type': row['game_type'],
@@ -1583,15 +1587,15 @@ def api_predictions():
                 'reasoning': row['reasoning'],
                 'linked_draw_id': row['linked_draw_id']  # Add draw ID linking
             })
-        
+
         cur.close()
         conn.close()
-        
+
         return jsonify({
             'success': True,
             'predictions': predictions
         })
-        
+
     except Exception as e:
         logger.error(f"Error fetching predictions: {e}")
         return jsonify({
@@ -1607,10 +1611,10 @@ def api_predictions_by_draw(draw_id):
         import psycopg2
         import json
         from psycopg2.extras import RealDictCursor
-        
+
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Get predictions linked to this draw ID
         cur.execute("""
             SELECT p.id, p.game_type, p.predicted_numbers, p.bonus_numbers, p.confidence_score,
@@ -1624,7 +1628,7 @@ def api_predictions_by_draw(draw_id):
             WHERE p.linked_draw_id = %s
             ORDER BY p.game_type, p.created_at DESC
         """, (draw_id,))
-        
+
         predictions = []
         for row in cur.fetchall():
             # Convert PostgreSQL array format to JSON
@@ -1632,7 +1636,7 @@ def api_predictions_by_draw(draw_id):
             bonus_numbers = row['bonus_numbers'] if row['bonus_numbers'] else []
             actual_numbers = row['actual_numbers'] if row['actual_numbers'] else []
             actual_bonus_numbers = row['actual_bonus_numbers'] if row['actual_bonus_numbers'] else []
-            
+
             prediction_data = {
                 'id': row['id'],
                 'game_type': row['game_type'],
@@ -1657,17 +1661,17 @@ def api_predictions_by_draw(draw_id):
                 'is_verified': row['validation_status'] == 'validated'
             }
             predictions.append(prediction_data)
-        
+
         cur.close()
         conn.close()
-        
+
         return jsonify({
             'success': True,
             'draw_id': draw_id,
             'predictions': predictions,
             'total_predictions': len(predictions)
         })
-        
+
     except Exception as e:
         logger.error(f"Error fetching predictions for draw {draw_id}: {e}")
         return jsonify({
@@ -1683,25 +1687,26 @@ def run_prediction_cycle():
     """Run validation-driven prediction cycle using same logic as manual workflow"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
-    
+
     try:
-        from prediction_validation_system import PredictionValidator
-        
-        logger.info("🎯 Starting validation-driven prediction cycle (same as manual workflow)")
-        
         # Use the exact same validator system we perfected manually
+        # Import the necessary class
+        from prediction_validation_system import PredictionValidator
+
+        logger.info("🎯 Starting validation-driven prediction cycle (same as manual workflow)")
+
         validator = PredictionValidator()
-        
+
         # Run validation against all pending predictions - follows fresh results principle
         validation_results = validator.validate_all_pending_predictions()
-        
+
         # Close validator connection
         validator.close()
-        
+
         # Analyze results
         successful_validations = [r for r in validation_results if r.get('success')]
         failed_validations = [r for r in validation_results if not r.get('success')]
-        
+
         # Extract validation details for response
         validation_details = []
         for result in successful_validations:
@@ -1712,9 +1717,9 @@ def run_prediction_cycle():
                     'accuracy_percentage': result['accuracy_percentage'],
                     'main_number_matches': result['main_number_matches']
                 })
-                
+
         logger.info(f'✅ Validation-driven cycle complete: {len(successful_validations)} successful, {len(failed_validations)} failed validations')
-        
+
         return jsonify({
             'success': True,
             'workflow_type': 'validation_driven',
@@ -1725,7 +1730,7 @@ def run_prediction_cycle():
             'message': f'Validated {len(successful_validations)} predictions. New predictions generated ONLY for games with fresh results from today.',
             'principle': 'Only generate new predictions after validating against corresponding fresh draws'
         })
-        
+
     except Exception as e:
         logger.error(f"Error in validation-driven prediction cycle: {e}")
         return jsonify({
@@ -1766,46 +1771,46 @@ def process_ticket():
         # Check if file was uploaded
         if 'ticket_image' not in request.files:
             return jsonify({'error': 'No file selected'}), 400
-        
+
         file = request.files['ticket_image']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
-        
+
         # Validate file type
         if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             return jsonify({'error': 'Only PNG, JPG, and JPEG files are allowed'}), 400
-        
+
         # Save uploaded file
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_filename = f"{timestamp}_{filename}"
-        
+
         upload_folder = 'uploads'
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, unique_filename)
         file.save(file_path)
-        
+
         logger.info(f"Processing ticket scanner image: {file_path}")
-        
+
         # Process with AI using manual lottery processor
         from manual_lottery_processor import ManualLotteryProcessor
         processor = ManualLotteryProcessor()
-        
+
         # Extract data from the image
         extracted_data = processor.process_lottery_image(file_path)
-        
+
         if extracted_data and not extracted_data.get('error'):
             # If we have valid game types, fetch winning numbers for comparison
             if 'included_games' in extracted_data and extracted_data['included_games']:
                 winning_numbers = {}
-                
+
                 try:
                     import psycopg2
                     from psycopg2.extras import RealDictCursor
-                    
+
                     conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
                     cur = conn.cursor(cursor_factory=RealDictCursor)
-                    
+
                     # Map display names to database names
                     game_mapping = {
                         'LOTTO': 'LOTTO',
@@ -1815,15 +1820,15 @@ def process_ticket():
                         'POWERBALL PLUS': 'POWERBALL PLUS',
                         'DAILY LOTTO': 'DAILY LOTTO'
                     }
-                    
+
                     # Get the ticket's draw date and number for matching
                     ticket_draw_date = extracted_data.get('draw_date')
                     ticket_draw_number = extracted_data.get('draw_number')
-                    
+
                     for game_type in extracted_data['included_games']:
                         if game_type in game_mapping:
                             db_game_type = game_mapping[game_type]
-                            
+
                             # Try to find winning numbers for the same draw date/number as the ticket
                             if ticket_draw_date and ticket_draw_number:
                                 # First try to match by draw number (most accurate)
@@ -1833,9 +1838,9 @@ def process_ticket():
                                     WHERE lottery_type = %s AND draw_number = %s
                                     LIMIT 1
                                 """, (db_game_type, ticket_draw_number))
-                                
+
                                 latest_result = cur.fetchone()
-                                
+
                                 # If no exact draw number match, try by date
                                 if not latest_result and ticket_draw_date:
                                     cur.execute("""
@@ -1855,27 +1860,27 @@ def process_ticket():
                                     LIMIT 1
                                 """, (db_game_type,))
                                 latest_result = cur.fetchone()
-                            
-                            
+
+
                             if latest_result:
                                 # Parse numbers from database format
                                 main_nums = latest_result['main_numbers']
                                 bonus_nums = latest_result['bonus_numbers']
-                                
+
                                 if isinstance(main_nums, str):
                                     try:
                                         import json
                                         main_nums = json.loads(main_nums)
                                     except:
                                         main_nums = []
-                                
+
                                 if isinstance(bonus_nums, str):
                                     try:
                                         import json
                                         bonus_nums = json.loads(bonus_nums)
                                     except:
                                         bonus_nums = []
-                                
+
                                 winning_numbers[game_type] = {
                                     'main_numbers': main_nums or [],
                                     'bonus_numbers': bonus_nums or [],
@@ -1891,17 +1896,17 @@ def process_ticket():
                                     'draw_date': ticket_draw_date,
                                     'not_available': True
                                 }
-                    
+
                     cur.close()
                     conn.close()
-                    
+
                     # Add winning numbers to result
                     extracted_data['winning_numbers'] = winning_numbers
-                    
+
                 except Exception as e:
                     logger.error(f"Error fetching winning numbers: {e}")
                     extracted_data['winning_numbers'] = {}
-            
+
             # Return the extracted lottery data
             return jsonify({
                 'success': True,
@@ -1915,7 +1920,7 @@ def process_ticket():
                 'error': error_msg,
                 'message': 'Please ensure the ticket is clearly visible and try again'
             }), 400
-            
+
     except Exception as e:
         logger.error(f"Error processing ticket: {str(e)}")
         return jsonify({
@@ -1930,77 +1935,77 @@ def upload_lottery():
     """Upload and process lottery result images with AI"""
     if request.method == 'GET':
         return render_template('upload_lottery.html')
-    
+
     try:
         # Check if file was uploaded
         if 'lottery_image' not in request.files:
             flash('No file selected', 'error')
             return redirect(request.url)
-        
+
         file = request.files['lottery_image']
         if file.filename == '':
             flash('No file selected', 'error')
             return redirect(request.url)
-        
+
         # Validate file type and size
         if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             flash('Only PNG, JPG, and JPEG files are allowed', 'error')
             return redirect(request.url)
-        
+
         # Save uploaded file
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_filename = f"{timestamp}_{filename}"
-        
+
         upload_folder = 'uploads'
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, unique_filename)
         file.save(file_path)
-        
+
         # Get expected lottery type
         expected_type = request.form.get('expected_lottery_type', '')
-        
+
         logger.info(f"Processing uploaded lottery image: {file_path}")
-        
+
         # Process with AI using manual lottery processor
         from manual_lottery_processor import ManualLotteryProcessor
         processor = ManualLotteryProcessor()
-        
+
         # Extract data with AI
         result = processor.process_lottery_image(file_path, expected_type)
-        
+
         if 'error' in result:
             flash(f'AI processing failed: {result["error"]}', 'error')
             return redirect(request.url)
-        
+
         # Display extraction results
         lottery_type = result.get('lottery_type')
         confidence = result.get('confidence', 0)
-        
+
         if confidence < 70:
             flash(f'Low confidence extraction ({confidence}%). Please verify the image quality.', 'warning')
-        
+
         # Save to database
         save_result = processor.save_extractions_to_database(result)
-        
+
         if save_result.get('success'):
             saved_records = save_result.get('saved_records', [])
             record_ids = [str(r['id']) for r in saved_records]
-            
+
             flash(f'Successfully processed {lottery_type} lottery with {confidence}% confidence! (Record IDs: {", ".join(record_ids)})', 'success')
-            
+
             # Clean up uploaded file
             try:
                 os.remove(file_path)
             except:
                 pass
-            
+
             # Redirect to results page
             return redirect(url_for('results'))
         else:
             flash(f'Data extraction successful, but database save failed: {save_result.get("error")}', 'error')
             return redirect(request.url)
-            
+
     except Exception as e:
         logger.error(f"Upload processing error: {e}")
         logger.error(traceback.format_exc())
@@ -2014,20 +2019,20 @@ def admin():
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
-    
+
     # Get ticket processing statistics
     try:
         import psycopg2
         from psycopg2.extras import RealDictCursor
-        
+
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Get total processed tickets
         cur.execute("SELECT COUNT(*) as total_tickets FROM extraction_review")
         total_result = cur.fetchone()
         total_tickets = total_result['total_tickets'] if total_result else 0
-        
+
         # Get tickets processed today
         cur.execute("""
             SELECT COUNT(*) as today_tickets 
@@ -2036,7 +2041,7 @@ def admin():
         """)
         today_result = cur.fetchone()
         today_tickets = today_result['today_tickets'] if today_result else 0
-        
+
         # Get tickets processed this week
         cur.execute("""
             SELECT COUNT(*) as week_tickets 
@@ -2045,7 +2050,7 @@ def admin():
         """)
         week_result = cur.fetchone()
         week_tickets = week_result['week_tickets'] if week_result else 0
-        
+
         # Get tickets by status
         cur.execute("""
             SELECT status, COUNT(*) as count 
@@ -2054,7 +2059,7 @@ def admin():
         """)
         status_results = cur.fetchall()
         status_stats = {row['status']: row['count'] for row in status_results}
-        
+
         # Get average confidence score
         cur.execute("""
             SELECT AVG(confidence_score) as avg_confidence 
@@ -2063,7 +2068,7 @@ def admin():
         """)
         confidence_result = cur.fetchone()
         avg_confidence = confidence_result['avg_confidence'] if confidence_result and confidence_result['avg_confidence'] else 0
-        
+
         # Get most recent ticket processed
         cur.execute("""
             SELECT created_at 
@@ -2073,10 +2078,10 @@ def admin():
         """)
         recent_result = cur.fetchone()
         last_processed = recent_result['created_at'] if recent_result else None
-        
+
         cur.close()
         conn.close()
-        
+
         ticket_stats = {
             'total_tickets': total_tickets,
             'today_tickets': today_tickets,
@@ -2085,7 +2090,7 @@ def admin():
             'avg_confidence': round(float(avg_confidence), 2) if avg_confidence else 0,
             'last_processed': last_processed
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting ticket statistics: {e}")
         ticket_stats = {
@@ -2096,7 +2101,7 @@ def admin():
             'avg_confidence': 0,
             'last_processed': None
         }
-    
+
     return render_template('admin/dashboard.html', ticket_stats=ticket_stats)
 
 # Admin feature routes - restore the advanced features you built
@@ -2115,7 +2120,7 @@ def automation_control():
     """Automation Control Center"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     # Get latest screenshots for display
     try:
         from models import Screenshot
@@ -2124,7 +2129,7 @@ def automation_control():
     except Exception as e:
         logger.warning(f"Could not load screenshots: {e}")
         screenshots = []
-    
+
     return render_template('admin/automation_control.html', screenshots=screenshots)
 
 @app.route('/admin/scheduler_status')
@@ -2133,19 +2138,19 @@ def scheduler_status():
     """Daily Automation Scheduler Status"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     # Get scheduler status
     try:
         # DISABLED: Using unified scheduler instead  
         scheduler_data = {'status': 'unified_scheduler_active', 'next_run': 'Daily at 23:45 SA'}
-        
+
         # Get recent automation logs
         import psycopg2
         from psycopg2.extras import RealDictCursor
-        
+
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Get last 10 automation runs
         cur.execute("""
             SELECT start_time, end_time, success, message, duration_seconds
@@ -2154,12 +2159,12 @@ def scheduler_status():
             LIMIT 10
         """)
         recent_runs = cur.fetchall()
-        
+
         cur.close()
         conn.close()
-        
+
         scheduler_data['recent_runs'] = recent_runs
-        
+
     except Exception as e:
         logger.error(f"Error getting scheduler status: {e}")
         scheduler_data = {
@@ -2171,7 +2176,7 @@ def scheduler_status():
             'timezone': 'South Africa (UTC+2)',
             'recent_runs': []
         }
-    
+
     return render_template('admin/scheduler_status.html', scheduler_status=scheduler_data)
 
 @app.route('/admin/health_dashboard')  
@@ -2180,7 +2185,7 @@ def health_dashboard():
     """System Health Dashboard"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     # Provide basic health status variables for template
     health_data = {
         'overall_status': 'HEALTHY',
@@ -2192,7 +2197,7 @@ def health_dashboard():
         'api_status': 'Operational',
         'last_health_check': '2025-07-20 18:52:00'
     }
-    
+
     flash('System Health Dashboard - Monitor system performance and alerts', 'info')
     return render_template('admin/health_dashboard.html', **health_data)
 
@@ -2304,11 +2309,11 @@ def start_scheduler():
     """Start the daily automation scheduler"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
-    
+
     try:
         # DISABLED: Using unified scheduler instead
         success = True  # Unified scheduler runs automatically
-        
+
         if success:
             logger.info("Simple daily scheduler started via admin interface")
             return jsonify({
@@ -2320,7 +2325,7 @@ def start_scheduler():
                 'success': False,
                 'error': 'Scheduler is already running or failed to start'
             })
-            
+
     except Exception as e:
         logger.error(f"Error starting scheduler: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -2331,11 +2336,11 @@ def stop_scheduler():
     """Stop the daily automation scheduler"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
-    
+
     try:
         # DISABLED: Using unified scheduler instead
         success = False  # Cannot stop unified scheduler
-        
+
         if success:
             logger.info("Simple daily scheduler stopped via admin interface")
             return jsonify({
@@ -2347,7 +2352,7 @@ def stop_scheduler():
                 'success': False,
                 'error': 'Scheduler was not running'
             })
-            
+
     except Exception as e:
         logger.error(f"Error stopping scheduler: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -2358,11 +2363,11 @@ def run_automation_now():
     """Run automation workflow immediately"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
-    
+
     try:
         # DISABLED: Using unified scheduler instead - use manual automation trigger
         success = False  # Use dedicated automation endpoints instead
-        
+
         if success:
             logger.info("Manual automation triggered via admin interface")
             return jsonify({
@@ -2374,7 +2379,7 @@ def run_automation_now():
                 'success': False,
                 'error': 'Failed to start automation workflow'
             })
-            
+
     except Exception as e:
         logger.error(f"Error running automation now: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -2422,17 +2427,17 @@ def export_combined_zip():
     """Export Combined ZIP Archive with Screenshots and Data"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     try:
         import zipfile
         import io
         import json
         from datetime import datetime
         from models import Screenshot, LotteryResult
-        
+
         # Create in-memory zip file
         zip_buffer = io.BytesIO()
-        
+
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             # Add screenshots
             screenshots = Screenshot.query.all()
@@ -2444,7 +2449,7 @@ def export_combined_zip():
                     file_paths_to_try.append(screenshot.file_path)
                 if screenshot.filename:
                     file_paths_to_try.append(f"screenshots/{screenshot.filename}")
-                
+
                 for file_path in file_paths_to_try:
                     if os.path.exists(file_path):
                         try:
@@ -2456,17 +2461,17 @@ def export_combined_zip():
                             logger.warning(f"Could not add screenshot {screenshot.filename} from {file_path}: {e}")
                     else:
                         logger.warning(f"Screenshot file not found: {file_path}")
-            
+
             logger.info(f"Successfully added {screenshot_count} screenshots to ZIP")
-            
+
             # Add lottery data as JSON - use raw SQL to avoid PostgreSQL type issues
             try:
                 import psycopg2
                 # from config import Config  # Removed - not needed
-                
+
                 conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
                 cur = conn.cursor()
-                
+
                 cur.execute("""
                     SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers, 
                            divisions, rollover_amount, next_jackpot, total_pool_size, 
@@ -2474,7 +2479,7 @@ def export_combined_zip():
                     FROM lottery_result 
                     ORDER BY draw_date DESC
                 """)
-                
+
                 lottery_data = []
                 for row in cur.fetchall():
                     lottery_data.append({
@@ -2493,19 +2498,19 @@ def export_combined_zip():
                         'next_draw_date': row[12].isoformat() if row[12] else None,
                         'created_at': row[13].isoformat() if row[13] else None
                     })
-                
+
                 cur.close()
                 conn.close()
-                
+
                 lottery_json = json.dumps(lottery_data, indent=2, ensure_ascii=False)
                 zip_file.writestr('lottery_data.json', lottery_json)
                 logger.info(f"Added lottery data to zip: {len(lottery_data)} records")
-                
+
             except Exception as e:
                 logger.warning(f"Could not add lottery data: {e}")
                 # Add fallback empty data
                 zip_file.writestr('lottery_data.json', '{"error": "Could not export lottery data", "message": "' + str(e) + '"}')
-            
+
             # Add screenshot metadata
             try:
                 screenshot_data = []
@@ -2520,14 +2525,14 @@ def export_combined_zip():
                         'status': screenshot.status,
                         'capture_method': screenshot.capture_method
                     })
-                
+
                 screenshot_json = json.dumps(screenshot_data, indent=2, ensure_ascii=False)
                 zip_file.writestr('screenshot_metadata.json', screenshot_json)
                 logger.info("Added screenshot metadata to zip")
-                
+
             except Exception as e:
                 logger.warning(f"Could not add screenshot metadata: {e}")
-            
+
             # Add readme file
             readme_content = f"""
 # South African Lottery Data Export
@@ -2548,13 +2553,13 @@ This archive contains authentic South African lottery data captured from officia
 Data extracted using Google Gemini 2.5 Pro with 98-99% accuracy confidence scores.
 """
             zip_file.writestr('README.txt', readme_content)
-        
+
         zip_buffer.seek(0)
-        
+
         # Generate filename with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'sa_lottery_data_{timestamp}.zip'
-        
+
         from flask import send_file
         return send_file(
             zip_buffer,
@@ -2562,7 +2567,7 @@ Data extracted using Google Gemini 2.5 Pro with 98-99% accuracy confidence score
             as_attachment=True,
             download_name=filename
         )
-        
+
     except Exception as e:
         logger.error(f"Error creating combined zip: {e}")
         flash(f'Error creating combined archive: {str(e)}', 'error')
@@ -2583,28 +2588,28 @@ def capture_fresh_screenshots():
     """Capture Fresh Screenshots Using Verified System"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     try:
         # Import the restored Playwright system
         from screenshot_capture import capture_all_lottery_screenshots
-        
+
         # Trigger the capture process using Playwright method
         results = capture_all_lottery_screenshots()
-        
+
         # Report results
         if results['total_success'] > 0:
             flash(f'Successfully captured {results["total_success"]}/6 lottery screenshots', 'success')
-            
+
             if results['total_failed'] > 0:
                 failed_types = [result['lottery_type'] for result in results['failed']]
                 flash(f'Failed to capture: {", ".join(failed_types)}', 'warning')
         else:
-            flash('No screenshots captured successfully', 'error')
-            
+            flash('Screenshot capture failed: No screenshots were captured successfully', 'error')
+
     except Exception as e:
         logger.error(f"Error in capture_fresh_screenshots: {e}")
         flash(f'Screenshot capture error: {str(e)}', 'error')
-        
+
     return redirect(url_for('automation_control'))
 
 @app.route('/admin/view_screenshot/<int:screenshot_id>')
@@ -2613,11 +2618,11 @@ def view_screenshot(screenshot_id):
     """View Individual Screenshot"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     try:
         from models import Screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
-        
+
         # Check if file exists and serve it
         if os.path.exists(screenshot.file_path):
             from flask import send_file
@@ -2625,7 +2630,7 @@ def view_screenshot(screenshot_id):
         else:
             flash(f'Screenshot file not found: {screenshot.filename}', 'error')
             return redirect(url_for('automation_control'))
-            
+
     except Exception as e:
         logger.error(f"Error viewing screenshot {screenshot_id}: {e}")
         flash(f'Error accessing screenshot: {str(e)}', 'error')
@@ -2664,39 +2669,40 @@ def run_automation_step():
     """Run Individual Automation Step"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     step = request.form.get('step', 'unknown')
     logger.info(f"Running automation step: {step}")
-    
+
     try:
         if step == 'cleanup':
             # Clean up old screenshots
             from screenshot_capture import cleanup_old_screenshots
             result = cleanup_old_screenshots(days_old=7)
-            
+
             if result['success']:
                 flash(f'Cleanup completed: {result["deleted_files"]} files and {result["deleted_records"]} records removed', 'success')
             else:
                 flash(f'Cleanup failed: {result.get("error", "Unknown error")}', 'error')
-                
+
         elif step == 'capture':
             # Capture fresh screenshots from lottery websites
             from screenshot_capture import capture_all_lottery_screenshots
             results = capture_all_lottery_screenshots()
-            
+
             if results['total_success'] > 0:
                 flash(f'Screenshot capture completed: {results["total_success"]}/{results["total_processed"]} successful', 'success')
                 if results['total_failed'] > 0:
+                    failed_types = [result['lottery_type'] for result in results['failed']]
                     flash(f'{results["total_failed"]} screenshots failed to capture', 'warning')
             else:
                 flash('Screenshot capture failed: No screenshots were captured successfully', 'error')
-                
+
         elif step == 'ai_process':
             # AI processing of captured screenshots with Google Gemini 2.5 Pro
             try:
                 from ai_lottery_processor import run_complete_ai_workflow
                 ai_results = run_complete_ai_workflow()
-                
+
                 if ai_results['total_success'] > 0:
                     flash(f'AI processing completed: {ai_results["total_success"]}/{ai_results["total_processed"]} screenshots processed with Gemini 2.5 Pro', 'success')
                     flash(f'Database records created: {len(ai_results.get("database_records", []))}', 'info')
@@ -2706,23 +2712,23 @@ def run_automation_step():
                     flash('AI processing failed: No screenshots processed successfully', 'error')
                     if 'error' in ai_results:
                         flash(f'Error details: {ai_results["error"]}', 'error')
-                    
+
             except Exception as e:
                 logger.error(f"AI processing workflow error: {e}")
                 flash(f'AI workflow error: {str(e)}', 'error')
-            
+
         elif step == 'database_update':
             # Database update with processed data
             flash('Database update process initiated', 'info')
             logger.info("Database update step initiated")
-            
+
         else:
             flash(f'Unknown automation step: {step}', 'warning')
-            
+
     except Exception as e:
         logger.error(f"Error in automation step {step}: {e}")
         flash(f'Error in automation step: {str(e)}', 'error')
-    
+
     return redirect(url_for('automation_control'))
 
 @app.route('/admin/run-complete-automation', methods=['POST'])
@@ -2731,9 +2737,9 @@ def run_complete_automation():
     """Run Complete Automation Workflow with Cleanup"""
     if not current_user.is_admin:
         return redirect(url_for('index'))
-    
+
     logger.info("Starting complete automation workflow with 4-step process")
-    
+
     try:
         # STEP 1: Delete existing screenshots first
         logger.info("Step 1: Cleaning up existing screenshots")
@@ -2741,7 +2747,7 @@ def run_complete_automation():
         import os
         existing_screenshots = glob.glob('screenshots/*.png')
         deleted_count = 0
-        
+
         for screenshot in existing_screenshots:
             try:
                 os.remove(screenshot)
@@ -2749,28 +2755,28 @@ def run_complete_automation():
                 logger.info(f"Deleted old screenshot: {screenshot}")
             except Exception as e:
                 logger.warning(f"Failed to delete {screenshot}: {e}")
-        
+
         flash(f'Step 1 Complete: Deleted {deleted_count} old screenshots', 'info')
-        
+
         # STEP 2: Capture 6 fresh screenshots
         logger.info("Step 2: Capturing 6 fresh screenshots")
         from screenshot_capture import capture_all_lottery_screenshots
         screenshot_results = capture_all_lottery_screenshots()
-        
+
         if screenshot_results['total_success'] == 0:
             flash('Step 2 FAILED: Screenshot capture failed - cannot proceed', 'error')
             return redirect(url_for('automation_control'))
-        
+
         flash(f'Step 2 Complete: Captured {screenshot_results["total_success"]}/6 fresh screenshots', 'success')
-        
+
         # STEP 3: Process with AI and update database
         logger.info("Step 3: Processing with Google Gemini 2.5 Pro AI")
         from ai_lottery_processor import run_complete_ai_workflow
         ai_results = run_complete_ai_workflow()
-        
+
         new_results_count = len(ai_results.get('database_records', []))
         flash(f'Step 3 Complete: AI processed {ai_results.get("total_success", 0)} screenshots', 'success')
-        
+
         # STEP 4: Verify frontend updates
         logger.info("Step 4: Verifying frontend data updates")
         try:
@@ -2779,126 +2785,14 @@ def run_complete_automation():
             flash(f'Step 4 Complete: {len(latest_results)} lottery records confirmed in database', 'info')
         except Exception as verify_error:
             flash(f'Step 4 Warning: Database verification issue: {verify_error}', 'warning')
-        
-        # Report final results
-        if new_results_count > 0:
-            flash(f'✅ COMPLETE WORKFLOW SUCCESS: {new_results_count} NEW lottery results extracted and ready for display!', 'success')
-        else:
-            flash('✅ Workflow completed successfully - No new lottery results found (all current)', 'info')
-            
-    except Exception as e:
-        logger.error(f"Complete automation workflow failed: {e}")
-        flash(f'Automation workflow error: {str(e)}', 'error')
-    
-    return redirect(url_for('automation_control'))
 
-@app.route('/admin/stop-automation', methods=['POST'])
-@login_required
-def stop_automation():
-    """Stop Running Automation"""
-    if not current_user.is_admin:
-        return redirect(url_for('index'))
-    flash('Automation process stopped successfully', 'warning')
-    return redirect(url_for('automation_control'))
-
-@app.route('/admin/run-complete-workflow-direct')
-@login_required
-def run_complete_workflow_direct():
-    """Run Complete Workflow - Direct GET endpoint with enhanced progress and cleanup"""
-    if not current_user.is_admin:
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    try:
-        logger.info("=== STARTING COMPLETE WORKFLOW ===")
-        logger.info("Step 1: Clean up existing screenshots")
-        
-        # STEP 1: Delete existing screenshots first
-        import glob
-        import os
-        existing_screenshots = glob.glob('screenshots/*.png')
-        deleted_count = 0
-        
-        for screenshot in existing_screenshots:
-            try:
-                os.remove(screenshot)
-                deleted_count += 1
-                logger.info(f"Deleted old screenshot: {screenshot}")
-            except Exception as e:
-                logger.warning(f"Failed to delete {screenshot}: {e}")
-        
-        logger.info(f"Step 1 Complete: Deleted {deleted_count} old screenshots")
-        
-        # STEP 2: Capture 6 fresh screenshots
-        logger.info("Step 2: Capturing 6 fresh screenshots")
-        
-        try:
-            import robust_screenshot_capture
-            robust_screenshot_capture.main()
-            capture_results = "Screenshots captured successfully"
-            logger.info(f"Screenshot capture results: {capture_results}")
-            
-            # Verify we have exactly 6 screenshots
-            screenshots = glob.glob('screenshots/*.png')
-            logger.info(f"Step 2 Complete: Captured {len(screenshots)} fresh screenshots")
-            
-            if len(screenshots) < 6:
-                return jsonify({
-                    'success': False,
-                    'status': 'error',
-                    'message': f'Expected 6 screenshots, only captured {len(screenshots)}'
-                }), 400
-                
-        except Exception as capture_error:
-            logger.error(f"Screenshot capture failed: {capture_error}")
-            return jsonify({
-                'success': False,
-                'status': 'error',
-                'message': f'Step 2 failed - Screenshot capture error: {capture_error}'
-            }), 400
-        
-        # STEP 3: Extract data with AI and update database
-        logger.info("Step 3: Processing screenshots with Google Gemini 2.5 Pro AI")
-        from ai_lottery_processor import CompleteLotteryProcessor
-        
-        # Initialize and run the comprehensive AI processor
-        processor = CompleteLotteryProcessor()
-        workflow_result = processor.process_all_screenshots()
-        
-        logger.info(f"Step 3 Complete: AI processing result: {workflow_result}")
-        
-        # Check if processing was successful - comprehensive processor returns dict with results
-        success = workflow_result.get('total_success', 0) > 0 or len(workflow_result.get('database_records', [])) > 0
-        new_results_count = len(workflow_result.get('database_records', []))
-        
-        if success:
-            logger.info(f"Step 3 SUCCESS: Processed {workflow_result.get('total_processed', 0)} screenshots, extracted {new_results_count} new lottery results")
-        else:
-            logger.error(f"Step 3 FAILED: No new results found. Processed: {workflow_result.get('total_processed', 0)}, Failed: {workflow_result.get('total_failed', 0)}")
-        
-        # STEP 4: Verify frontend updates
-        logger.info("Step 4: Verifying frontend data updates")
-        
-        # Quick database check to confirm new data exists
-        try:
-            from models import LotteryResult
-            latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(6).all()
-            frontend_verification = {
-                'database_records_found': len(latest_results),
-                'latest_draw_dates': [str(result.draw_date) for result in latest_results[:3]],
-                'lottery_types_updated': list(set([result.lottery_type for result in latest_results]))
-            }
-            logger.info(f"Step 4 Complete: Frontend verification: {frontend_verification}")
-        except Exception as verify_error:
-            logger.warning(f"Step 4 verification error: {verify_error}")
-            frontend_verification = {'error': str(verify_error)}
-        
         # STEP 5: AI Prediction orchestration (mirrors scheduler logic)
         if new_results_count > 0:
             logger.info(f"Step 5: Running complete AI prediction workflow for {new_results_count} new lottery results...")
             predictions_generated = 0
             validations_completed = 0
             gaps_filled = 0
-            
+
             try:
                 # Step 5a: Validate existing predictions against new results
                 logger.info("Step 5a: Auto-validating existing predictions against new lottery results...")
@@ -2910,7 +2804,7 @@ def run_complete_workflow_direct():
                     logger.info(f"✅ Validated {validations_completed} existing predictions")
                 except Exception as validation_error:
                     logger.warning(f"⚠️ Prediction validation failed: {validation_error}")
-                
+
                 # Step 5b: Generate fresh predictions for next draws
                 logger.info("Step 5b: Generating fresh predictions for next draws...")
                 try:
@@ -2923,21 +2817,21 @@ def run_complete_workflow_direct():
                     logger.info(f"✅ Generated {predictions_generated} fresh predictions")
                 except Exception as fresh_error:
                     logger.warning(f"⚠️ Fresh prediction generation failed: {fresh_error}")
-                
+
                 # Step 5c: Fill any prediction gaps
                 logger.info("Step 5c: Filling any missing prediction gaps...")
                 try:
                     # Import the gap filling function from scheduler
                     import psycopg2
                     import os
-                    
+
                     conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
                     cur = conn.cursor()
-                    
+
                     # Get game types from database
                     cur.execute("SELECT DISTINCT lottery_type FROM lottery_results ORDER BY lottery_type")
                     db_game_types = [row[0] for row in cur.fetchall()]
-                    
+
                     for game_type in db_game_types:
                         # Check for missing predictions
                         cur.execute("""
@@ -2951,22 +2845,22 @@ def run_complete_workflow_direct():
                             AND lp.id IS NULL
                             AND lr.draw_date >= CURRENT_DATE - INTERVAL '7 days'
                         """, (game_type,))
-                        
+
                         missing_count = cur.fetchone()[0]
                         if missing_count > 0:
                             gaps_filled += 1
                             logger.info(f"🔧 Found {missing_count} prediction gaps for {game_type}")
-                    
+
                     cur.close()
                     conn.close()
                     logger.info(f"✅ Checked prediction gaps: {gaps_filled} game types need attention")
-                    
+
                 except Exception as gap_error:
                     logger.warning(f"⚠️ Gap filling check failed: {gap_error}")
-                
+
                 total_ai_work = validations_completed + predictions_generated + gaps_filled
                 logger.info(f"Step 5 Complete: {validations_completed} validations + {predictions_generated} predictions + {gaps_filled} gap checks = {total_ai_work} AI operations")
-                
+
             except Exception as prediction_error:
                 logger.error(f"Step 5 Error: AI prediction workflow failed: {prediction_error}")
                 predictions_generated = 0
@@ -2977,7 +2871,7 @@ def run_complete_workflow_direct():
             predictions_generated = 0
             validations_completed = 0
             gaps_filled = 0
-        
+
         if success:
             status = 'success'
             if predictions_generated > 0 or validations_completed > 0:
@@ -2992,15 +2886,15 @@ def run_complete_workflow_direct():
                 message = f"COMPLETE WORKFLOW SUCCESS: {new_results_count} new lottery results extracted and ready for frontend display"
         else:
             status = 'error'
-            message = f"Workflow completed with issues: {workflow_result.get('total_failed', 0)} screenshots failed processing"
-        
+            message = f"Workflow completed with issues: {ai_results.get('total_failed', 0)} screenshots failed processing"
+
         workflow_results = {
             'success': success,
             'status': status,
             'steps_completed': ['cleanup_old_screenshots', 'capture_fresh_screenshots', 'ai_data_extraction', 'frontend_verification', 'ai_prediction_workflow'],
             'screenshots_deleted': deleted_count,
-            'screenshots_captured': len(screenshots),
-            'files_processed': workflow_result.get('total_processed', 0),
+            'screenshots_captured': len(screenshot_results.get('successful', [])), # Corrected to use actual success count
+            'files_processed': ai_results.get('total_processed', 0),
             'new_results': new_results_count,
             'predictions_generated': predictions_generated,
             'validations_completed': validations_completed,
@@ -3010,12 +2904,12 @@ def run_complete_workflow_direct():
             'message': message,
             'prize_divisions_included': True
         }
-        
+
         logger.info(f"Returning workflow result: {workflow_results}")
         return jsonify(workflow_results)
-        
+
     except Exception as e:
-        logger.error(f"Complete workflow error: {e}")
+        logger.error(f"Complete automation workflow failed: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({
@@ -3031,13 +2925,13 @@ def visualization_data():
     try:
         data_type = request.args.get('data_type')
         lottery_type = request.args.get('lottery_type', 'all')
-        
+
         logger.info(f"Visualization API called: data_type={data_type}, lottery_type={lottery_type}")
-        
+
         # Connect to database using psycopg2 for type compatibility
         conn = psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI'])
         cur = conn.cursor()
-        
+
         if data_type == 'numbers_frequency':
             # Get all lottery results to process numbers
             if lottery_type == 'all':
@@ -3049,15 +2943,15 @@ def visualization_data():
                     db_lottery_type = 'LOTTO'
                 elif lottery_type == 'Lotto':
                     db_lottery_type = 'LOTTO'
-                    
+
                 cur.execute("SELECT main_numbers FROM lottery_results WHERE lottery_type = %s AND main_numbers IS NOT NULL", (db_lottery_type,))
-            
+
             rows = cur.fetchall()
-            
+
             # Process numbers and count frequency
             number_freq = {}
             total_records = 0
-            
+
             for row in rows:
                 total_records += 1
                 try:
@@ -3071,7 +2965,7 @@ def visualization_data():
                 except (json.JSONDecodeError, ValueError, TypeError) as e:
                     logger.warning(f"Error parsing numbers {row[0]}: {e}")
                     continue
-            
+
             # Convert to chart format - top 10 most frequent
             frequency_data = []
             for num, freq in sorted(number_freq.items(), key=lambda x: x[1], reverse=True)[:10]:
@@ -3081,10 +2975,10 @@ def visualization_data():
                     'frequency': freq,
                     'percentage': percentage
                 })
-            
+
             cur.close()
             conn.close()
-            
+
             return jsonify({
                 'status': 'success',
                 'data': frequency_data,
@@ -3099,12 +2993,12 @@ def visualization_data():
                 'total_draws': len(rows),
                 'lottery_type': lottery_type
             })
-            
+
         elif data_type == 'winners_by_division':
             # Get winners by division data
             if lottery_type == 'Lotto':
                 lottery_type = 'LOTTO'
-                
+
             query = """
                 SELECT divisions, lottery_type
                 FROM lottery_results 
@@ -3114,11 +3008,11 @@ def visualization_data():
             """
             cur.execute(query, (lottery_type,))
             rows = cur.fetchall()
-            
+
             # Process division data
             division_totals = {}
             division_labels = []
-            
+
             for row in rows:
                 try:
                     if row[0]:  # divisions
@@ -3128,26 +3022,26 @@ def visualization_data():
                                 div_key = f"DIV {i}"
                                 if div_key not in division_labels:
                                     division_labels.append(div_key)
-                                
+
                                 winners = 0
                                 if isinstance(division, dict):
                                     winners = int(division.get('winners', 0))
                                 elif hasattr(division, 'winners'):
                                     winners = int(division.winners)
-                                
+
                                 division_totals[div_key] = division_totals.get(div_key, 0) + winners
                 except (json.JSONDecodeError, ValueError, TypeError) as e:
                     logger.warning(f"Error parsing divisions {row[0]}: {e}")
                     continue
-            
+
             # Prepare chart data
             chart_data = []
             for label in division_labels:
                 chart_data.append(division_totals.get(label, 0))
-            
+
             cur.close()
             conn.close()
-            
+
             return jsonify({
                 'status': 'success',
                 'labels': division_labels,
@@ -3169,7 +3063,7 @@ def visualization_data():
                 'total_records': len(rows),
                 'lottery_type': lottery_type
             })
-            
+
         elif data_type == 'prize_trend_analysis':
             # Get prize trend data
             query = """
@@ -3186,15 +3080,15 @@ def visualization_data():
             """
             cur.execute(query, (lottery_type,))
             rows = cur.fetchall()
-            
+
             dates = []
             jackpots = []
             pools = []
-            
+
             for row in reversed(rows):  # Reverse to show chronological order
                 try:
                     dates.append(row[0].strftime('%Y-%m-%d') if row[0] else 'N/A')
-                    
+
                     # Parse jackpot amount
                     jackpot = 0
                     if row[1]:  # next_jackpot
@@ -3204,7 +3098,7 @@ def visualization_data():
                         except ValueError:
                             jackpot = 0
                     jackpots.append(jackpot)
-                    
+
                     # Parse pool size
                     pool = 0
                     if row[2]:  # total_pool_size
@@ -3214,16 +3108,16 @@ def visualization_data():
                         except ValueError:
                             pool = 0
                     pools.append(pool)
-                    
+
                 except Exception as e:
                     logger.warning(f"Error parsing prize data: {e}")
                     dates.append('N/A')
                     jackpots.append(0)
                     pools.append(0)
-            
+
             cur.close()
             conn.close()
-            
+
             return jsonify({
                 'status': 'success',
                 'labels': dates,
@@ -3247,13 +3141,13 @@ def visualization_data():
                 ],
                 'lottery_type': lottery_type
             })
-        
+
         else:
             return jsonify({
                 'status': 'error',
                 'message': f'Unknown data_type: {data_type}'
             }), 400
-            
+
     except Exception as e:
         logger.error(f"Visualization API error: {e}")
         return jsonify({

@@ -1,11 +1,12 @@
-
 [deployment]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 
-[[deployment.env]]
-key = "FLASK_APP"
-value = "main.py"
+[deployment.build]
+run = ["sh", "-c", "pip install -r requirements.txt"]
+
+[deployment.run]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT main:app --workers 2 --timeout 120"]
 
 [[deployment.env]]
 key = "FLASK_ENV"
@@ -16,30 +17,8 @@ key = "PYTHONUNBUFFERED"
 value = "1"
 
 [[deployment.env]]
-key = "PIP_NO_CACHE_DIR"
-value = "1"
-
-[[deployment.env]]
-key = "PIP_DISABLE_PIP_VERSION_CHECK"
-value = "1"
-
-[[deployment.env]]
-key = "PYTHONDONTWRITEBYTECODE"
-value = "1"
-
-[[deployment.env]]
-key = "PIP_BREAK_SYSTEM_PACKAGES"
-value = "1"
-
-[[deployment.env]]
-key = "PIP_ROOT_USER_ACTION"
-value = "ignore"
-
-[deployment.build]
-run = ["sh", "-c", "pip install -r requirements.txt"]
-
-[deployment.run]
-run = ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers=2 --worker-class=gthread --threads=2 --timeout=0 --keepalive=2 --max-requests=1000 --max-requests-jitter=100 --preload --worker-connections=1000 --access-logfile=- --error-logfile=- --log-level=info --worker-tmp-dir=/dev/shm main:app"]
+key = "PORT"
+value = "8080"
 
 [[deployment.ports]]
 localPort = 8080

@@ -72,6 +72,15 @@ mode = "sequential"
 task = "shell.exec"
 args = "gunicorn -c gunicorn.conf.py main:app"
 
+[[workflows.workflow]]
+name = "Deploy"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:8080 main:app --workers 2 --timeout 120"
+
 [[ports]]
 localPort = 3000
 externalPort = 3000
