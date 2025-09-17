@@ -60,82 +60,6 @@ logging.basicConfig(
     ]
 )
 
-def get_current_predictions(conn, lottery_types=None):
-    """
-    Get the current authoritative AI predictions for each lottery type.
-    Returns a dictionary keyed by lottery_type with prediction data.
-
-    This is the single source of truth for AI predictions across all pages.
-    """
-    try:
-        with conn.cursor() as cur:
-            # Build the WHERE clause for lottery types filter
-            types_filter = ""
-            params = []
-            if lottery_types:
-                types_filter = "AND lp.game_type = ANY(%s)"
-                params.append(lottery_types)
-
-            query = f"""
-                WITH latest_completed AS (
-                    SELECT lottery_type, MAX(draw_number) as latest_draw_number
-                    FROM lottery_results 
-                    GROUP BY lottery_type
-                )
-                SELECT DISTINCT ON (lp.game_type)
-                    lp.game_type,
-                    lp.predicted_numbers,
-                    lp.bonus_numbers,
-                    lp.confidence_score,
-                    lp.reasoning,
-                    lp.target_draw_date,
-                    lp.created_at,
-                    lp.linked_draw_id,
-                    lp.validation_status,
-                    lp.main_number_matches,
-                    lp.bonus_number_matches,
-                    lp.accuracy_percentage,
-                    lp.prize_tier
-                FROM lottery_predictions lp
-                JOIN latest_completed lc ON lc.lottery_type = lp.game_type
-                WHERE (lp.validation_status = 'pending' OR lp.validation_status IS NULL) 
-                  AND COALESCE(lp.is_verified, false) = false
-                  AND lp.linked_draw_id > lc.latest_draw_number
-                  {types_filter}
-                ORDER BY lp.game_type, lp.created_at DESC
-            """
-
-            cur.execute(query, params)
-
-            predictions_data = {}
-            for row in cur.fetchall():
-                (game_type, predicted_nums, bonus_nums, confidence, reasoning, 
-                 target_date, created_at, linked_draw_id, status, main_matches, 
-                 bonus_matches, accuracy, prize) = row
-
-                # Parse predicted numbers with consistent logic
-                main_numbers = parse_prediction_numbers(predicted_nums)
-                bonus_numbers = parse_prediction_numbers(bonus_nums)
-
-                predictions_data[game_type] = {
-                    'predicted_numbers': sorted(main_numbers) if main_numbers else [],
-                    'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                    'confidence_score': confidence,
-                    'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
-                    'target_date': target_date,
-                    'linked_draw_id': linked_draw_id,
-                    'status': status,
-                    'main_matches': main_matches or 0,
-                    'bonus_matches': bonus_matches or 0, 
-                    'accuracy_percentage': accuracy or 0.0,
-                    'prize_tier': prize or 'No Prize'
-                }
-
-            return predictions_data
-
-    except Exception as e:
-        logging.getLogger(__name__).error(f"Error in get_current_predictions: {e}")
-        return {}
 
 def get_historical_predictions(conn, lottery_types=None):
     """
@@ -501,27 +425,83 @@ def index():
         logger.info(f"HOMEPAGE: Ordered lottery types: {[r.lottery_type for r in unique_results]}")
         logger.info(f"HOMEPAGE: Loaded {len(unique_results)} results from database")
 
-        # Get authoritative AI predictions using unified function
+        # Get ENHANCED AI predictions using our enhanced system
         unvalidated_predictions = []
         try:
             conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
-            predictions_data = get_current_predictions(conn)
+            cur = conn.cursor()
+
+            # Use the SAME query as our enhanced predictions system
+            cur.execute("""
+                SELECT DISTINCT ON (game_type)
+                    game_type, 
+                    predicted_numbers, 
+                    bonus_numbers, 
+                    confidence_score, 
+                    reasoning, 
+                    target_draw_date, 
+                    created_at,
+                    prediction_method,
+                    is_verified,
+                    main_number_matches,
+                    accuracy_percentage,
+                    prize_tier,
+                    matched_main_numbers,
+                    verified_at,
+                    linked_draw_id
+                FROM lottery_predictions 
+                WHERE target_draw_date >= CURRENT_DATE
+                ORDER BY game_type, 
+                         created_at DESC
+            """)
+
+            predictions_data = cur.fetchall()
+            game_order = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
+
+            # Process predictions using enhanced system logic
+            for game in game_order:
+                for row in predictions_data:
+                    if row[0] == game:
+                        game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at, linked_draw_id = row
+                        
+                        # Parse numbers (same logic as enhanced system)
+                        import json
+                        main_numbers = []
+                        bonus_numbers = []
+                        
+                        if predicted_nums:
+                            nums_str = str(predicted_nums)
+                            if nums_str.startswith('{') and nums_str.endswith('}'):
+                                nums_str = nums_str[1:-1]
+                                main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                            else:
+                                main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                        
+                        if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                            bonus_str = str(bonus_nums)
+                            if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                bonus_str = bonus_str[1:-1]
+                                bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                            else:
+                                bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
+
+                        unvalidated_predictions.append({
+                            'game_type': game_type,
+                            'main_numbers': sorted(main_numbers) if main_numbers else [],
+                            'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                            'confidence': round(confidence * 100) if confidence else 0,
+                            'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
+                            'target_date': target_date,
+                            'linked_draw_id': linked_draw_id,
+                            'method': method or 'Enhanced Neural Network Ensemble'
+                        })
+                        break
+
+            cur.close()
             conn.close()
 
-            # Convert predictions_data to the format expected by the homepage template
-            for game_type, pred_data in predictions_data.items():
-                unvalidated_predictions.append({
-                    'game_type': game_type,
-                    'main_numbers': pred_data['predicted_numbers'],
-                    'bonus_numbers': pred_data['bonus_numbers'],
-                    'confidence': round(pred_data['confidence_score']) if pred_data['confidence_score'] else 0,
-                    'reasoning': pred_data['reasoning'],
-                    'target_date': pred_data['target_date'],
-                    'linked_draw_id': pred_data['linked_draw_id']
-                })
-
         except Exception as e:
-            logger.error(f"Error fetching predictions for homepage: {e}")
+            logger.error(f"Error fetching ENHANCED predictions for homepage: {e}")
 
         logger.info(f"Homepage: Loaded {len(unvalidated_predictions)} AI predictions for display")
 
