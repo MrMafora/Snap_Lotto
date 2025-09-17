@@ -1,0 +1,168 @@
+2025-09-17T17:27:15Z info: Deployment: 25b46381-0604-49ac-9038-47b64247226e
+2025-09-17T17:27:15Z info: Build: e288c927-e89f-426c-b1dd-d809b80eb515
+2025-09-17T17:27:15Z info: Connecting to builder
+2025-09-17T17:27:18Z info: Builder connected
+2025-09-17T17:27:21Z info: Installing packages
+2025-09-17T17:27:21Z info: Starting Build
+Requirement already satisfied: beautifulsoup4>=4.13.3 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 2)) (4.13.3)
+
+Requirement already satisfied: openai>=1.71.0 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 9)) (1.107.2)
+
+Requirement already satisfied: openpyxl>=3.1.5 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 10)) (3.1.5)
+Requirement already satisfied: pandas>=2.2.3 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 11)) (2.3.2)
+Requirement already satisfied: playwright>=1.51.0 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 12)) (1.55.0)
+Requirement already satisfied: psycopg2-binary>=2.9.10 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 13)) (2.9.10)
+Requirement already satisfied: sqlalchemy>=2.0.40 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 14)) (2.0.40)
+Requirement already satisfied: trafilatura>=2.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 15)) (2.0.0)
+Requirement already satisfied: werkzeug>=3.1.3 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 16)) (3.1.3)
+
+Requirement already satisfied: flask-wtf>=1.2.2 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 17)) (1.2.2)
+Requirement already satisfied: numpy>=2.2.4 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 18)) (2.3.3)
+Requirement already satisfied: wtforms>=3.2.1 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 19)) (3.2.1)
+
+Requirement already satisfied: tzlocal>=3.0 in ./.pythonlibs/lib/python3.11/site-packages (from apscheduler>=3.11.0->-r requirements.txt (line 1)) (5.3.1)
+
+Requirement already satisfied: soupsieve>1.2 in ./.pythonlibs/lib/python3.11/site-packages (from beautifulsoup4>=4.13.3->-r requirements.txt (line 2)) (2.6)
+
+Requirement already satisfied: typing-extensions>=4.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from beautifulsoup4>=4.13.3->-r requirements.txt (line 2)) (4.14.1)
+
+Requirement already satisfied: idna>=2.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from email-validator>=2.2.0->-r requirements.txt (line 3)) (3.10)
+
+Requirement already satisfied: Jinja2>=3.1.2 in ./.pythonlibs/lib/python3.11/site-packages (from flask>=3.1.0->-r requirements.txt (line 5)) (3.1.6)
+
+Requirement already satisfied: packaging in ./.pythonlibs/lib/python3.11/site-packages (from gunicorn>=23.0.0->-r requirements.txt (line 7)) (24.2)
+
+Requirement already satisfied: eval-type-backport>=0.2.0 in ./.pythonlibs/lib/python3.11/site-packages (from mistralai>=1.6.0->-r requirements.txt (line 8)) (0.2.2)
+
+Requirement already satisfied: typing-inspection>=0.4.0 in ./.pythonlibs/lib/python3.11/site-packages (from mistralai>=1.6.0->-r requirements.txt (line 8)) (0.4.0)
+
+Requirement already satisfied: anyio<5,>=3.5.0 in ./.pythonlibs/lib/python3.11/site-packages (from openai>=1.71.0->-r requirements.txt (line 9)) (4.9.0)
+
+Requirement already satisfied: distro<2,>=1.7.0 in ./.pythonlibs/lib/python3.11/site-packages (from openai>=1.71.0->-r requirements.txt (line 9)) (1.9.0)
+
+Requirement already satisfied: jiter<1,>=0.4.0 in ./.pythonlibs/lib/python3.11/site-packages (from openai>=1.71.0->-r requirements.txt (line 9)) (0.9.0)
+
+Requirement already satisfied: et-xmlfile in ./.pythonlibs/lib/python3.11/site-packages (from openpyxl>=3.1.5->-r requirements.txt (line 10)) (2.0.0)
+
+Requirement already satisfied: pytz>=2020.1 in ./.pythonlibs/lib/python3.11/site-packages (from pandas>=2.2.3->-r requirements.txt (line 11)) (2025.2)
+
+Requirement already satisfied: tzdata>=2022.7 in ./.pythonlibs/lib/python3.11/site-packages (from pandas>=2.2.3->-r requirements.txt (line 11)) (2025.2)
+
+Requirement already satisfied: greenlet<4.0.0,>=3.1.1 in ./.pythonlibs/lib/python3.11/site-packages (from playwright>=1.51.0->-r requirements.txt (line 12)) (3.2.1)
+
+Requirement already satisfied: certifi in ./.pythonlibs/lib/python3.11/site-packages (from trafilatura>=2.0.0->-r requirements.txt (line 15)) (2025.4.26)
+
+Requirement already satisfied: charset_normalizer>=3.4.0 in ./.pythonlibs/lib/python3.11/site-packages (from trafilatura>=2.0.0->-r requirements.txt (line 15)) (3.4.1)
+
+Requirement already satisfied: courlan>=1.3.2 in ./.pythonlibs/lib/python3.11/site-packages (from trafilatura>=2.0.0->-r requirements.txt (line 15)) (1.3.2)
+
+Requirement already satisfied: MarkupSafe>=2.1.1 in ./.pythonlibs/lib/python3.11/site-packages (from werkzeug>=3.1.3->-r requirements.txt (line 16)) (3.0.2)
+
+Requirement already satisfied: contourpy>=1.0.1 in ./.pythonlibs/lib/python3.11/site-packages (from matplotlib>=3.10.3->-r requirements.txt (line 20)) (1.3.2)
+Requirement already satisfied: cycler>=0.10 in ./.pythonlibs/lib/python3.11/site-packages (from matplotlib>=3.10.3->-r requirements.txt (line 20)) (0.12.1)
+Requirement already satisfied: fonttools>=4.22.0 in ./.pythonlibs/lib/python3.11/site-packages (from matplotlib>=3.10.3->-r requirements.txt (line 20)) (4.58.0)
+
+Requirement already satisfied: pyparsing>=2.3.1 in ./.pythonlibs/lib/python3.11/site-packages (from matplotlib>=3.10.3->-r requirements.txt (line 20)) (3.2.3)
+
+Requirement already satisfied: scipy>=1.8.0 in ./.pythonlibs/lib/python3.11/site-packages (from scikit-learn>=1.6.1->-r requirements.txt (line 22)) (1.15.3)
+
+Requirement already satisfied: threadpoolctl>=3.1.0 in ./.pythonlibs/lib/python3.11/site-packages (from scikit-learn>=1.6.1->-r requirements.txt (line 22)) (3.6.0)
+
+Requirement already satisfied: google-ai-generativelanguage==0.6.15 in ./.pythonlibs/lib/python3.11/site-packages (from google-generativeai>=0.8.5->-r requirements.txt (line 26)) (0.6.15)
+
+Requirement already satisfied: google-api-core in ./.pythonlibs/lib/python3.11/site-packages (from google-generativeai>=0.8.5->-r requirements.txt (line 26)) (2.25.0)
+
+Requirement already satisfied: google-api-python-client in ./.pythonlibs/lib/python3.11/site-packages (from google-generativeai>=0.8.5->-r requirements.txt (line 26)) (2.171.0)
+Requirement already satisfied: google-auth>=2.15.0 in ./.pythonlibs/lib/python3.11/site-packages (from google-generativeai>=0.8.5->-r requirements.txt (line 26)) (2.40.3)
+Requirement already satisfied: protobuf in ./.pythonlibs/lib/python3.11/site-packages (from google-generativeai>=0.8.5->-r requirements.txt (line 26)) (5.29.5)
+
+Requirement already satisfied: proto-plus<2.0.0dev,>=1.22.3 in ./.pythonlibs/lib/python3.11/site-packages (from google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (1.26.1)
+
+Requirement already satisfied: websockets<15.1.0,>=13.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from google-genai->-r requirements.txt (line 28)) (15.0.1)
+
+Requirement already satisfied: limits>=3.13 in ./.pythonlibs/lib/python3.11/site-packages (from flask-limiter->-r requirements.txt (line 31)) (5.4.0)
+
+Requirement already satisfied: ordered-set<5,>4 in ./.pythonlibs/lib/python3.11/site-packages (from flask-limiter->-r requirements.txt (line 31)) (4.1.0)
+
+Requirement already satisfied: rich<14,>=12 in ./.pythonlibs/lib/python3.11/site-packages (from flask-limiter->-r requirements.txt (line 31)) (13.9.4)
+
+Requirement already satisfied: grpcio~=1.13 in ./.pythonlibs/lib/python3.11/site-packages (from sift-stack-py->-r requirements.txt (line 34)) (1.72.1)
+
+Requirement already satisfied: pydantic-core~=2.3 in ./.pythonlibs/lib/python3.11/site-packages (from sift-stack-py->-r requirements.txt (line 34)) (2.33.1)
+
+Requirement already satisfied: requests-toolbelt~=1.0 in ./.pythonlibs/lib/python3.11/site-packages (from sift-stack-py->-r requirements.txt (line 34)) (1.0.0)
+
+Requirement already satisfied: types-requests~=2.25 in ./.pythonlibs/lib/python3.11/site-packages (from sift-stack-py->-r requirements.txt (line 34)) (2.32.4.20250611)
+
+Requirement already satisfied: requests-oauthlib>=1.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from flask-dance->-r requirements.txt (line 36)) (2.0.0)
+
+Requirement already satisfied: urlobject in ./.pythonlibs/lib/python3.11/site-packages (from flask-dance->-r requirements.txt (line 36)) (3.0.0)
+
+Requirement already satisfied: annotated-types>=0.6.0 in ./.pythonlibs/lib/python3.11/site-packages (from pydantic->-r requirements.txt (line 43)) (0.7.0)
+
+Requirement already satisfied: nvidia-nccl-cu12 in ./.pythonlibs/lib/python3.11/site-packages (from xgboost->-r requirements.txt (line 45)) (2.27.3)
+
+Requirement already satisfied: absl-py>=1.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from tensorflow-cpu->-r requirements.txt (line 47)) (2.3.1)
+
+Requirement already satisfied: termcolor>=1.1.0 in ./.pythonlibs/lib/python3.11/site-packages (from tensorflow-cpu->-r requirements.txt (line 47)) (3.1.0)
+
+Requirement already satisfied: wrapt>=1.11.0 in ./.pythonlibs/lib/python3.11/site-packages (from tensorflow-cpu->-r requirements.txt (line 47)) (1.17.2)
+
+Requirement already satisfied: ml_dtypes<1.0.0,>=0.5.1 in ./.pythonlibs/lib/python3.11/site-packages (from tensorflow-cpu->-r requirements.txt (line 47)) (0.5.3)
+
+Requirement already satisfied: about-time==4.2.1 in ./.pythonlibs/lib/python3.11/site-packages (from alive-progress~=3.0->sift-stack-py->-r requirements.txt (line 34)) (4.2.1)
+
+Requirement already satisfied: grapheme==0.6.0 in ./.pythonlibs/lib/python3.11/site-packages (from alive-progress~=3.0->sift-stack-py->-r requirements.txt (line 34)) (0.6.0)
+
+Requirement already satisfied: wheel<1.0,>=0.23.0 in ./.pythonlibs/lib/python3.11/site-packages (from astunparse>=1.6.0->tensorflow-cpu->-r requirements.txt (line 47)) (0.45.1)
+
+Requirement already satisfied: tld>=0.13 in ./.pythonlibs/lib/python3.11/site-packages (from courlan>=1.3.2->trafilatura>=2.0.0->-r requirements.txt (line 15)) (0.13)
+
+Requirement already satisfied: googleapis-common-protos<2.0.0,>=1.56.2 in ./.pythonlibs/lib/python3.11/site-packages (from google-api-core->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (1.70.0)
+
+Requirement already satisfied: cachetools<6.0,>=2.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from google-auth>=2.15.0->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (5.5.2)
+
+Requirement already satisfied: rsa<5,>=3.1.4 in ./.pythonlibs/lib/python3.11/site-packages (from google-auth>=2.15.0->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (4.9.1)
+
+Requirement already satisfied: dateparser>=1.1.2 in ./.pythonlibs/lib/python3.11/site-packages (from htmldate>=1.9.2->trafilatura>=2.0.0->-r requirements.txt (line 15)) (1.2.1)
+
+Requirement already satisfied: httpcore==1.* in ./.pythonlibs/lib/python3.11/site-packages (from httpx>=0.28.1->mistralai>=1.6.0->-r requirements.txt (line 8)) (1.0.7)
+
+Requirement already satisfied: h11<0.15,>=0.13 in ./.pythonlibs/lib/python3.11/site-packages (from httpcore==1.*->httpx>=0.28.1->mistralai>=1.6.0->-r requirements.txt (line 8)) (0.14.0)
+
+Requirement already satisfied: namex in ./.pythonlibs/lib/python3.11/site-packages (from keras>=3.10.0->tensorflow-cpu->-r requirements.txt (line 47)) (0.1.0)
+
+Requirement already satisfied: optree in ./.pythonlibs/lib/python3.11/site-packages (from keras>=3.10.0->tensorflow-cpu->-r requirements.txt (line 47)) (0.17.0)
+
+Requirement already satisfied: deprecated>=1.2 in ./.pythonlibs/lib/python3.11/site-packages (from limits>=3.13->flask-limiter->-r requirements.txt (line 31)) (1.2.18)
+
+Requirement already satisfied: types-pytz>=2022.1.1 in ./.pythonlibs/lib/python3.11/site-packages (from pandas-stubs~=2.0->sift-stack-py->-r requirements.txt (line 34)) (2025.2.0.20250516)
+
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./.pythonlibs/lib/python3.11/site-packages (from rich<14,>=12->flask-limiter->-r requirements.txt (line 31)) (3.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./.pythonlibs/lib/python3.11/site-packages (from rich<14,>=12->flask-limiter->-r requirements.txt (line 31)) (2.19.2)
+
+Requirement already satisfied: markdown>=2.6.8 in ./.pythonlibs/lib/python3.11/site-packages (from tensorboard~=2.20.0->tensorflow-cpu->-r requirements.txt (line 47)) (3.9)
+
+Requirement already satisfied: tensorboard-data-server<0.8.0,>=0.7.0 in ./.pythonlibs/lib/python3.11/site-packages (from tensorboard~=2.20.0->tensorflow-cpu->-r requirements.txt (line 47)) (0.7.2)
+
+Requirement already satisfied: httplib2<1.0.0,>=0.19.0 in ./.pythonlibs/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (0.22.0)
+
+Requirement already satisfied: uritemplate<5,>=3.0.1 in ./.pythonlibs/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (4.2.0)
+
+Requirement already satisfied: regex!=2019.02.19,!=2021.8.27,>=2015.06.24 in ./.pythonlibs/lib/python3.11/site-packages (from dateparser>=1.1.2->htmldate>=1.9.2->trafilatura>=2.0.0->-r requirements.txt (line 15)) (2024.11.6)
+
+Requirement already satisfied: grpcio-status<2.0.0,>=1.33.2 in ./.pythonlibs/lib/python3.11/site-packages (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (1.71.0)
+
+Requirement already satisfied: lxml_html_clean in ./.pythonlibs/lib/python3.11/site-packages (from lxml[html_clean]>=4.4.2->justext>=3.0.1->trafilatura>=2.0.0->-r requirements.txt (line 15)) (0.4.1)
+
+Requirement already satisfied: mdurl~=0.1 in ./.pythonlibs/lib/python3.11/site-packages (from markdown-it-py>=2.2.0->rich<14,>=12->flask-limiter->-r requirements.txt (line 31)) (0.1.2)
+
+Requirement already satisfied: pyasn1<0.7.0,>=0.6.1 in ./.pythonlibs/lib/python3.11/site-packages (from pyasn1-modules>=0.2.1->google-auth>=2.15.0->google-generativeai>=0.8.5->-r requirements.txt (line 26)) (0.6.1)
+
+2025-09-17T17:27:49Z info: Pushing pid1 binary layer...
+2025-09-17T17:27:52Z info: Created pid1 binary layer
+2025-09-17T17:28:02Z info: Pushing Repl layer...
+2025-09-17T17:28:02Z info: Pushing hosting layer...
+2025-09-17T17:28:02Z info: Retrieved cached nix layer
+2025-09-17T17:28:02Z info: Created hosting layer
+Deployment timed out. Check the Logs tab for more details. - 2025-09-17T17:36:15.790Z

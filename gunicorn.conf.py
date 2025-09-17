@@ -1,8 +1,8 @@
 
 import os
 
-# Cloud Run provides PORT environment variable
-port = int(os.environ.get('PORT', 8080))
+# Deployment provides PORT environment variable, fallback to 5000 for consistency
+port = int(os.environ.get('PORT', 5000))
 bind = f"0.0.0.0:{port}"
 workers = 1
 worker_class = "sync"
