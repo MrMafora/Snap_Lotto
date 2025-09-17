@@ -1,7 +1,7 @@
 
 [deployment]
 deploymentTarget = "cloudrun"
-ignorePorts = false
+ignorePorts = true
 
 [deployment.build]
 run = ["pip", "install", "-r", "requirements.txt"]
