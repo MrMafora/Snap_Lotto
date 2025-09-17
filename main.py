@@ -2918,6 +2918,49 @@ def run_complete_automation():
             'message': f'Workflow failed: {str(e)}'
         }), 500
 
+@app.route('/admin/run-complete-workflow-direct')
+@login_required
+def run_complete_workflow_direct():
+    """Run Complete Workflow - Direct GET endpoint for JavaScript"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        # Import the required automation modules
+        from screenshot_capture import capture_all_lottery_screenshots
+        from ai_lottery_processor import run_complete_ai_workflow
+        
+        logger.info("Starting complete automation workflow via JavaScript endpoint")
+        
+        # Step 1: Capture fresh screenshots
+        screenshot_results = capture_all_lottery_screenshots()
+        
+        # Step 2: Process screenshots with AI (Google Gemini 2.5 Pro)
+        ai_results = run_complete_ai_workflow()
+        
+        workflow_results = {
+            'status': 'success',
+            'steps_completed': ['screenshot_capture', 'ai_processing'],
+            'screenshot_results': screenshot_results,
+            'ai_results': ai_results,
+            'message': f'Complete workflow finished: {screenshot_results.get("total_success", 0)}/6 screenshots captured, {ai_results.get("total_success", 0)} processed with AI'
+        }
+        
+        if screenshot_results.get('total_success', 0) > 0 and ai_results.get('total_success', 0) > 0:
+            logger.info(f"Workflow completed successfully: {screenshot_results['total_success']} screenshots captured, {ai_results['total_success']} AI processed")
+        else:
+            workflow_results['status'] = 'partial_failure'
+            workflow_results['message'] = f'Workflow completed with issues: Screenshots: {screenshot_results.get("total_success", 0)}/6, AI: {ai_results.get("total_success", 0)}'
+        
+        return jsonify(workflow_results)
+        
+    except Exception as e:
+        logger.error(f"Complete workflow error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Workflow failed: {str(e)}'
+        }), 500
+
 # Visualization API endpoints
 @app.route('/api/visualization-data')
 def visualization_data():

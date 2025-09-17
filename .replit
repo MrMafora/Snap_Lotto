@@ -7,7 +7,7 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 
 [deployment]
-deploymentTarget = "gce"
+deploymentTarget = "cloudrun"
 run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 1 --timeout 120 main:app"]
 build = ["pip", "install", "-r", "requirements.txt"]
 
@@ -90,6 +90,10 @@ externalPort = 5000
 [[ports]]
 localPort = 8080
 externalPort = 80
+
+[[ports]]
+localPort = 43409
+externalPort = 3000
 
 [agent]
 integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]
