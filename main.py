@@ -2243,7 +2243,7 @@ def admin_ticket_scanner():
 def import_data():
     """Import Spreadsheet Data"""
     if not current_user.is_admin:
-        return redirect(url_for('index')) 
+        return redirect(url_for('index'))
     flash('Import Spreadsheet - Bulk import lottery data from Excel files', 'info')
     return redirect(url_for('admin'))
 
@@ -3204,6 +3204,6 @@ except Exception as e:
     logger.error(f"❌ WORKER-SAFE: Failed to start unified scheduler: {e}")
 
 if __name__ == '__main__':
-    # Use PORT environment variable for deployment, fallback to 5000 for Replit
-    port = int(os.environ.get('PORT', 5000))
+    # Use PORT environment variable for deployment, fallback to 8080
+    port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)

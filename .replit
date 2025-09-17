@@ -6,6 +6,11 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 
 
+[deployment]
+deploymentTarget = "cloudrun"
+run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--timeout", "300", "main:app"]
+build = ["pip", "install", "-r", "requirements.txt"]
+
 [workflows]
 runButton = "Web Server"
 
@@ -79,20 +84,8 @@ task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:8080 main:app --workers 2 --timeout 120"
 
 [[ports]]
-localPort = 3000
-externalPort = 3000
-
-[[ports]]
-localPort = 5000
-externalPort = 5000
-
-[[ports]]
 localPort = 8080
 externalPort = 80
-
-[[ports]]
-localPort = 34345
-externalPort = 3001
 
 [agent]
 integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]

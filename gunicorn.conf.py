@@ -7,9 +7,9 @@ bind = f"0.0.0.0:{port}"
 workers = 1
 worker_class = "sync"
 timeout = 300
-keepalive = 5
+keepalive = 2
 max_requests = 1000
-max_requests_jitter = 100
+max_requests_jitter = 50
 preload_app = True
 
 # Logging
