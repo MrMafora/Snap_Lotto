@@ -23,9 +23,8 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Fix pyee package issue and install dependencies
+# Install dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --force-reinstall --no-deps pyee==12.1.1 && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
