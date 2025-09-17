@@ -2983,6 +2983,53 @@ def run_complete_workflow_direct():
             'message': f'Workflow failed: {str(e)}'
         }), 500
 
+@app.route('/admin/generate-predictions-only')
+@login_required
+def generate_predictions_only():
+    """Run only the AI prediction generation system"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
+        from prediction_validation_system import PredictionValidationSystem
+        
+        logger.info("Running AI prediction system only...")
+        
+        # Step 1: Generate fresh predictions for new draws
+        prediction_result = generate_fresh_predictions_for_new_draws()
+        predictions_generated = len(prediction_result.get('predictions_created', [])) if isinstance(prediction_result, dict) else 0
+        
+        # Step 2: Validate the new predictions
+        validations_completed = 0
+        if predictions_generated > 0:
+            logger.info("Validating newly generated predictions...")
+            try:
+                validation_system = PredictionValidationSystem()
+                validation_result = validation_system.validate_all_pending_predictions()
+                validations_completed = validation_result.get('total_validated', 0)
+            except Exception as val_e:
+                logger.error(f"Prediction validation failed: {val_e}")
+        
+        result = {
+            'status': 'success',
+            'predictions_generated': predictions_generated,
+            'validations_completed': validations_completed,
+            'message': f'AI Prediction system complete: {predictions_generated} predictions generated, {validations_completed} validated'
+        }
+        
+        logger.info(f"Prediction-only workflow result: {result}")
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Prediction-only workflow error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Prediction generation failed: {str(e)}'
+        }), 500
+
 # Visualization API endpoints
 @app.route('/api/visualization-data')
 def visualization_data():
