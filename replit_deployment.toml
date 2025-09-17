@@ -1,12 +1,13 @@
+
 [deployment]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 
 [deployment.build]
-run = ["sh", "-c", "pip install -r requirements.txt"]
+run = ["pip", "install", "-r", "requirements.txt"]
 
 [deployment.run]
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT main:app --workers 2 --timeout 120"]
+run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--timeout", "300", "--keep-alive", "2", "--max-requests", "1000", "main:app"]
 
 [[deployment.env]]
 key = "FLASK_ENV"
@@ -15,11 +16,3 @@ value = "production"
 [[deployment.env]]
 key = "PYTHONUNBUFFERED"
 value = "1"
-
-[[deployment.env]]
-key = "PORT"
-value = "8080"
-
-[[deployment.ports]]
-localPort = 8080
-externalPort = 80

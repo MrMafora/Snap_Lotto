@@ -3204,8 +3204,6 @@ except Exception as e:
     logger.error(f"❌ WORKER-SAFE: Failed to start unified scheduler: {e}")
 
 if __name__ == '__main__':
-    # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development
-    port = int(os.environ.get('PORT', 5000))
-    # Always disable debug mode in production deployment
-    debug_mode = False
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)
+    # Use PORT environment variable for Cloud Run deployment, fallback to 8080
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)
