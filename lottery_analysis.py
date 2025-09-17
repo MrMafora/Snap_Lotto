@@ -938,7 +938,7 @@ def get_actual_lottery_results():
             with conn.cursor() as cur:
                 # Query for actual lottery results near the target date
                 cur.execute("""
-                    SELECT winning_numbers, bonus_numbers, draw_date
+                    SELECT main_numbers, bonus_numbers, draw_date
                     FROM lottery_results 
                     WHERE lottery_type = %s 
                     AND draw_date <= %s
