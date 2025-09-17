@@ -44,3 +44,5 @@ pydantic
 anthropic
 xgboost
 playwright
+tensorflow-cpu
+tensorflow-cpu

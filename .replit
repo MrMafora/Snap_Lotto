@@ -2,7 +2,7 @@ modules = ["python-3.11", "python3", "postgresql-16"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xsimd", "zlib"]
+packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libjpeg_turbo", "libpng", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "which", "xsimd", "zlib"]
 
 
 
@@ -84,8 +84,16 @@ task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:8080 main:app --workers 2 --timeout 120"
 
 [[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
 localPort = 8080
 externalPort = 80
+
+[[ports]]
+localPort = 38355
+externalPort = 3000
 
 [agent]
 integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]
