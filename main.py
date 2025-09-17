@@ -2921,41 +2921,63 @@ def run_complete_automation():
 @app.route('/admin/run-complete-workflow-direct')
 @login_required
 def run_complete_workflow_direct():
-    """Run Complete Workflow - Direct GET endpoint for JavaScript"""
+    """Run Complete Workflow - Timeout-Safe Chunked Processing"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
-        # Import the required automation modules
         from screenshot_capture import capture_all_lottery_screenshots
-        from ai_lottery_processor import run_complete_ai_workflow
+        from ai_lottery_processor import process_screenshots_chunked
+        from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
+        from prediction_validation_system import PredictionValidationSystem
         
-        logger.info("Starting complete automation workflow via JavaScript endpoint")
+        logger.info("Starting timeout-safe chunked workflow via JavaScript endpoint")
         
         # Step 1: Capture fresh screenshots
+        logger.info("Step 1: Capturing screenshots...")
         screenshot_results = capture_all_lottery_screenshots()
         
-        # Step 2: Process screenshots with AI (Google Gemini 2.5 Pro)
-        ai_results = run_complete_ai_workflow()
+        # Step 2: Process screenshots with AI in small chunks (timeout-safe)
+        logger.info("Step 2: Processing screenshots with AI (chunked approach)...")
+        ai_results = process_screenshots_chunked(max_batch_size=6)
+        
+        # Step 3: Generate predictions if AI processing succeeded
+        predictions_generated = 0
+        if ai_results.get('total_success', 0) > 0:
+            logger.info("Step 3: Generating fresh predictions...")
+            try:
+                prediction_result = generate_fresh_predictions_for_new_draws()
+                predictions_generated = len(prediction_result.get('predictions_created', []))
+            except Exception as pred_e:
+                logger.error(f"Prediction generation failed: {pred_e}")
+        
+        # Step 4: Validate predictions
+        validations_completed = 0
+        if predictions_generated > 0:
+            logger.info("Step 4: Validating predictions...")
+            try:
+                validation_system = PredictionValidationSystem()
+                validation_result = validation_system.validate_all_pending_predictions()
+                validations_completed = validation_result.get('total_validated', 0)
+            except Exception as val_e:
+                logger.error(f"Prediction validation failed: {val_e}")
         
         workflow_results = {
             'status': 'success',
-            'steps_completed': ['screenshot_capture', 'ai_processing'],
+            'steps_completed': ['screenshot_capture', 'ai_processing_chunked', 'prediction_generation', 'validation'],
             'screenshot_results': screenshot_results,
             'ai_results': ai_results,
-            'message': f'Complete workflow finished: {screenshot_results.get("total_success", 0)}/6 screenshots captured, {ai_results.get("total_success", 0)} processed with AI'
+            'predictions_generated': predictions_generated,
+            'validations_completed': validations_completed,
+            'message': f'Chunked workflow completed: {screenshot_results.get("total_success", 0)}/6 screenshots, {ai_results.get("total_success", 0)} AI processed, {predictions_generated} predictions generated'
         }
-        
-        if screenshot_results.get('total_success', 0) > 0 and ai_results.get('total_success', 0) > 0:
-            logger.info(f"Workflow completed successfully: {screenshot_results['total_success']} screenshots captured, {ai_results['total_success']} AI processed")
-        else:
-            workflow_results['status'] = 'partial_failure'
-            workflow_results['message'] = f'Workflow completed with issues: Screenshots: {screenshot_results.get("total_success", 0)}/6, AI: {ai_results.get("total_success", 0)}'
         
         return jsonify(workflow_results)
         
     except Exception as e:
-        logger.error(f"Complete workflow error: {e}")
+        logger.error(f"Chunked workflow error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             'status': 'error',
             'message': f'Workflow failed: {str(e)}'

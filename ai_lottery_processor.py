@@ -318,6 +318,94 @@ class CompleteLotteryProcessor:
         else:
             return "UNKNOWN"
     
+    def process_screenshot_batch(self, screenshot_files):
+        """
+        Process a specific batch of screenshot files
+        """
+        results = {
+            "total_processed": 0,
+            "total_success": 0,
+            "total_failed": 0,
+            "processed_files": [],
+            "failed_files": [],
+            "database_records": [],
+            "start_time": datetime.now().isoformat(),
+            "end_time": None
+        }
+        
+        try:
+            # Connect to database if not already connected
+            if not hasattr(self, 'db_connection') or not self.db_connection:
+                self.connect_database()
+            
+            screenshots_dir = "screenshots"
+            results["total_processed"] = len(screenshot_files)
+            
+            logger.info(f"Processing batch of {len(screenshot_files)} screenshots")
+            
+            # Process each screenshot in the batch
+            for i, filename in enumerate(screenshot_files, 1):
+                file_path = os.path.join(screenshots_dir, filename)
+                logger.info(f"Batch processing [{i}/{len(screenshot_files)}]: {filename}")
+                
+                try:
+                    # Extract lottery type
+                    lottery_type = self.get_lottery_type_from_filename(filename)
+                    if lottery_type == "UNKNOWN":
+                        raise ValueError(f"Could not determine lottery type from filename: {filename}")
+                    
+                    # Process with AI
+                    start_time = time.time()
+                    lottery_data = self.process_single_image(file_path, lottery_type)
+                    processing_time = time.time() - start_time
+                    
+                    # Validate confidence
+                    confidence = lottery_data.get('extraction_confidence', 0)
+                    if confidence < 95:
+                        logger.warning(f"Low confidence ({confidence}%) for {filename}")
+                    
+                    # Save to database
+                    record_id = self.save_to_database(lottery_data)
+                    
+                    # Record success
+                    results["total_success"] += 1
+                    results["processed_files"].append({
+                        "filename": filename,
+                        "lottery_type": lottery_type,
+                        "draw_id": lottery_data.get('draw_id'),
+                        "draw_date": lottery_data.get('draw_date'),
+                        "confidence": confidence,
+                        "record_id": record_id,
+                        "processing_time": round(processing_time, 2),
+                        "status": "success"
+                    })
+                    
+                    results["database_records"].append(record_id)
+                    logger.info(f"✓ BATCH SUCCESS: {filename} -> DB ID {record_id} ({confidence}% confidence, {processing_time:.1f}s)")
+                    
+                    # Small delay between processing
+                    time.sleep(0.5)
+                    
+                except Exception as e:
+                    logger.error(f"✗ BATCH FAILED: {filename} - {str(e)}")
+                    results["total_failed"] += 1
+                    results["failed_files"].append({
+                        "filename": filename,
+                        "error": str(e),
+                        "status": "failed"
+                    })
+            
+            results["end_time"] = datetime.now().isoformat()
+            logger.info(f"Batch processing complete: {results['total_success']}/{results['total_processed']} successful")
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Fatal error in process_screenshot_batch: {e}")
+            results["end_time"] = datetime.now().isoformat()
+            results["fatal_error"] = str(e)
+            return results
+    
     def process_all_screenshots(self) -> Dict[str, Any]:
         """
         Process all screenshots one by one with comprehensive AI extraction
@@ -422,6 +510,76 @@ class CompleteLotteryProcessor:
             results["end_time"] = datetime.now().isoformat()
             results["fatal_error"] = str(e)
             return results
+
+def process_screenshots_chunked(max_batch_size=6):
+    """
+    Timeout-safe chunked processing to avoid worker timeouts
+    """
+    try:
+        logger.info(f"Starting chunked screenshot processing (batch size: {max_batch_size})")
+        processor = CompleteLotteryProcessor()
+        
+        # Get list of screenshots to process
+        screenshot_dir = "screenshots"
+        if not os.path.exists(screenshot_dir):
+            logger.error(f"Screenshot directory not found: {screenshot_dir}")
+            return {"total_processed": 0, "total_success": 0, "error": "Screenshot directory not found"}
+        
+        # Find all screenshot files
+        screenshot_files = []
+        for filename in os.listdir(screenshot_dir):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                screenshot_files.append(filename)
+        
+        logger.info(f"Found {len(screenshot_files)} screenshot files for chunked processing")
+        
+        if not screenshot_files:
+            return {"total_processed": 0, "total_success": 0, "message": "No screenshots found"}
+        
+        # Process screenshots in small batches to avoid timeout
+        total_processed = 0
+        total_success = 0
+        total_failed = 0
+        all_database_records = []
+        
+        # Split into chunks
+        for i in range(0, len(screenshot_files), max_batch_size):
+            batch = screenshot_files[i:i + max_batch_size]
+            batch_num = (i // max_batch_size) + 1
+            
+            logger.info(f"Processing batch {batch_num}: {len(batch)} screenshots")
+            
+            # Process this batch
+            batch_results = processor.process_screenshot_batch(batch)
+            
+            total_processed += batch_results.get('total_processed', 0)
+            total_success += batch_results.get('total_success', 0)
+            total_failed += batch_results.get('total_failed', 0)
+            all_database_records.extend(batch_results.get('database_records', []))
+            
+            logger.info(f"Batch {batch_num} complete: {batch_results.get('total_success', 0)}/{batch_results.get('total_processed', 0)} successful")
+        
+        results = {
+            "total_processed": total_processed,
+            "total_success": total_success,
+            "total_failed": total_failed,
+            "database_records": all_database_records,
+            "status": "chunked_processing_complete",
+            "batches_processed": (len(screenshot_files) + max_batch_size - 1) // max_batch_size
+        }
+        
+        logger.info(f"Chunked processing complete: {total_success}/{total_processed} total successful")
+        return results
+        
+    except Exception as e:
+        logger.error(f"Chunked processing failed: {e}")
+        return {
+            "total_processed": 0,
+            "total_success": 0,
+            "total_failed": 1,
+            "error": str(e),
+            "status": "chunked_processing_failed"
+        }
 
 def run_complete_ai_workflow():
     """
