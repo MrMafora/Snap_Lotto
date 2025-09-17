@@ -37,13 +37,10 @@ flask-dance
 flask-login
 oauthlib
 pyjwt
-pyppeteer
 schedule
 google-genai
 openai
 pydantic
 anthropic
-tensorflow
-torch
 xgboost
 playwright
