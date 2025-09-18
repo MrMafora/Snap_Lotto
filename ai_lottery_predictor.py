@@ -589,7 +589,7 @@ class AILotteryPredictor:
                 'total_models': len(model_predictions)
             }
             
-            # Create final prediction
+            # Create ensemble prediction
             ensemble_prediction = LotteryPrediction(
                 game_type=game_type,
                 predicted_numbers=sorted(final_main_numbers),
@@ -602,7 +602,10 @@ class AILotteryPredictor:
                 model_weights=model_weights
             )
             
-            return ensemble_prediction
+            # Apply pattern breaking for diversity
+            final_ensemble_prediction = self._apply_pattern_breaking(ensemble_prediction, game_type)
+            
+            return final_ensemble_prediction
             
         except Exception as e:
             logger.error(f"Error combining predictions: {e}")
@@ -942,6 +945,97 @@ class AILotteryPredictor:
             logger.error(f"Pure random model error: {e}")
             return None
     
+    def _detect_similar_patterns(self, new_prediction: List[int], game_type: str, similarity_threshold: float = 0.6) -> bool:
+        """Detect if new prediction is too similar to recent predictions"""
+        try:
+            with psycopg2.connect(self.connection_string) as conn:
+                with conn.cursor() as cur:
+                    # Get last 5 predictions for this game type
+                    cur.execute("""
+                        SELECT predicted_numbers 
+                        FROM lottery_predictions 
+                        WHERE game_type = %s 
+                        AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+                        ORDER BY created_at DESC 
+                        LIMIT 5
+                    """, (game_type,))
+                    
+                    recent_predictions = cur.fetchall()
+                    
+                    if not recent_predictions:
+                        return False  # No recent predictions to compare
+                    
+                    # Check similarity with each recent prediction
+                    for pred_row in recent_predictions:
+                        if isinstance(pred_row[0], str):
+                            recent_numbers = json.loads(pred_row[0])
+                        else:
+                            recent_numbers = pred_row[0]
+                        
+                        # Calculate Jaccard similarity (intersection over union)
+                        if recent_numbers:
+                            intersection = len(set(new_prediction) & set(recent_numbers))
+                            union = len(set(new_prediction) | set(recent_numbers))
+                            similarity = intersection / union if union > 0 else 0
+                            
+                            if similarity >= similarity_threshold:
+                                logger.warning(f"🚨 Pattern detected: New prediction {new_prediction} is {similarity:.1%} similar to recent prediction {recent_numbers}")
+                                return True
+                    
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Error in pattern detection: {e}")
+            return False
+    
+    def _apply_pattern_breaking(self, prediction: LotteryPrediction, game_type: str) -> LotteryPrediction:
+        """Apply pattern breaking if prediction is too similar to recent ones"""
+        try:
+            if self._detect_similar_patterns(prediction.predicted_numbers, game_type):
+                logger.info("🎯 Applying pattern breaking for diversity...")
+                
+                game_config = self.get_game_configuration(game_type)
+                
+                # Force some random numbers to break the pattern
+                all_numbers = list(range(1, game_config['main_range'] + 1))
+                current_numbers = list(prediction.predicted_numbers)
+                
+                # Replace 30% of numbers with random ones not in current set
+                replace_count = max(1, len(current_numbers) // 3)
+                available_numbers = [n for n in all_numbers if n not in current_numbers]
+                
+                if available_numbers:
+                    # Remove some existing numbers
+                    numbers_to_remove = random.sample(current_numbers, min(replace_count, len(current_numbers)))
+                    for num in numbers_to_remove:
+                        current_numbers.remove(num)
+                    
+                    # Add random replacements
+                    random_replacements = random.sample(available_numbers, replace_count)
+                    current_numbers.extend(random_replacements)
+                    
+                    # Create new prediction with pattern breaking applied
+                    new_prediction = LotteryPrediction(
+                        game_type=prediction.game_type,
+                        predicted_numbers=sorted(current_numbers),
+                        bonus_numbers=prediction.bonus_numbers,
+                        confidence_score=max(0.25, prediction.confidence_score - 0.1),  # Slightly reduce confidence
+                        prediction_method=prediction.prediction_method + "_with_Pattern_Breaking",
+                        reasoning=prediction.reasoning + " [PATTERN BREAKING APPLIED for diversity]",
+                        created_at=prediction.created_at,
+                        ensemble_composition=prediction.ensemble_composition,
+                        model_weights=prediction.model_weights
+                    )
+                    
+                    logger.info(f"✅ Pattern breaking: {prediction.predicted_numbers} → {new_prediction.predicted_numbers}")
+                    return new_prediction
+            
+            return prediction  # Return original if no pattern breaking needed
+                    
+        except Exception as e:
+            logger.error(f"Error applying pattern breaking: {e}")
+            return prediction  # Return original prediction on error
+    
     def generate_prediction(self, game_type: str) -> Optional[LotteryPrediction]:
         """Main prediction method - uses Unified Intelligent Learning System"""
         try:
@@ -1265,7 +1359,10 @@ class AILotteryPredictor:
                         created_at=datetime.now()
                     )
                     
-                    return prediction
+                    # Apply pattern breaking for diversity
+                    final_prediction = self._apply_pattern_breaking(prediction, game_type)
+                    
+                    return final_prediction
                     
                 except json.JSONDecodeError as e:
                     logger.error(f"JSON decode error: {e}")
