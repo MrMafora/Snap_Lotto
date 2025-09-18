@@ -1,4 +1,10 @@
-# Replit Deployment Exclusions - Prevent timeout during "Pushing Repl layer..."
+# Replit Deployment Exclusions - Prevent timeout and size limit issues
+
+# CRITICAL: Massive Python environment directories (16GB+ total!)
+.pythonlibs/
+.cache/
+.local/
+.git/
 
 # Heavy asset directories that cause deployment timeouts
 attached_assets/
