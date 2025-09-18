@@ -1801,8 +1801,8 @@ def process_ticket():
         logger.info(f"Processing ticket scanner image: {file_path}")
 
         # Process with AI using lottery processor
-        from ai_lottery_processor import AILotteryProcessor
-        processor = AILotteryProcessor()
+        from ai_lottery_processor import CompleteLotteryProcessor
+        processor = CompleteLotteryProcessor()
 
         # Extract data from the image
         extracted_data = processor.process_lottery_image(file_path)
@@ -1976,8 +1976,8 @@ def upload_lottery():
         logger.info(f"Processing uploaded lottery image: {file_path}")
 
         # Process with AI using lottery processor
-        from ai_lottery_processor import AILotteryProcessor
-        processor = AILotteryProcessor()
+        from ai_lottery_processor import CompleteLotteryProcessor
+        processor = CompleteLotteryProcessor()
 
         # Extract data with AI
         result = processor.process_lottery_image(file_path, expected_type)
@@ -2912,7 +2912,7 @@ def run_complete_automation():
             'predictions_generated': predictions_generated,
             'validations_completed': validations_completed,
             'cleanup_performed': True,
-            'frontend_verification': frontend_verification,
+            'frontend_verification': success and new_results_count > 0,
             'duration': 0,
             'message': message,
             'prize_divisions_included': True
