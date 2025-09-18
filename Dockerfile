@@ -44,5 +44,5 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:$PORT/health')" || exit 1
 
-# Use gunicorn with configuration optimized for Cloud Run
-CMD exec gunicorn --bind 0.0.0.0:$PORT --timeout 60 --workers 2 --worker-class gthread --threads 2 main:app
+# Use gunicorn with configuration optimized for Cloud Run (single worker, more threads)
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --worker-class gthread --threads 8 --timeout 120 main:app

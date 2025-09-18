@@ -34,10 +34,19 @@ app.jinja_env.auto_reload = True
 
 # Configure app settings directly from environment
 app.secret_key = os.environ.get("SESSION_SECRET")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+
+# Add connection timeout to DATABASE_URL for Cloud Run deployment safety
+database_url = os.environ.get("DATABASE_URL")
+if database_url and "connect_timeout" not in database_url:
+    # Add 5-second connection timeout for all psycopg2 connections
+    separator = "&" if "?" in database_url else "?"
+    database_url = f"{database_url}{separator}connect_timeout=5"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
+    "connect_args": {"connect_timeout": 5},  # 5 second timeout for Cloud Run
 }
 
 # Initialize security - CSRF temporarily disabled for login issues
@@ -197,13 +206,9 @@ def safe_import(module_name):
         logger.warning(f"Optional module {module_name} not available: {e}")
         return None
 
-# Create database tables
-with app.app_context():
-    try:
-        db.create_all()
-        logger.info("Database tables created/verified")
-    except Exception as e:
-        logger.error(f"Database initialization error: {e}")
+# Database tables will be created on-demand or via migrations
+# Removed blocking db.create_all() to prevent Cloud Run deployment timeouts
+# logger.info("Database tables will be created on first use or via migrations")
 
 # Database type mapping for different lottery types
 LOTTERY_TYPE_MAPPING = {
