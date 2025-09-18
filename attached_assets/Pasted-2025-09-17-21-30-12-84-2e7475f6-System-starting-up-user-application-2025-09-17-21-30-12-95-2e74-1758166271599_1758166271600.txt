@@ -1,0 +1,72 @@
+2025-09-17 21:30:12.84
+2e7475f6
+System
+starting up user application
+2025-09-17 21:30:12.95
+2e7475f6
+System
+forwarding local port 8080 to external port 80 (mapped as 1104)
+2025-09-17 21:30:13.06
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:13.06
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:30:13.13
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:13.13
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:30:13.34
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:13.34
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:30:13.72
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:13.72
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:30:14.53
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:14.53
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:30:16.06
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:16.06
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:30:17.23
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:17.23
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:30:20.09
+2e7475f6
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:30:20.09
+2e7475f6
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
