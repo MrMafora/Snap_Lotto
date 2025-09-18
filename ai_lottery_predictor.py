@@ -1360,8 +1360,7 @@ class AILotteryPredictor:
                         cur.execute("""
                             UPDATE lottery_predictions 
                             SET predicted_numbers = %s, bonus_numbers = %s, confidence_score = %s,
-                                reasoning = %s, prediction_method = %s, created_at = %s,
-                                ensemble_composition = %s, model_weights = %s
+                                reasoning = %s, prediction_method = %s, created_at = %s
                             WHERE id = %s
                         """, (
                             prediction.predicted_numbers,
@@ -1370,8 +1369,6 @@ class AILotteryPredictor:
                             prediction.reasoning,
                             prediction.prediction_method,
                             prediction.created_at,
-                            json.dumps(prediction.ensemble_composition) if prediction.ensemble_composition else None,
-                            json.dumps(prediction.model_weights) if prediction.model_weights else None,
                             existing_prediction[0]
                         ))
                         logger.info(f"✅ Updated existing {prediction.prediction_method} prediction for {prediction.game_type}")
@@ -1381,8 +1378,8 @@ class AILotteryPredictor:
                             INSERT INTO lottery_predictions (
                                 game_type, predicted_numbers, bonus_numbers, 
                                 confidence_score, prediction_method, reasoning, 
-                                target_draw_date, created_at, ensemble_composition, model_weights
-                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                target_draw_date, created_at
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             prediction.game_type,
                             prediction.predicted_numbers,
@@ -1391,9 +1388,7 @@ class AILotteryPredictor:
                             prediction.prediction_method,
                             prediction.reasoning,
                             next_draw,
-                            prediction.created_at,
-                            json.dumps(prediction.ensemble_composition) if prediction.ensemble_composition else None,
-                            json.dumps(prediction.model_weights) if prediction.model_weights else None
+                            prediction.created_at
                         ))
                         logger.info(f"✅ Stored new {prediction.prediction_method} prediction for {prediction.game_type}")
                     
