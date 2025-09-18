@@ -1,0 +1,160 @@
+# Docker image optimization - exclude unnecessary files and directories
+
+# CRITICAL: Exclude massive directories (177MB+ saved)
+uploads/
+attached_assets/
+screenshots/
+instance/
+
+# CRITICAL: Exclude Python library directories (Docker will install fresh)
+.pythonlibs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+site-packages/
+lib/
+lib64/
+
+# Log files and temporary data
+*.log
+logs/
+app.log
+screenshot_capture.log
+.replit-logs/
+
+# Backup and temporary files
+*.backup
+*.tmp
+*.temp
+main.py.backup
+*.bak
+*.orig
+
+# Replit-specific files (not needed in Docker)
+.replit*
+.config/
+.upm/
+replit.nix
+pyproject.toml
+uv.lock
+.replit-ports
+.replit-run-command
+.replit-deployment
+
+# Version control and documentation
+.git/
+.gitignore
+PRD.md
+PREDICTION_ENHANCEMENT_ROLLBACK.md
+replit.md
+*.md
+docs/
+documentation/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.editorconfig
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.coverage
+.pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+
+# Virtual environments and package managers
+venv/
+env/
+ENV/
+.venv/
+.env/
+.conda/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# OS and system files
+.DS_Store
+Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build and deployment artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+.wheel/
+
+# Test files and data
+test_*.py
+*_test.py
+tests/
+test_data/
+fixtures/
+.coverage.*
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+
+# Database files (use external DB)
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql
+
+# Session and cache files
+cookies.txt
+.cache/
+.tmp/
+
+# Environment files (CRITICAL: Prevent secret exposure)
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# Machine learning model files (if any cached)
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.onnx
+*.pb
+
+# Development and deployment configs
+cloudbuild.yaml
+deployment_env.sh
+Procfile
+runtime.txt
+docker-compose*.yml
+.dockerignore.bak

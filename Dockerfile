@@ -39,9 +39,9 @@ USER lotteryapp
 # Expose port (Cloud Run will set the PORT environment variable)
 EXPOSE $PORT
 
-# Health check
+# Health check using wget (available in slim image) or python
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:$PORT/health')" || exit 1
 
 # Use gunicorn with configuration optimized for Cloud Run
 CMD exec gunicorn --bind 0.0.0.0:$PORT --timeout 60 --workers 2 --worker-class gthread --threads 2 main:app

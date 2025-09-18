@@ -296,6 +296,11 @@ def home():
     """Homepage route - alias for index"""
     return redirect(url_for('index'))
 
+@app.route('/health')
+def health():
+    """Simple health check endpoint for Docker"""
+    return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
+
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""

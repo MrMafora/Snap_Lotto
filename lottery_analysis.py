@@ -948,10 +948,10 @@ def get_actual_lottery_results():
                 
                 result = cur.fetchone()
                 if result:
-                    winning_numbers, bonus_numbers, draw_date = result
+                    main_numbers, bonus_numbers, draw_date = result
                     
-                    # Parse winning numbers (stored as JSON array)
-                    main_numbers = json.loads(winning_numbers) if isinstance(winning_numbers, str) else winning_numbers
+                    # Parse main numbers (stored as JSON array)
+                    main_numbers = json.loads(main_numbers) if isinstance(main_numbers, str) else main_numbers
                     bonus_nums = json.loads(bonus_numbers) if bonus_numbers and isinstance(bonus_numbers, str) else (bonus_numbers or [])
                     
                     return jsonify({
