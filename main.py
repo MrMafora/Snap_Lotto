@@ -1800,9 +1800,9 @@ def process_ticket():
 
         logger.info(f"Processing ticket scanner image: {file_path}")
 
-        # Process with AI using manual lottery processor
-        from manual_lottery_processor import ManualLotteryProcessor
-        processor = ManualLotteryProcessor()
+        # Process with AI using lottery processor
+        from ai_lottery_processor import AILotteryProcessor
+        processor = AILotteryProcessor()
 
         # Extract data from the image
         extracted_data = processor.process_lottery_image(file_path)
@@ -1975,9 +1975,9 @@ def upload_lottery():
 
         logger.info(f"Processing uploaded lottery image: {file_path}")
 
-        # Process with AI using manual lottery processor
-        from manual_lottery_processor import ManualLotteryProcessor
-        processor = ManualLotteryProcessor()
+        # Process with AI using lottery processor
+        from ai_lottery_processor import AILotteryProcessor
+        processor = AILotteryProcessor()
 
         # Extract data with AI
         result = processor.process_lottery_image(file_path, expected_type)
@@ -2879,6 +2879,11 @@ def run_complete_automation():
             predictions_generated = 0
             validations_completed = 0
             gaps_filled = 0
+
+        # Determine overall workflow success
+        success = (ai_results.get('total_processed', 0) > 0 and 
+                  ai_results.get('total_failed', 0) == 0 and 
+                  new_results_count > 0)
 
         if success:
             status = 'success'
