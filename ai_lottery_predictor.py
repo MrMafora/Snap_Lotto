@@ -689,25 +689,33 @@ class AILotteryPredictor:
             game_config = self.get_game_configuration(game_type)
             frequency_analysis = historical_data.get('frequency_analysis', {})
             
-            # Get hot and cold numbers
+            # Get hot and cold numbers - EXPANDED FOR DIVERSITY
             sorted_freq = sorted(frequency_analysis.items(), key=lambda x: x[1], reverse=True)
-            hot_numbers = [num for num, freq in sorted_freq[:15]]
-            cold_numbers = [num for num, freq in sorted_freq[-10:]]
+            hot_numbers = [num for num, freq in sorted_freq[:25]]  # Expanded from 15 to 25
+            cold_numbers = [num for num, freq in sorted_freq[-15:]]  # Expanded from 10 to 15
+            
+            # Add random exploration numbers (20% of number space)
+            all_possible = list(range(1, game_config['main_range'] + 1))
+            random_numbers = random.sample(all_possible, min(15, game_config['main_range'] // 3))
             
             prompt = f"""Frequency analysis for {game_type}. Pick {game_config['main_count']} main numbers from 1-{game_config['main_range']}.
             {"Pick " + str(game_config['bonus_count']) + " bonus from 1-" + str(game_config['bonus_range']) + "." if game_config['bonus_count'] > 0 else ""}
             
-            Hot numbers: {hot_numbers[:8]}
-            Cold numbers: {cold_numbers[:5]}
+            Hot numbers (most frequent): {hot_numbers[:12]}
+            Cold numbers (least frequent): {cold_numbers[:8]}
+            Random exploration numbers: {random_numbers[:8]}
             
-            Return JSON: {{"main_numbers": [1,2,3,4,5], "confidence_percentage": 52, "reasoning": "frequency analysis"}}"""
+            DIVERSITY REQUIREMENT: Mix hot, cold, AND random numbers for variety. Avoid too many consecutive or similar patterns.
+            IMPORTANT: Generate DIVERSE predictions - don't just pick from hot numbers. Balance is key for true randomness.
+            
+            Return JSON: {{"main_numbers": [1,2,3,4,5], "confidence_percentage": 45, "reasoning": "diversified frequency analysis"}}"""
             
             response = self.client.models.generate_content(
                 model="gemini-2.5-pro",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.7,
+                    temperature=1.0,  # Increased for more randomness and diversity
                     max_output_tokens=512
                 )
             )
