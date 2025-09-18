@@ -8,7 +8,7 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 [deployment]
 deploymentTarget = "gce"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 1 --timeout 120 main:app"]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app"]
 build = ["pip", "install", "-r", "requirements.txt"]
 
 [workflows]
@@ -72,7 +72,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 1 --timeout 120 main:app"
+args = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app"
 
 [[workflows.workflow]]
 name = "Deploy"

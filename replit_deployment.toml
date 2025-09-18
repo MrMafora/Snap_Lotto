@@ -1,7 +1,7 @@
 
 [deployment]
 deploymentTarget = "cloudrun"
-ignorePorts = true
+ignorePorts = false
 
 [deployment.build]
 run = ["pip", "install", "-r", "requirements.txt"]
@@ -16,3 +16,7 @@ value = "production"
 [[deployment.env]]
 key = "PYTHONUNBUFFERED"
 value = "1"
+
+[[deployment.env]]
+key = "PORT"
+value = "8080"
