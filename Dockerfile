@@ -20,12 +20,13 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+# Copy both dependency files for better caching
 COPY requirements.txt .
+COPY requirements-clean.txt .
 
-# Install dependencies
+# Install dependencies using clean requirements (no duplicates)
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-clean.txt
 
 # Copy application files
 COPY . .
