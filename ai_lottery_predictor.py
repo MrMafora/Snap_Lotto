@@ -457,13 +457,14 @@ class AILotteryPredictor:
                     performance_data = cur.fetchall()
                     
                     if not performance_data:
-                        # Default equal weights for new games
+                        # REBALANCED WEIGHTS - Reduced frequency dominance, added randomization
                         return {
-                            'pattern_analysis': 0.20,
-                            'frequency_analysis': 0.20,
-                            'statistical_regression': 0.20,
-                            'anomaly_detection': 0.20,
-                            'hybrid_mathematical': 0.20
+                            'pattern_analysis': 0.18,
+                            'frequency_analysis': 0.15,  # Reduced from 0.20 to prevent over-reliance
+                            'statistical_regression': 0.17,
+                            'anomaly_detection': 0.18,
+                            'hybrid_mathematical': 0.17,
+                            'pure_random': 0.15  # NEW: Pure randomization for diversity
                         }
                     
                     # Calculate dynamic weights based on performance
@@ -479,8 +480,8 @@ class AILotteryPredictor:
                         else:
                             weights[model_name] = 0.20
                     
-                    # Ensure all 5 models have weights
-                    all_models = ['pattern_analysis', 'frequency_analysis', 'statistical_regression', 'anomaly_detection', 'hybrid_mathematical']
+                    # Ensure all 6 models have weights (added pure_random for diversity)
+                    all_models = ['pattern_analysis', 'frequency_analysis', 'statistical_regression', 'anomaly_detection', 'hybrid_mathematical', 'pure_random']
                     for model in all_models:
                         if model not in weights:
                             weights[model] = 0.20
@@ -495,30 +496,32 @@ class AILotteryPredictor:
                     
         except Exception as e:
             logger.error(f"Error getting model weights: {e}")
-            # Return default equal weights
+            # Return REBALANCED default weights - diversity-focused
             return {
-                'pattern_analysis': 0.20,
-                'frequency_analysis': 0.20,
-                'statistical_regression': 0.20,
-                'anomaly_detection': 0.20,
-                'hybrid_mathematical': 0.20
+                'pattern_analysis': 0.18,
+                'frequency_analysis': 0.15,  # Reduced from 0.20 to prevent over-reliance
+                'statistical_regression': 0.17,
+                'anomaly_detection': 0.18,
+                'hybrid_mathematical': 0.17,
+                'pure_random': 0.15  # NEW: Pure randomization for diversity
             }
     
     def _run_all_models_parallel(self, game_type: str, historical_data: Dict[str, Any]) -> List[ModelPrediction]:
-        """Run all 5 AI models in parallel for faster processing"""
+        """Run all 6 AI models in parallel for faster processing"""
         predictions = []
         
-        # Define all model functions
+        # Define all model functions - EXPANDED with pure randomization
         model_functions = [
             ('pattern_analysis', self._generate_pattern_analysis_prediction),
             ('frequency_analysis', self._generate_frequency_analysis_prediction),
             ('statistical_regression', self._generate_statistical_regression_prediction),
             ('anomaly_detection', self._generate_anomaly_detection_prediction),
-            ('hybrid_mathematical', self._generate_hybrid_mathematical_prediction)
+            ('hybrid_mathematical', self._generate_hybrid_mathematical_prediction),
+            ('pure_random', self._generate_pure_random_prediction)  # NEW: Pure randomization
         ]
         
-        # Run models in parallel using ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        # Run models in parallel using ThreadPoolExecutor - UPDATED for 6 models
+        with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {
                 executor.submit(func, game_type, historical_data): model_name 
                 for model_name, func in model_functions
@@ -536,7 +539,7 @@ class AILotteryPredictor:
                 except Exception as e:
                     logger.error(f"❌ {model_name} model failed: {e}")
         
-        logger.info(f"Completed {len(predictions)}/5 model predictions")
+        logger.info(f"Completed {len(predictions)}/6 model predictions")
         return predictions
     
     def _combine_predictions_weighted_voting(self, model_predictions: List[ModelPrediction], 
@@ -910,6 +913,35 @@ class AILotteryPredictor:
             logger.error(f"Hybrid mathematical model error: {e}")
             return None
     
+    def _generate_pure_random_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[ModelPrediction]:
+        """Model 6: Pure Random - Complete randomization for maximum diversity"""
+        try:
+            game_config = self.get_game_configuration(game_type)
+            
+            # Generate completely random main numbers
+            all_main_numbers = list(range(1, game_config['main_range'] + 1))
+            random_main = sorted(random.sample(all_main_numbers, game_config['main_count']))
+            
+            # Generate random bonus numbers if needed
+            random_bonus = []
+            if game_config['bonus_count'] > 0:
+                all_bonus_numbers = list(range(1, game_config['bonus_range'] + 1))
+                random_bonus = sorted(random.sample(all_bonus_numbers, game_config['bonus_count']))
+            
+            logger.info(f"🎲 Pure random prediction generated: {random_main} + {random_bonus}")
+            
+            return ModelPrediction(
+                model_name='pure_random',
+                predicted_numbers=random_main,
+                bonus_numbers=random_bonus,
+                confidence_score=0.35,  # Lower confidence for pure randomness
+                reasoning=f"Pure randomization for maximum diversity - completely random selection from {game_config['main_range']} main numbers"
+            )
+                
+        except Exception as e:
+            logger.error(f"Pure random model error: {e}")
+            return None
+    
     def generate_prediction(self, game_type: str) -> Optional[LotteryPrediction]:
         """Main prediction method - uses Unified Intelligent Learning System"""
         try:
@@ -989,7 +1021,7 @@ class AILotteryPredictor:
                 contents=prediction_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.7,
+                    temperature=1.0,  # Increased for more randomness and diversity
                     max_output_tokens=1024
                 )
             )
