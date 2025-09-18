@@ -72,7 +72,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app"
+args = "gunicorn --bind 0.0.0.0:8080 --workers 1 --threads 1 --timeout 120 main:app"
 
 [[workflows.workflow]]
 name = "Deploy"
