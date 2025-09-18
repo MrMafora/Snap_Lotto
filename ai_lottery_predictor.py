@@ -667,7 +667,7 @@ class AILotteryPredictor:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.6,
+                    temperature=1.0,  # Enhanced diversity temperature
                     max_output_tokens=512
                 )
             )
@@ -783,7 +783,7 @@ class AILotteryPredictor:
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        temperature=0.4,  # Lower temperature for mathematical approach
+                        temperature=1.0,  # Enhanced diversity temperature
                         max_output_tokens=512
                     )
                 )
@@ -894,7 +894,7 @@ class AILotteryPredictor:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.6,
+                    temperature=1.0,  # Enhanced diversity temperature
                     max_output_tokens=512
                 )
             )
@@ -1037,9 +1037,9 @@ class AILotteryPredictor:
             return prediction  # Return original prediction on error
     
     def generate_prediction(self, game_type: str) -> Optional[LotteryPrediction]:
-        """Main prediction method - uses Unified Intelligent Learning System"""
+        """Main prediction method - uses Enhanced 6-Model Ensemble System"""
         try:
-            logger.info(f"🧠 Generating intelligent prediction for {game_type}")
+            logger.info(f"🎯 Generating enhanced ensemble prediction for {game_type}")
             
             # Get historical data for prediction
             historical_data = self.get_historical_data_for_prediction(game_type)
@@ -1048,158 +1048,43 @@ class AILotteryPredictor:
                 logger.error(f"No historical data available for {game_type}")
                 return None
                 
-            # Use unified intelligent prediction system
-            logger.info("🎯 Using Hybrid Frequency-Gap Analysis with Learning...")
-            prediction = self.generate_intelligent_prediction(game_type, historical_data)
+            # Use enhanced 6-model ensemble system directly
+            logger.info("🧠 Using Enhanced 6-Model Ensemble with Pure Random Diversity...")
+            prediction = self.generate_ensemble_prediction(game_type, historical_data)
             
             if prediction:
-                logger.info("✅ Intelligent prediction generated successfully")
+                logger.info("✅ Enhanced ensemble prediction generated successfully")
                 return prediction
             
-            logger.error(f"❌ Intelligent prediction failed for {game_type}")
+            logger.error(f"❌ Enhanced ensemble prediction failed for {game_type}")
             return None
             
         except Exception as e:
-            logger.error(f"Error in intelligent prediction generation: {e}")
+            logger.error(f"Error in enhanced ensemble prediction generation: {e}")
             return None
     
     def generate_intelligent_prediction(self, game_type: str, historical_data: Dict[str, Any]) -> Optional[LotteryPrediction]:
-        """Generate prediction using Hybrid Frequency-Gap Analysis with Learning - UNIFIED INTELLIGENT SYSTEM"""
-        try:
-            # Get game configuration
-            game_config = self.get_game_configuration(game_type)
-            
-            # Extract extended multi-timeframe data
-            total_draws = len(historical_data.get('draws', []))
-            recent_draws = historical_data.get('draws', [])[:20]  # Most recent 20 draws
-            medium_term_draws = historical_data.get('draws', [])[20:60] if total_draws > 20 else []
-            long_term_draws = historical_data.get('draws', [])[60:] if total_draws > 60 else []
-            
-            # Extended frequency analysis - all numbers, not just top 20
-            frequency_analysis = historical_data.get('frequency_analysis', {})
-            
-            # Extract advanced pattern data
-            cyclical_patterns = historical_data.get('cyclical_patterns', {})
-            long_term_analysis = historical_data.get('long_term_analysis', {})
-            anomaly_detection = historical_data.get('anomaly_detection', {})
-            prize_patterns = historical_data.get('prize_patterns', {})
-            
-            # Create OPTIMIZED prediction prompt - token-efficient while maintaining analysis power
-            # FIX: Use correct data structure keys - 'main' and 'bonus', not 'numbers' and 'bonus_numbers'
-            recent_numbers = [draw.get('main', []) + (draw.get('bonus', []) or []) for draw in recent_draws[:8]]
-            top_frequencies = dict(list(frequency_analysis.items())[:15])
-            
-            prediction_prompt = f"""
-            {game_type} LOTTERY PREDICTION - {total_draws} Draws Analysis
-            
-            RULES: Pick {game_config['main_count']} main (1-{game_config['main_range']}){"+ " + str(game_config['bonus_count']) + " bonus (1-" + str(game_config['bonus_range']) + ")" if game_config['bonus_count'] > 0 else ""}
-            
-            RECENT PATTERNS (Last 8): {recent_numbers}
-            TOP FREQUENCIES: {top_frequencies}
-            PATTERN INSIGHTS: {len(cyclical_patterns.get('monthly_trends', {}))} monthly trends, {len(anomaly_detection.get('pattern_breaks', []))} pattern breaks, {prize_patterns.get('rollover_count', 0)} rollovers
-            
-            ANALYSIS: Apply hybrid frequency-gap analysis with multi-timeframe patterns from {total_draws} draws. Consider hot/cold transitions, drought cycles, and recent anomalies for optimal prediction.
-            
-            Return JSON:
-            {{
-                "main_numbers": [{game_config['main_count']} numbers],
-                {"bonus_numbers: [" + str(game_config['bonus_count']) + " numbers]," if game_config['bonus_count'] > 0 else ""}
-                "confidence_percentage": 58,
-                "reasoning": "Hybrid frequency-gap analysis with learning from {total_draws} draws"
-            }}
-            """
-            
-            # Generate prediction
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=prediction_prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=1.0,  # Increased for more randomness and diversity
-                    max_output_tokens=1024
-                )
-            )
-            
-            if response.text:
-                try:
-                    prediction_data = json.loads(response.text)
-                    
-                    # Get base prediction numbers
-                    base_main_numbers = self.validate_numbers(
-                        prediction_data.get('main_numbers', []),
-                        game_config['main_count'],
-                        game_config['main_range']
-                    )
-                    
-                    # Apply Near-Miss Learning Enhancement if available
-                    enhanced_main_numbers = base_main_numbers
-                    learning_applied = False
-                    
-                    if NEAR_MISS_AVAILABLE:
-                        try:
-                            logger.info("🎯 Applying Near-Miss Learning enhancement...")
-                            near_miss_system = NearMissLearningSystem()
-                            
-                            # Extract near-miss patterns from recent predictions
-                            patterns = near_miss_system.extract_near_miss_patterns(game_type, days_back=30)
-                            
-                            if patterns:
-                                logger.info(f"Found {len(patterns)} near-miss patterns for learning")
-                                
-                                # Generate adjustment factors from patterns
-                                adjustments = near_miss_system.generate_adjustment_vector(patterns)
-                                
-                                if adjustments:
-                                    # Apply near-miss learning to base prediction
-                                    enhanced_main_numbers = near_miss_system.apply_near_miss_learning(
-                                        base_main_numbers, adjustments, 
-                                        (1, game_config['main_range'])
-                                    )
-                                    learning_applied = True
-                                    logger.info(f"Near-miss learning applied: {base_main_numbers} → {enhanced_main_numbers}")
-                                else:
-                                    logger.info("No adjustment factors calculated from near-miss patterns")
-                            else:
-                                logger.info("No near-miss patterns found for learning")
-                                
-                        except Exception as e:
-                            logger.warning(f"Near-miss learning failed, using base prediction: {e}")
-                            enhanced_main_numbers = base_main_numbers
-                    
-                    # Use enhanced or base numbers
-                    main_numbers = enhanced_main_numbers
-                    
-                    bonus_numbers = []
-                    if game_config['bonus_count'] > 0:
-                        bonus_numbers = self.validate_numbers(
-                            prediction_data.get('bonus_numbers', []),
-                            game_config['bonus_count'],
-                            game_config['bonus_range']
-                        )
-                    
-                    # Create prediction
-                    prediction = LotteryPrediction(
-                        game_type=game_type,
-                        predicted_numbers=sorted(main_numbers),
-                        bonus_numbers=sorted(bonus_numbers),
-                        confidence_score=prediction_data.get('confidence_percentage', 50) / 100.0,
-                        prediction_method="Hybrid_Frequency_Gap_Analysis_with_Near_Miss_Learning",
-                        reasoning=f"Enhanced prediction using Hybrid Frequency-Gap Analysis with Near-Miss Learning: {total_draws}+ historical draws analyzed, near-miss pattern refinement {'(applied)' if learning_applied else '(available)'}, hot/cold number patterns, mean reversion strategies, and performance-based learning integration - " + prediction_data.get('reasoning', 'Multi-timeframe pattern analysis with cyclical detection'),
-                        created_at=datetime.now()
-                    )
-                    
-                    return prediction
-                    
-                except json.JSONDecodeError as e:
-                    logger.error(f"JSON decode error: {e}")
-                    return None
-            else:
-                logger.error("Empty response from AI model")
-                return None
-                
-        except Exception as e:
-            logger.error(f"Error generating AI prediction: {e}")
-            return None
+        """
+        DEPRECATED: Generate prediction using Hybrid Frequency-Gap Analysis with Learning - UNIFIED INTELLIGENT SYSTEM
+        
+        ⚠️ THIS METHOD IS DEPRECATED AND DISABLED ⚠️
+        This old system was failing with empty AI responses and has been replaced by
+        the Enhanced 6-Model Ensemble System (generate_ensemble_prediction).
+        
+        The new system provides:
+        - 6 diverse AI models including pure_random
+        - Rebalanced weights (frequency_analysis=15%, pure_random=15%, others=17-18%)
+        - Enhanced diversity with temperature=1.0
+        - Better pattern breaking detection
+        - More stable predictions without AI timeout issues
+        
+        This method is kept for reference but should NOT be used.
+        """
+        logger.warning("⚠️ DEPRECATED: generate_intelligent_prediction called - this old system is disabled!")
+        logger.info("🎯 Redirecting to Enhanced 6-Model Ensemble System...")
+        
+        # Redirect to the new enhanced ensemble system
+        return self.generate_ensemble_prediction(game_type, historical_data)
     
     def validate_numbers(self, numbers: List[int], required_count: int, max_range: int) -> List[int]:
         """Validate and fix prediction numbers"""
@@ -1286,7 +1171,7 @@ class AILotteryPredictor:
                 contents=prediction_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.6 + (variation_seed * 0.01),
+                    temperature=1.0,  # Enhanced diversity temperature
                     max_output_tokens=1024
                 )
             )
