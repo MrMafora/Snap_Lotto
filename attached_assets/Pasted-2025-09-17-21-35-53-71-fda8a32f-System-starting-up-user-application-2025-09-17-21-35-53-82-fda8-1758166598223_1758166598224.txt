@@ -1,0 +1,92 @@
+2025-09-17 21:35:53.71
+fda8a32f
+System
+starting up user application
+2025-09-17 21:35:53.82
+fda8a32f
+System
+forwarding local port 8080 to external port 80 (mapped as 1104)
+2025-09-17 21:35:53.93
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:35:53.93
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:35:53.97
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:35:53.97
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:35:54.16
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:35:54.16
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:35:54.20
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:35:54.20
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:35:54.61
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:35:54.61
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:35:55.29
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:35:55.30
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:35:57.19
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:35:57.19
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:36:02.96
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:36:02.96
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:36:09.18
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:36:09.18
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:36:18.56
+fda8a32f
+User
+sh: line 1: gunicorn: command not found
+2025-09-17 21:36:18.56
+fda8a32f
+System
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+2025-09-17 21:36:19.78
+fda8a32f
+System
+crash loop detected
