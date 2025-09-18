@@ -1,12 +1,47 @@
-# Cloud Run optimized Dockerfile for South African Lottery Scanner
+# Multi-stage Dockerfile optimized for 8GB Cloud Run limit with reliable ML/Playwright support
 
-FROM python:3.11-slim
+# Stage 1: Build dependencies (reliable Debian-slim for SciPy/Scikit-learn)
+FROM python:3.11-slim AS builder
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    FLASK_ENV=production \
-    PORT=8080
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    libffi-dev \
+    libssl-dev \
+    libxml2-dev \
+    libxslt-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libfreetype6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy balanced-slim requirements (removed only unused matplotlib/seaborn - ~70MB savings)
+COPY requirements-balanced-slim.txt ./requirements.txt
+
+# Install dependencies to user directory (multi-stage size optimization)
+RUN pip install --no-cache-dir --user --upgrade pip && \
+    pip install --no-cache-dir --user -r requirements.txt
+
+# Stage 2: Minimal runtime (reliable with ML/Playwright compatibility)
+FROM python:3.11-slim AS runtime
+
+# Install only essential runtime dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    libpq5 \
+    libffi8 \
+    libssl3 \
+    libxml2 \
+    libxslt1.1 \
+    libjpeg62-turbo \
+    zlib1g \
+    libfreetype6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN groupadd -r lotteryapp && useradd -r -g lotteryapp lotteryapp
@@ -14,34 +49,37 @@ RUN groupadd -r lotteryapp && useradd -r -g lotteryapp lotteryapp
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Copy Python packages from builder stage (multi-stage optimization)
+COPY --from=builder /root/.local /home/lotteryapp/.local
 
-# Copy only the clean requirements file (no bloat/duplicates)
-COPY requirements-clean.txt ./requirements.txt
+# Set environment variables optimized for Cloud Run
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_ENV=production \
+    PORT=8080 \
+    PATH=/home/lotteryapp/.local/bin:$PATH \
+    PYTHONPATH=/home/lotteryapp/.local/lib/python3.11/site-packages:$PYTHONPATH
 
-# Install dependencies using optimized requirements
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Copy only essential application files (avoid copying heavy directories)
+COPY app.py main.py models.py ./
+COPY ai_lottery_predictor.py ai_lottery_processor.py ./
+COPY neural_network_predictor.py probability_estimator.py ./
+COPY prediction_validation_system.py fresh_prediction_generator.py ./
+COPY backtesting_system.py lottery_analysis.py cache_manager.py scheduler_fix.py ./
+COPY security_utils.py ./
+COPY templates/ ./templates/
+COPY static/ ./static/
 
-# Copy application files
-COPY . .
-
-# Change ownership to non-root user
-RUN chown -R lotteryapp:lotteryapp /app
-
-# Switch to non-root user
+# Change ownership and switch to non-root user (including user packages)
+RUN chown -R lotteryapp:lotteryapp /home/lotteryapp/.local /app
 USER lotteryapp
 
-# Expose port (Cloud Run will set the PORT environment variable)
+# Expose port (Cloud Run will set PORT environment variable)
 EXPOSE $PORT
 
-# Health check using wget (available in slim image) or python
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+# Lightweight health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=2 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:$PORT/health')" || exit 1
 
-# Use gunicorn with configuration optimized for Cloud Run (single worker, more threads)
-CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --worker-class gthread --threads 8 --timeout 120 main:app
+# Ultra-optimized gunicorn for Cloud Run
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60 main:app

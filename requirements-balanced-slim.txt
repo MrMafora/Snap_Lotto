@@ -1,0 +1,48 @@
+# BALANCED-SLIM requirements - Aggressive size optimization that preserves functionality
+# Removed only truly unused dependencies while keeping essential ones
+
+# Core Flask framework (essential)
+flask>=3.1.0
+flask-sqlalchemy>=3.1.1
+flask-login>=0.6.3
+flask-wtf>=1.2.2
+flask-limiter
+gunicorn>=23.0.0
+werkzeug>=3.1.3
+wtforms>=3.2.1
+
+# Database (essential)
+psycopg2-binary>=2.9.10
+sqlalchemy>=2.0.40
+
+# AI/ML Core (all verified as used)
+google-generativeai>=0.8.5
+openai>=1.71.0
+anthropic
+numpy>=2.2.4
+scipy  # Used in probability_estimator.py
+scikit-learn>=1.6.1  # Used in neural_network_predictor.py 
+pandas>=2.2.3  # Used in neural_network_predictor.py
+
+# Web Scraping & Processing (essential for automation)
+beautifulsoup4>=4.13.3
+requests>=2.32.3
+trafilatura>=2.0.0
+playwright>=1.51.0  # Used for screenshot capture automation
+
+# File Processing (essential)
+openpyxl>=3.1.5
+pillow>=11.2.1
+
+# Utilities (minimal but essential)
+apscheduler>=3.11.0
+email-validator>=2.2.0
+psutil>=7.0.0
+schedule>=1.2.2
+pydantic
+mistralai>=1.6.0
+
+# REMOVED (saving ~70MB):
+# - matplotlib>=3.10.3 (confirmed NOT used - saves ~50MB)
+# - seaborn>=0.13.2 (confirmed NOT used - saves ~20MB)
+# These visualization libraries are not imported anywhere in the codebase

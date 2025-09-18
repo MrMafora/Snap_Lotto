@@ -1,0 +1,50 @@
+# ULTRA-SLIM requirements - Aggressive size optimization for 8GB limit
+# Removed ALL visualization and heavy dependencies not critical for core functionality
+
+# Core Flask framework (essential)
+flask>=3.1.0
+flask-sqlalchemy>=3.1.1
+flask-login>=0.6.3
+flask-wtf>=1.2.2
+flask-limiter
+gunicorn>=23.0.0
+werkzeug>=3.1.3
+wtforms>=3.2.1
+
+# Database (essential)
+psycopg2-binary>=2.9.10
+sqlalchemy>=2.0.40
+
+# AI/ML Core (minimal essential only)
+google-generativeai>=0.8.5
+openai>=1.71.0
+anthropic
+numpy>=2.2.4
+
+# CRITICAL: Minimal data processing (reduced from heavy pandas/scipy)
+# Using only lightweight alternatives where possible
+
+# Web Scraping (reduced - only essential)
+beautifulsoup4>=4.13.3
+requests>=2.32.3
+trafilatura>=2.0.0
+
+# File Processing (essential)
+openpyxl>=3.1.5
+pillow>=11.2.1
+
+# Utilities (minimal)
+apscheduler>=3.11.0
+email-validator>=2.2.0
+psutil>=7.0.0
+schedule>=1.2.2
+pydantic
+mistralai>=1.6.0
+
+# AGGRESSIVELY REMOVED (saving ~500+ MB):
+# - matplotlib>=3.10.3 (NOT used in codebase - saves ~50MB)
+# - seaborn>=0.13.2 (NOT used in codebase - saves ~20MB)
+# - scipy (used only in probability_estimator - will replace with numpy alternatives)
+# - pandas>=2.2.3 (used in neural_network_predictor - will replace with numpy)
+# - scikit-learn>=1.6.1 (used but heavy - will use lightweight alternatives)
+# - playwright>=1.51.0 (MASSIVE 200MB+ - will use requests-based scraping)

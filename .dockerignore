@@ -62,8 +62,12 @@ documentation/
 *~
 .editorconfig
 
-# CRITICAL: Exclude original bloated requirements.txt (Dockerfile uses clean version)
+# CRITICAL: Exclude ALL requirements except balanced-slim version
 requirements.txt
+requirements-clean.txt
+requirements-ultra-slim.txt
+pyproject.toml
+uv.lock
 
 # Python cache and compiled files
 __pycache__/
