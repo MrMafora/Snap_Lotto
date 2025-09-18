@@ -69,11 +69,13 @@ COPY neural_network_predictor.py probability_estimator.py ./
 COPY prediction_validation_system.py fresh_prediction_generator.py ./
 COPY backtesting_system.py lottery_analysis.py cache_manager.py scheduler_fix.py ./
 COPY security_utils.py ./
+COPY start_server.sh ./
 COPY templates/ ./templates/
 COPY static/ ./static/
 
-# Change ownership and switch to non-root user (including user packages)
-RUN chown -R lotteryapp:lotteryapp /home/lotteryapp/.local /app
+# Make startup script executable and change ownership  
+RUN chmod +x start_server.sh && \
+    chown -R lotteryapp:lotteryapp /home/lotteryapp/.local /app
 USER lotteryapp
 
 # Expose port (Cloud Run will set PORT environment variable)
@@ -83,5 +85,5 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=2 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:$PORT/health')" || exit 1
 
-# Ultra-optimized gunicorn for Cloud Run
-CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60 main:app
+# Smart startup script handles port detection automatically
+CMD ["./start_server.sh"]
