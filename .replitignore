@@ -1,0 +1,78 @@
+# Replit Deployment Exclusions - Prevent timeout during "Pushing Repl layer..."
+
+# Heavy asset directories that cause deployment timeouts
+attached_assets/
+uploads/
+screenshots/
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+app.log
+screenshot_capture.log
+
+# Backup files
+*.backup
+*.bak
+main.py.backup
+requirements.txt.backup
+
+# Documentation that's not needed for runtime
+PRD.md
+PREDICTION_ENHANCEMENT_ROLLBACK.md
+
+# Lock files that can cause conflicts
+uv.lock
+
+# Docker files (not needed since using balanced requirements)
+Dockerfile.ultra-slim
+
+# Git files
+.git/
+.gitignore

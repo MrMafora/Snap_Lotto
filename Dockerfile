@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir --user --upgrade pip && \
 # Stage 2: Minimal runtime (reliable with ML/Playwright compatibility)
 FROM python:3.11-slim AS runtime
 
-# Install only essential runtime dependencies
+# Install only essential runtime dependencies (including ML library support)
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq5 \
@@ -41,6 +41,8 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo \
     zlib1g \
     libfreetype6 \
+    libgfortran5 \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
