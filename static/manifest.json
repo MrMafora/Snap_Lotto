@@ -89,7 +89,7 @@
       "name": "Data Analytics",
       "short_name": "Analytics",
       "description": "Analyze lottery number patterns",
-      "url": "/visualizations",
+      "url": "/analytics",
       "icons": [
         {
           "src": "/static/icons/icon-96x96.png",
