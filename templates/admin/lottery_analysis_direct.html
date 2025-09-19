@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-12">
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-triangle mr-1"></i> Error loading data: ${error.message}
-                            <button class="btn btn-outline-danger btn-sm ml-3" onclick="loadTabData('${tabId}')">Try Again</button>
+                            <button class="btn btn-outline-danger btn-sm ml-3" onclick="loadTabData()">Try Again</button>
                         </div>
                     </div>
                 `;
@@ -942,7 +942,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-12">
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-triangle mr-1"></i> Error loading data: ${error.message}
-                            <button class="btn btn-outline-danger btn-sm ml-3" onclick="loadPairComparisonData('${typeA}', '${typeB}')">Try Again</button>
+                            <button class="btn btn-outline-danger btn-sm ml-3" onclick="window.location.reload()">Try Again</button>
                         </div>
                     </div>
                 `;

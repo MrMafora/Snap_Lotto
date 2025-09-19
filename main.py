@@ -87,6 +87,9 @@ logging.basicConfig(
     handlers=[file_handler, console_handler]
 )
 
+# Reduce rate limiter log noise
+logging.getLogger('flask-limiter').setLevel(logging.WARNING)
+
 
 def get_historical_predictions(conn, lottery_types=None):
     """
@@ -334,9 +337,16 @@ def favicon():
         return '', 204
 
 @app.route('/api')
+@limiter.exempt
 def api_health():
-    """API health check endpoint"""
+    """API health check endpoint - exempt from rate limiting"""
     return {'status': 'api_healthy', 'timestamp': datetime.now().isoformat()}, 200
+
+@app.route('/healthz', methods=['GET', 'HEAD'])
+@limiter.exempt  
+def health_check():
+    """Simple health check endpoint for monitoring"""
+    return "ok", 200
 
 @app.route('/')
 def index():

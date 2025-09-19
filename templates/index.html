@@ -930,7 +930,7 @@ function fetchChartData(lotteryType, timePeriod) {
                 barChartContainer.innerHTML = `
                     <div class="alert alert-danger text-center my-5">
                         <p>Error loading chart data. Please try again later.</p>
-                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('${lotteryType}', '${timePeriod}')">
+                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('all', 'all')">
                             Retry
                         </button>
                     </div>
