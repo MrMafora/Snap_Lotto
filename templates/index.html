@@ -1633,7 +1633,7 @@ function updateDivisionChart(data) {
     // Note about the data
     const noteContainer = document.createElement('div');
     noteContainer.className = 'text-center mt-2';
-    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${data[selectedLotteryType].total_draws} draws</small>`;
+    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType || 'All'} number frequency, ${data[selectedLotteryType]?.total_draws || 'Multiple'} draws</small>`;
     tempChartContainer.appendChild(noteContainer);
 }
 
