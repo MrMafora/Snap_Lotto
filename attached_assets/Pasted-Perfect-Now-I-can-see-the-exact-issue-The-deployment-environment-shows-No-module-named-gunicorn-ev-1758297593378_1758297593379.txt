@@ -1,0 +1,66 @@
+Perfect! Now I can see the exact issue. The deployment environment shows No module named gunicorn even though it's in your requirements.txt. Let me search the Replit documentation to understand the proper deployment configuration:
+
+
+Searched Replit documentation for "How to configure deployment build and run commands to install pip dependencies and run Flask app with gunicorn"
+
+Decided on deployment configuration fix
+🎯 Found the Exact Solution!
+Based on Replit's documentation, the issue is in your .replit deployment configuration. The build step isn't properly installing pip dependencies. Here's the exact fix:
+
+📝 Manual Fix Required - Edit .replit File
+Please manually edit your .replit file and update the [deployment] section:
+
+Find lines 9-12 in your .replit file:
+
+[deployment]
+deploymentTarget = "gce"
+run = ["python", "start_production.py"]
+build = ["pip", "install", "-r", "requirements.txt"]
+Replace them with:
+
+[deployment]
+deploymentTarget = "cloudrun"
+build = "pip install -r requirements.txt"
+run = ["gunicorn", "main:app", "--log-file", "-", "--bind", "0.0.0.0:$PORT"]
+✅ Key Changes:
+Fixed build command - Changed from array to string format
+Direct gunicorn call - Removed the production script approach
+Proper PORT variable - Uses $PORT that Replit provides
+CloudRun target - More reliable than GCE for Flask apps
+🚀 After Making This Change:
+Delete the start_production.py file (no longer needed)
+Republish your app
+The deployment should now properly install gunicorn and start successfully
+This follows Replit's official documentation for Flask + Gunicorn deployments and should resolve the "No module named gunicorn" error you're seeing in the logs.
+
+
+Executed rm start_production.py
+
+Decided on gunicorn deployment approach
+I've also cleaned up the start_production.py file since we're using the direct approach now.
+
+Also remove the replit_deployment.toml file (since Replit doesn't use it):
+
+
+Executed rm replit_deployment.toml
+
+Decided on deployment configuration
+Perfect! I've cleaned up the unnecessary files we created during troubleshooting.
+
+📋 Summary - Ready for Deployment
+✅ Files cleaned up:
+
+Removed start_production.py (no longer needed)
+Removed replit_deployment.toml (not used by Replit)
+✅ Next step - Manual .replit edit:
+
+[deployment]
+deploymentTarget = "cloudrun"
+build = "pip install -r requirements.txt"
+run = ["gunicorn", "main:app", "--log-file", "-", "--bind", "0.0.0.0:$PORT"]
+✅ Your enhanced AI system is ready:
+
+Fixed favicon handling (no more 500 errors)
+Enhanced AI diversity with realistic confidence scores (5.8%)
+Proper deployment configuration following Replit docs
+After editing .replit, republish your app and it should work at snaplottery.replit.app! 🚀
