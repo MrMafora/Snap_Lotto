@@ -7,7 +7,7 @@ ignorePorts = false
 run = ["pip", "install", "-r", "requirements.txt"]
 
 [deployment.run]
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "300", "--keep-alive", "2", "--max-requests", "1000", "main:app"]
+run = ["python", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "300", "--keep-alive", "2", "--max-requests", "1000", "main:app"]
 
 [[deployment.env]]
 key = "FLASK_ENV"
