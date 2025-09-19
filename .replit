@@ -85,11 +85,11 @@ args = "gunicorn --bind 0.0.0.0:8080 main:app --workers 2 --timeout 120"
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
+externalPort = 80
 
 [[ports]]
-localPort = 8080
-externalPort = 80
+localPort = 5000
+externalPort = 5000
 
 [[ports]]
 localPort = 36915
