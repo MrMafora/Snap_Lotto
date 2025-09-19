@@ -18,7 +18,7 @@ const urlsToCache = [
   '/static/icons/icon-512x512.png',
   '/ticket-scanner',
   '/results',
-  '/analytics'
+  '/visualizations'
 ];
 
 // Install Service Worker
