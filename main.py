@@ -23,7 +23,7 @@ import psycopg2
 # Import configuration and models
 # from config import Config  # Removed - not needed
 from models import db, User, LotteryResult, ExtractionReview, HealthCheck, Alert, SystemLog
-from security_utils import limiter, sanitize_input, validate_form_data, RateLimitExceeded, require_admin
+from security_utils import limiter, sanitize_input, validate_form_data, RateLimitExceeded, require_admin, csrf, init_security
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -49,9 +49,8 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "connect_args": {"connect_timeout": 5},  # 5 second timeout for Cloud Run
 }
 
-# Initialize security - CSRF temporarily disabled for login issues
-# csrf.init_app(app)
-limiter.init_app(app)
+# Initialize security with CSRF protection and rate limiting
+init_security(app)
 
 # Initialize extensions
 db.init_app(app)
@@ -59,14 +58,33 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Set up logging
+# Set up logging with rotation for production
+from logging.handlers import RotatingFileHandler
+import os
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
+# Configure logging with rotation
+log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Rotating file handler (max 10MB per file, keep 5 files)
+file_handler = RotatingFileHandler(
+    'logs/app.log', 
+    maxBytes=10*1024*1024,  # 10MB
+    backupCount=5,
+    encoding='utf-8'
+)
+file_handler.setFormatter(log_formatter)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+
+# Configure root logger
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
-    ]
+    handlers=[file_handler, console_handler]
 )
 
 

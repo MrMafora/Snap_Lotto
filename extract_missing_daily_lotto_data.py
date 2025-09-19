@@ -140,7 +140,7 @@ def extract_and_save_lottery_data():
                 print("\n=== EXTRACTION SUMMARY ===")
                 for item in results_to_add:
                     result = item['result']
-                    print(f"Draw {result.draw_number} ({result.draw_date}): {json.loads(result.numbers)}")
+                    print(f"Draw {result.draw_number} ({result.draw_date}): {json.loads(result.main_numbers)}")
                 
             except Exception as e:
                 db.session.rollback()
