@@ -72,6 +72,10 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+args = "pip install gunicorn"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 1 --timeout 120 --reload main:app"
 
 [[workflows.workflow]]
