@@ -930,7 +930,7 @@ function fetchChartData(lotteryType, timePeriod) {
                 barChartContainer.innerHTML = `
                     <div class="alert alert-danger text-center my-5">
                         <p>Error loading chart data. Please try again later.</p>
-                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('all', 'all')">
+                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('${lotteryType}', '${timePeriod}')">
                             Retry
                         </button>
                     </div>
@@ -1633,7 +1633,7 @@ function updateDivisionChart(data) {
     // Note about the data
     const noteContainer = document.createElement('div');
     noteContainer.className = 'text-center mt-2';
-    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType || 'All'} number frequency, ${data[selectedLotteryType]?.total_draws || 'Multiple'} draws</small>`;
+    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${data[selectedLotteryType].total_draws} draws</small>`;
     tempChartContainer.appendChild(noteContainer);
 }
 

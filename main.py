@@ -23,7 +23,7 @@ import psycopg2
 # Import configuration and models
 # from config import Config  # Removed - not needed
 from models import db, User, LotteryResult, ExtractionReview, HealthCheck, Alert, SystemLog
-from security_utils import limiter, sanitize_input, validate_form_data, RateLimitExceeded, require_admin, csrf, init_security
+from security_utils import limiter, sanitize_input, validate_form_data, RateLimitExceeded, require_admin
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -49,8 +49,9 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "connect_args": {"connect_timeout": 5},  # 5 second timeout for Cloud Run
 }
 
-# Initialize security with CSRF protection and rate limiting
-init_security(app)
+# Initialize security - CSRF temporarily disabled for login issues
+# csrf.init_app(app)
+limiter.init_app(app)
 
 # Initialize extensions
 db.init_app(app)
@@ -58,37 +59,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Set up logging with rotation for production
-from logging.handlers import RotatingFileHandler
-import os
-
-# Create logs directory if it doesn't exist
-os.makedirs('logs', exist_ok=True)
-
-# Configure logging with rotation
-log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# Rotating file handler (max 10MB per file, keep 5 files)
-file_handler = RotatingFileHandler(
-    'logs/app.log', 
-    maxBytes=10*1024*1024,  # 10MB
-    backupCount=5,
-    encoding='utf-8'
-)
-file_handler.setFormatter(log_formatter)
-
-# Console handler
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
-
-# Configure root logger
+# Set up logging
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[file_handler, console_handler]
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
 )
-
-# Reduce rate limiter log noise
-logging.getLogger('flask-limiter').setLevel(logging.WARNING)
 
 
 def get_historical_predictions(conn, lottery_types=None):
@@ -327,27 +306,6 @@ def health():
     """Simple health check endpoint for Docker"""
     return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
 
-@app.route('/favicon.ico')
-def favicon():
-    """Serve favicon"""
-    try:
-        return send_file('static/icons/icon-72x72.png', mimetype='image/png')
-    except:
-        # Return empty response if favicon not found
-        return '', 204
-
-@app.route('/api')
-@limiter.exempt
-def api_health():
-    """API health check endpoint - exempt from rate limiting"""
-    return {'status': 'api_healthy', 'timestamp': datetime.now().isoformat()}, 200
-
-@app.route('/healthz', methods=['GET', 'HEAD'])
-@limiter.exempt  
-def health_check():
-    """Simple health check endpoint for monitoring"""
-    return "ok", 200
-
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
@@ -541,7 +499,7 @@ def index():
                             'game_type': game_type,
                             'main_numbers': sorted(main_numbers) if main_numbers else [],
                             'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                            'confidence': min(round(confidence * 100 * 0.6), 45) if confidence else 25,
+                            'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
                             'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
                             'target_date': target_date,
                             'linked_draw_id': linked_draw_id,
@@ -3325,16 +3283,10 @@ def visualization_data():
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
-    logger.warning(f"404 error: {request.url}")
-    if request.path.startswith('/api'):
-        return jsonify({'error': 'API endpoint not found'}), 404
     return render_template('error.html', error="Page not found"), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    logger.error(f"500 error on {request.url}: {str(error)}")
-    if request.path.startswith('/api'):
-        return jsonify({'error': 'Internal server error'}), 500
     return render_template('error.html', error="Internal server error"), 500
 
 @app.errorhandler(RateLimitExceeded)
@@ -3377,12 +3329,6 @@ except Exception as e:
     logger.error(f"❌ WORKER-SAFE: Failed to start unified scheduler: {e}")
 
 if __name__ == '__main__':
-    try:
-        # Use PORT environment variable for deployment, fallback to 5000
-        port = int(os.environ.get('PORT', 5000))
-        logger.info(f"Starting Flask app on port {port}")
-        app.run(host='0.0.0.0', port=port, debug=False)
-    except Exception as e:
-        logger.error(f"Failed to start Flask app: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
+    # Use PORT environment variable for deployment, fallback to 8080
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)

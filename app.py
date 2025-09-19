@@ -3,6 +3,7 @@ Application factory module for the lottery data app.
 This module serves as a bridge for gunicorn to load the app from main.py
 """
 
+import os
 from main import app
 
 def create_app():
@@ -12,8 +13,10 @@ def create_app():
     """
     return app
 
-# For gunicorn and WSGI compatibility
+# For gunicorn compatibility
 application = app
 
-# Note: For development, use main.py directly
-# For production, use gunicorn with this file as the entry point
+if __name__ == '__main__':
+    # Use PORT environment variable for Cloud Run deployment, fallback to 5000 for local development
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)

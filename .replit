@@ -7,9 +7,9 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 
 [deployment]
-deploymentTarget = "cloudrun"
-build = ["sh", "-c", "pip install -r requirements.txt && pip install gunicorn"]
-run = ["sh", "-c", "gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-file -"]
+deploymentTarget = "gce"
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app"]
+build = ["pip", "install", "-r", "requirements.txt"]
 
 [workflows]
 runButton = "Web Server"
@@ -72,11 +72,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pip install gunicorn"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 1 --timeout 120 --reload main:app"
+args = "python main.py"
 
 [[workflows.workflow]]
 name = "Deploy"
@@ -89,6 +85,10 @@ args = "gunicorn --bind 0.0.0.0:8080 main:app --workers 2 --timeout 120"
 
 [[ports]]
 localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8080
 externalPort = 80
 
 [[ports]]
@@ -96,16 +96,8 @@ localPort = 36915
 externalPort = 3000
 
 [[ports]]
-localPort = 38721
-externalPort = 3002
-
-[[ports]]
-localPort = 43899
+localPort = 37203
 externalPort = 3001
-
-[[ports]]
-localPort = 45131
-externalPort = 3003
 
 [agent]
 integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]

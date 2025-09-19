@@ -25,7 +25,7 @@ class LotteryResult(db.Model):
     lottery_type = db.Column(db.String(50), nullable=False)
     draw_number = db.Column(db.Integer, nullable=False)
     draw_date = db.Column(db.Date, nullable=False)
-    main_numbers = db.Column(db.JSON)  # Main winning numbers
+    numbers = db.Column(db.JSON)  # Main winning numbers
     bonus_numbers = db.Column(db.JSON)  # Bonus numbers
     divisions = db.Column(db.JSON)  # Prize divisions data
     rollover_amount = db.Column(db.Float)
