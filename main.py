@@ -306,6 +306,20 @@ def health():
     """Simple health check endpoint for Docker"""
     return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
 
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon"""
+    try:
+        return send_file('static/icons/icon-72x72.png', mimetype='image/png')
+    except:
+        # Return empty response if favicon not found
+        return '', 204
+
+@app.route('/api')
+def api_health():
+    """API health check endpoint"""
+    return {'status': 'api_healthy', 'timestamp': datetime.now().isoformat()}, 200
+
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
@@ -3283,10 +3297,16 @@ def visualization_data():
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
+    logger.warning(f"404 error: {request.url}")
+    if request.path.startswith('/api'):
+        return jsonify({'error': 'API endpoint not found'}), 404
     return render_template('error.html', error="Page not found"), 404
 
 @app.errorhandler(500)
 def internal_error(error):
+    logger.error(f"500 error on {request.url}: {str(error)}")
+    if request.path.startswith('/api'):
+        return jsonify({'error': 'Internal server error'}), 500
     return render_template('error.html', error="Internal server error"), 500
 
 @app.errorhandler(RateLimitExceeded)
@@ -3329,6 +3349,12 @@ except Exception as e:
     logger.error(f"❌ WORKER-SAFE: Failed to start unified scheduler: {e}")
 
 if __name__ == '__main__':
-    # Use PORT environment variable for deployment, fallback to 8080
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    try:
+        # Use PORT environment variable for deployment, fallback to 5000
+        port = int(os.environ.get('PORT', 5000))
+        logger.info(f"Starting Flask app on port {port}")
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        logger.error(f"Failed to start Flask app: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
