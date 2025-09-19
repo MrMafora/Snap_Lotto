@@ -7,9 +7,9 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 
 [deployment]
-deploymentTarget = "gce"
-run = ["python", "start_production.py"]
-build = ["pip", "install", "-r", "requirements.txt"]
+deploymentTarget = "cloudrun"
+build = "pip install -r requirements.txt"
+run = ["gunicorn", "main:app", "--log-file", "-", "--bind", "0.0.0.0:$PORT"]
 
 [workflows]
 runButton = "Web Server"
