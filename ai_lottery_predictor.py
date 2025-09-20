@@ -945,7 +945,7 @@ class AILotteryPredictor:
             logger.error(f"Pure random model error: {e}")
             return None
     
-    def _detect_similar_patterns(self, new_prediction: List[int], game_type: str, similarity_threshold: float = 0.6) -> bool:
+    def _detect_similar_patterns(self, new_prediction: List[int], game_type: str, similarity_threshold: float = 0.25) -> bool:
         """Detect if new prediction is too similar to recent predictions"""
         try:
             with psycopg2.connect(self.connection_string) as conn:
