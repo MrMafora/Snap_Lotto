@@ -153,6 +153,44 @@ def intelligent_number_selection(main_range, count, hot_numbers, cold_numbers, f
                 break
             selected.append(random.choice(remaining))
         
+        # ENHANCED DIVERSITY: Ensure range distribution across full number spectrum
+        selected = selected[:count]  # Ensure correct count first
+        range_size = max_num - min_num + 1
+        
+        # For larger ranges (like Daily Lotto 1-36), ensure coverage across thirds
+        if range_size >= 24 and count >= 3:
+            third_size = range_size // 3
+            lower_third = [n for n in selected if min_num <= n <= min_num + third_size - 1]
+            middle_third = [n for n in selected if min_num + third_size <= n <= min_num + (2 * third_size) - 1]
+            upper_third = [n for n in selected if n >= min_num + (2 * third_size)]
+            
+            # If any third is missing, force at least one number from each
+            replacements_needed = []
+            if not lower_third:
+                replacements_needed.append(('lower', min_num, min_num + third_size - 1))
+            if not middle_third:
+                replacements_needed.append(('middle', min_num + third_size, min_num + (2 * third_size) - 1))
+            if not upper_third:
+                replacements_needed.append(('upper', min_num + (2 * third_size), max_num))
+            
+            # Apply range distribution fixes
+            for third_name, range_start, range_end in replacements_needed:
+                available_in_range = [n for n in range(range_start, range_end + 1) if n not in selected]
+                if available_in_range and selected:
+                    # Replace a number from the most populated third
+                    if len(lower_third) > len(middle_third) and len(lower_third) > len(upper_third):
+                        selected.remove(random.choice(lower_third))
+                    elif len(middle_third) > len(upper_third):
+                        selected.remove(random.choice(middle_third))
+                    elif upper_third:
+                        selected.remove(random.choice(upper_third))
+                    else:
+                        selected.pop()  # Remove last number as fallback
+                    
+                    # Add number from missing range
+                    selected.append(random.choice(available_in_range))
+                    logger.info(f"🎯 Range diversity: Added number from {third_name} third ({range_start}-{range_end})")
+        
         return sorted(selected[:count])
         
     except Exception as e:
