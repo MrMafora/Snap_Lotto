@@ -460,7 +460,7 @@ def index():
                     verified_at,
                     linked_draw_id
                 FROM lottery_predictions 
-                WHERE target_draw_date >= CURRENT_DATE
+                WHERE target_draw_date >= CURRENT_DATE - INTERVAL '2 days'
                 ORDER BY game_type, 
                          created_at DESC
             """)
@@ -499,7 +499,7 @@ def index():
                             'game_type': game_type,
                             'main_numbers': sorted(main_numbers) if main_numbers else [],
                             'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                            'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
+                            'confidence': round(confidence) if confidence else 25,
                             'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
                             'target_date': target_date,
                             'linked_draw_id': linked_draw_id,
