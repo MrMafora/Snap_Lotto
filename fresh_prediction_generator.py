@@ -122,13 +122,13 @@ def intelligent_number_selection(main_range, count, hot_numbers, cold_numbers, f
         
         selected = []
         
-        # Strategy: Balanced approach with frequency weighting
-        # 50% from hot numbers (recent trends)
-        # 20% from cold numbers (mean reversion)
-        # 30% from neutral numbers (balanced selection)
+        # Strategy: ENHANCED DIVERSITY with reduced hot number dominance
+        # 35% from hot numbers (reduced from 50% to prevent clustering)
+        # 25% from cold numbers (increased mean reversion)
+        # 40% from neutral numbers (increased balanced selection)
         
-        hot_count = min(len(hot_pool), max(1, int(count * 0.5)))
-        cold_count = min(len(cold_pool), max(1, int(count * 0.2)))
+        hot_count = min(len(hot_pool), max(1, int(count * 0.35)))
+        cold_count = min(len(cold_pool), max(1, int(count * 0.25)))
         neutral_count = count - hot_count - cold_count
         
         # Select from hot numbers (higher probability from frequency leaders)
