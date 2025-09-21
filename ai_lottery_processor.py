@@ -338,7 +338,7 @@ class CompleteLotteryProcessor:
             if not hasattr(self, 'db_connection') or not self.db_connection:
                 self.connect_database()
             
-            screenshots_dir = "screenshots"
+            screenshots_dir = "/tmp/screenshots"
             results["total_processed"] = len(screenshot_files)
             
             logger.info(f"Processing batch of {len(screenshot_files)} screenshots")
@@ -426,7 +426,7 @@ class CompleteLotteryProcessor:
             self.connect_database()
             
             # Get all screenshot files
-            screenshots_dir = "screenshots"
+            screenshots_dir = "/tmp/screenshots"
             if not os.path.exists(screenshots_dir):
                 raise Exception(f"Screenshots directory '{screenshots_dir}' not found")
             

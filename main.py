@@ -59,13 +59,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Set up logging
+# Set up logging for Cloud Run deployment
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
+        logging.StreamHandler()  # Only stream handler for Cloud Run
     ]
 )
 
@@ -1795,7 +1794,7 @@ def process_ticket():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_filename = f"{timestamp}_{filename}"
 
-        upload_folder = 'uploads'
+        upload_folder = '/tmp/uploads'
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, unique_filename)
         file.save(file_path)
@@ -1967,7 +1966,7 @@ def upload_lottery():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_filename = f"{timestamp}_{filename}"
 
-        upload_folder = 'uploads'
+        upload_folder = '/tmp/uploads'
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, unique_filename)
         file.save(file_path)
@@ -2458,7 +2457,7 @@ def export_combined_zip():
                 if screenshot.file_path:
                     file_paths_to_try.append(screenshot.file_path)
                 if screenshot.filename:
-                    file_paths_to_try.append(f"screenshots/{screenshot.filename}")
+                    file_paths_to_try.append(f"/tmp/screenshots/{screenshot.filename}")
 
                 for file_path in file_paths_to_try:
                     if os.path.exists(file_path):
@@ -2755,7 +2754,7 @@ def run_complete_automation():
         logger.info("Step 1: Cleaning up existing screenshots")
         import glob
         import os
-        existing_screenshots = glob.glob('screenshots/*.png')
+        existing_screenshots = glob.glob('/tmp/screenshots/*.png')
         deleted_count = 0
 
         for screenshot in existing_screenshots:

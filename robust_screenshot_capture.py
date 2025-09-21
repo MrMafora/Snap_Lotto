@@ -22,8 +22,7 @@ def setup_logging():
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler('screenshot_capture.log'),
-            logging.StreamHandler(sys.stdout)
+            logging.StreamHandler(sys.stdout)  # Only stream handler for Cloud Run
         ]
     )
     return logging.getLogger(__name__)
@@ -101,7 +100,7 @@ async def robust_screenshot_capture():
     }
     
     # Create screenshots directory
-    os.makedirs('screenshots', exist_ok=True)
+    os.makedirs('/tmp/screenshots', exist_ok=True)
     
     # Test network connectivity first
     logger.info("Testing network connectivity...")
