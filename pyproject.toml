@@ -41,25 +41,9 @@ dependencies = [
     "sift-stack-py>=0.9.1",
 ]
 
-[tool.setuptools]
-py-modules = [
-    "main",
-    "app", 
-    "models",
-    "ai_lottery_predictor",
-    "ai_lottery_processor", 
-    "backtesting_system",
-    "cache_manager",
-    "coverage_optimizer",
-    "fresh_prediction_generator",
-    "lottery_analysis",
-    "prediction_validation_system",
-    "probability_estimator",
-    "robust_screenshot_capture",
-    "scheduler_fix",
-    "screenshot_capture",
-    "security_utils"
-]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
 
 [tool.setuptools.package-data]
 "*" = ["templates/*", "static/*"]
