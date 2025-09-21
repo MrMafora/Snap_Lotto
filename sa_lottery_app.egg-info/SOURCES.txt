@@ -1,0 +1,7 @@
+pyproject.toml
+sa_lottery_app.egg-info/PKG-INFO
+sa_lottery_app.egg-info/SOURCES.txt
+sa_lottery_app.egg-info/dependency_links.txt
+sa_lottery_app.egg-info/requires.txt
+sa_lottery_app.egg-info/top_level.txt
+static/icons/generate_icons.py

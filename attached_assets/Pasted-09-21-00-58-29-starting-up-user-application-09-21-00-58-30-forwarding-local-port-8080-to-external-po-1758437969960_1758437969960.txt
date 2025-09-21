@@ -1,0 +1,36 @@
+09-21 00:58:29
+starting up user application
+09-21 00:58:30
+forwarding local port 8080 to external port 80 (mapped as 1104)
+09-21 00:58:32
+sh: line 1: gunicorn: command not found
+09-21 00:58:32
+command finished with error [sh -c gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 127
+09-21 00:58:33
+sh: line 1: gunicorn: command not found
+09-21 00:58:33
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+09-21 00:58:33
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+09-21 00:58:33
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+09-21 00:58:34
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+09-21 00:58:34
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+09-21 00:58:34
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+09-21 00:58:36
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+09-21 00:58:36
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+09-21 00:58:36
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+09-21 00:58:41
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+09-21 00:58:41
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+09-21 00:58:48
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+09-21 00:58:48
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1

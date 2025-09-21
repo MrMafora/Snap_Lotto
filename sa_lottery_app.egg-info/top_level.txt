@@ -1,0 +1,7 @@
+attached_assets
+instance
+logs
+screenshots
+static
+templates
+uploads
