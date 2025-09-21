@@ -351,19 +351,19 @@ def index():
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
-                                logger.info(f"Getting numbers for {obj.lottery_type}: {obj.main_numbers} (type: {type(obj.main_numbers)})")
+                                logger.info(f"📊 HISTORICAL RESULTS - Getting winning numbers for {obj.lottery_type}: {obj.main_numbers} (type: {type(obj.main_numbers)})")
                                 if isinstance(obj.main_numbers, str):
                                     try:
                                         parsed = json.loads(obj.main_numbers)
                                         sorted_numbers = sorted(parsed) if parsed else []
-                                        logger.info(f"Parsed and sorted JSON numbers: {sorted_numbers}")
+                                        logger.info(f"📊 HISTORICAL RESULTS - Parsed winning numbers: {sorted_numbers}")
                                         return sorted_numbers
                                     except Exception as e:
-                                        logger.error(f"Failed to parse JSON: {e}")
+                                        logger.error(f"Failed to parse historical result JSON: {e}")
                                         return []
                                 numbers = obj.main_numbers or []
                                 sorted_numbers = sorted(numbers) if numbers else []
-                                logger.info(f"Returning sorted numbers directly: {sorted_numbers}")
+                                logger.info(f"📊 HISTORICAL RESULTS - Winning numbers: {sorted_numbers}")
                                 return sorted_numbers
                             return get_numbers_list
 
@@ -495,6 +495,8 @@ def index():
                             else:
                                 bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
 
+                        logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if main_numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
+                        
                         unvalidated_predictions.append({
                             'game_type': game_type,
                             'main_numbers': sorted(main_numbers) if main_numbers else [],
@@ -513,7 +515,7 @@ def index():
         except Exception as e:
             logger.error(f"Error fetching ENHANCED predictions for homepage: {e}")
 
-        logger.info(f"Homepage: Loaded {len(unvalidated_predictions)} AI predictions for display")
+        logger.info(f"🤖 AI PREDICTIONS - Homepage: Loaded {len(unvalidated_predictions)} AI predictions for display")
 
         # Debug bonus numbers for template and ensure methods exist
         for result in unique_results:
