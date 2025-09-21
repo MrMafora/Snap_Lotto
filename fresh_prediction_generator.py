@@ -120,13 +120,13 @@ def intelligent_number_selection(main_range, count, hot_numbers, cold_numbers, f
         
         selected = []
         
-        # Strategy: ENHANCED DIVERSITY with reduced hot number dominance
-        # 35% from hot numbers (reduced from 50% to prevent clustering)
-        # 25% from cold numbers (increased mean reversion)
-        # 40% from neutral numbers (increased balanced selection)
+        # Strategy: BALANCED ACCURACY with diversity - optimized for 2+ matches
+        # 50% from hot numbers (restored for pattern recognition accuracy)
+        # 12% from cold numbers (reduced mean reversion for better signal)
+        # 38% from neutral numbers (balanced selection)
         
-        hot_count = min(len(hot_pool), max(1, int(count * 0.35)))
-        cold_count = min(len(cold_pool), max(1, int(count * 0.25)))
+        hot_count = min(len(hot_pool), max(1, int(count * 0.50)))
+        cold_count = min(len(cold_pool), max(1, int(count * 0.12)))
         neutral_count = count - hot_count - cold_count
         
         # Select from hot numbers (higher probability from frequency leaders)
@@ -151,43 +151,25 @@ def intelligent_number_selection(main_range, count, hot_numbers, cold_numbers, f
                 break
             selected.append(random.choice(remaining))
         
-        # ENHANCED DIVERSITY: Ensure range distribution across full number spectrum
+        # SOFT DIVERSITY: Light range guidance without breaking patterns
         selected = selected[:count]  # Ensure correct count first
         range_size = max_num - min_num + 1
         
-        # For larger ranges (like Daily Lotto 1-36), ensure coverage across thirds
-        if range_size >= 24 and count >= 3:
+        # Apply soft diversity only if severely clustered (don't force if good patterns exist)
+        if range_size >= 24 and count >= 4:
             third_size = range_size // 3
             lower_third = [n for n in selected if min_num <= n <= min_num + third_size - 1]
             middle_third = [n for n in selected if min_num + third_size <= n <= min_num + (2 * third_size) - 1]
             upper_third = [n for n in selected if n >= min_num + (2 * third_size)]
             
-            # If any third is missing, force at least one number from each
-            replacements_needed = []
-            if not lower_third:
-                replacements_needed.append(('lower', min_num, min_num + third_size - 1))
-            if not middle_third:
-                replacements_needed.append(('middle', min_num + third_size, min_num + (2 * third_size) - 1))
-            if not upper_third:
-                replacements_needed.append(('upper', min_num + (2 * third_size), max_num))
-            
-            # Apply range distribution fixes
-            for third_name, range_start, range_end in replacements_needed:
-                available_in_range = [n for n in range(range_start, range_end + 1) if n not in selected]
-                if available_in_range and selected:
-                    # Replace a number from the most populated third
-                    if len(lower_third) > len(middle_third) and len(lower_third) > len(upper_third):
-                        selected.remove(random.choice(lower_third))
-                    elif len(middle_third) > len(upper_third):
-                        selected.remove(random.choice(middle_third))
-                    elif upper_third:
-                        selected.remove(random.choice(upper_third))
-                    else:
-                        selected.pop()  # Remove last number as fallback
-                    
-                    # Add number from missing range
-                    selected.append(random.choice(available_in_range))
-                    logger.info(f"🎯 Range diversity: Added number from {third_name} third ({range_start}-{range_end})")
+            # Only apply diversity if ALL numbers are in one third (severe clustering)
+            if len(lower_third) == count or len(middle_third) == count or len(upper_third) == count:
+                # Gently replace ONE number to add minimal diversity without breaking patterns
+                if not middle_third:  # Missing middle - replace lowest value number
+                    middle_candidates = [n for n in range(min_num + third_size, min_num + (2 * third_size)) if n not in selected]
+                    if middle_candidates and selected:
+                        selected[-1] = random.choice(middle_candidates)  # Replace last (lowest priority) number
+                        logger.info(f"🎯 Applied minimal diversity: Added one middle-range number")
         
         return sorted(selected[:count])
         

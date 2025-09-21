@@ -457,14 +457,14 @@ class AILotteryPredictor:
                     performance_data = cur.fetchall()
                     
                     if not performance_data:
-                        # ENHANCED DIVERSITY WEIGHTS - Boosted randomization for variety
+                        # BALANCED ACCURACY WEIGHTS - Restored signal with controlled diversity
                         return {
-                            'pattern_analysis': 0.15,
-                            'frequency_analysis': 0.13,  # Further reduced to prevent hot number dominance
-                            'statistical_regression': 0.15,
-                            'anomaly_detection': 0.15,
-                            'hybrid_mathematical': 0.17,
-                            'pure_random': 0.25  # BOOSTED: Enhanced randomization for maximum diversity
+                            'pattern_analysis': 0.18,
+                            'frequency_analysis': 0.20,  # Restored for pattern recognition
+                            'statistical_regression': 0.18,
+                            'anomaly_detection': 0.16,
+                            'hybrid_mathematical': 0.18,
+                            'pure_random': 0.10  # REDUCED: Limited randomization to preserve signal
                         }
                     
                     # Calculate dynamic weights based on performance
@@ -496,14 +496,14 @@ class AILotteryPredictor:
                     
         except Exception as e:
             logger.error(f"Error getting model weights: {e}")
-            # Return ENHANCED DIVERSITY default weights - maximum variety
+            # Return BALANCED ACCURACY default weights - signal with diversity
             return {
-                'pattern_analysis': 0.15,
-                'frequency_analysis': 0.13,  # Further reduced to prevent hot number dominance
-                'statistical_regression': 0.15,
-                'anomaly_detection': 0.15,
-                'hybrid_mathematical': 0.17,
-                'pure_random': 0.25  # BOOSTED: Enhanced randomization for maximum diversity
+                'pattern_analysis': 0.18,
+                'frequency_analysis': 0.20,  # Restored for pattern recognition
+                'statistical_regression': 0.18,
+                'anomaly_detection': 0.16,
+                'hybrid_mathematical': 0.18,
+                'pure_random': 0.10  # REDUCED: Limited randomization to preserve signal
             }
     
     def _run_all_models_parallel(self, game_type: str, historical_data: Dict[str, Any]) -> List[ModelPrediction]:
