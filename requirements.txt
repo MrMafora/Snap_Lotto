@@ -48,3 +48,4 @@ tensorflow-cpu
 tensorflow-cpu
 scikit-learn
 scipy
+gunicorn
