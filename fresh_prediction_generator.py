@@ -77,37 +77,35 @@ def get_historical_data(cur, lottery_type, days_back=180):
         return [], [], 0
 
 def calculate_intelligent_confidence(hot_numbers, cold_numbers, selected_numbers, total_draws):
-    """Calculate evidence-based confidence score"""
+    """Calculate realistic evidence-based confidence score for lottery predictions"""
     try:
         if not total_draws or total_draws < 5:
-            return 45  # Low confidence with insufficient data
+            return 1.5  # Low confidence with insufficient data
             
         # Count how many selected numbers are in hot/cold lists
         hot_matches = len([n for n in selected_numbers if n in hot_numbers])
         cold_matches = len([n for n in selected_numbers if n in cold_numbers])
         
-        # Base confidence on statistical patterns
-        base_confidence = 50
+        # REALISTIC BASE: Lottery predictions inherently have very low certainty
+        base_confidence = 2.0  # Start at 2% - realistic for lottery predictions
         
-        # Bonus for hot numbers (recent frequency patterns)
-        hot_bonus = hot_matches * 3
+        # Small bonuses for pattern matching (scaled down dramatically)
+        hot_bonus = hot_matches * 0.2  # Max ~1.2% bonus
+        cold_bonus = cold_matches * 0.1  # Max ~0.6% bonus  
         
-        # Slight bonus for cold numbers (mean reversion theory)
-        cold_bonus = cold_matches * 1
+        # Data quality bonus (very small)
+        data_quality_bonus = min(total_draws / 100, 0.8)  # Max 0.8% for excellent data
         
-        # Data quality bonus
-        data_quality_bonus = min(total_draws / 10, 10)  # Up to 10% for good data
-        
-        # Calculate final confidence
+        # Calculate final confidence (realistic lottery prediction confidence)
         confidence = base_confidence + hot_bonus + cold_bonus + data_quality_bonus
         
-        # Cap confidence at realistic levels (45-75%)
-        confidence = max(45, min(75, int(confidence)))
+        # Cap at REALISTIC levels for lottery predictions (1.5-4.5%)
+        confidence = max(1.5, min(4.5, round(confidence, 1)))
         
         return confidence
     except Exception as e:
         logger.warning(f"Error calculating confidence: {e}")
-        return 50
+        return 2.0
 
 def intelligent_number_selection(main_range, count, hot_numbers, cold_numbers, frequency_data):
     """Intelligent number selection using frequency analysis and statistical patterns"""
