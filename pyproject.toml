@@ -1,7 +1,11 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "repl-nix-workspace"
+name = "sa-lottery-app"
 version = "0.1.0"
-description = "Add your description here"
+description = "South African Lottery Intelligence Platform"
 requires-python = ">=3.11"
 dependencies = [
     "apscheduler>=3.11.0",
@@ -35,4 +39,39 @@ dependencies = [
     "flask-limiter>=3.13",
     "scipy>=1.15.3",
     "sift-stack-py>=0.9.1",
+]
+
+[tool.setuptools]
+py-modules = [
+    "main",
+    "app", 
+    "models",
+    "ai_lottery_predictor",
+    "ai_lottery_processor", 
+    "backtesting_system",
+    "cache_manager",
+    "coverage_optimizer",
+    "fresh_prediction_generator",
+    "lottery_analysis",
+    "prediction_validation_system",
+    "probability_estimator",
+    "robust_screenshot_capture",
+    "scheduler_fix",
+    "screenshot_capture",
+    "security_utils"
+]
+
+[tool.setuptools.package-data]
+"*" = ["templates/*", "static/*"]
+
+[tool.setuptools.exclude-package-data]
+"*" = [
+    "logs/*",
+    "uploads/*", 
+    "instance/*",
+    "screenshots/*",
+    "attached_assets/*",
+    "*.log",
+    "*.pyc",
+    "__pycache__/*"
 ]
