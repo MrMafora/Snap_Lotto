@@ -206,7 +206,11 @@ class WorkerSafeLotteryScheduler:
             logger.error(f"❌ Failed to release database lock: {e}")
 
     def _generate_immediate_predictions(self):
-        """Generate predictions immediately for the next draw after new results"""
+        """DISABLED: This method conflicts with the improved balanced prediction system"""
+        logger.info("🚫 DISABLED: _generate_immediate_predictions - using improved fresh_prediction_generator instead")
+        return  # Exit early - don't run competing system
+        
+        # OLD CODE DISABLED TO PREVENT CONFLICTS:
         try:
             conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
             cur = conn.cursor()
@@ -326,7 +330,11 @@ class WorkerSafeLotteryScheduler:
             return 0
 
     def _fill_prediction_gaps(self):
-        """Detect and fill any gaps in predictions where draws exist but predictions don't"""
+        """DISABLED: This method conflicts with the improved balanced prediction system"""
+        logger.info("🚫 DISABLED: _fill_prediction_gaps - using improved fresh_prediction_generator instead")
+        return 0  # Return 0 gaps filled
+        
+        # OLD CODE DISABLED TO PREVENT CONFLICTS:
         try:
             conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
             cur = conn.cursor()

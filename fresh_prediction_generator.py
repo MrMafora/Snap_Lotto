@@ -15,14 +15,9 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Import Phase 2 Neural Network System
-try:
-    from neural_network_predictor import neural_network_prediction
-    NEURAL_NETWORK_AVAILABLE = True
-    logger.info("✅ Phase 2 Neural Network system loaded successfully")
-except ImportError as e:
-    NEURAL_NETWORK_AVAILABLE = False
-    logger.warning(f"⚠️ Phase 2 Neural Network system not available: {e}")
+# DISABLED: Phase 2 Neural Network System - Using improved balanced prediction instead  
+NEURAL_NETWORK_AVAILABLE = False
+logger.info("🚫 Phase 2 Neural Network system DISABLED - Using improved balanced prediction system only")
 
 def get_historical_data(cur, lottery_type, days_back=180):
     """Get historical lottery data for intelligent analysis"""
