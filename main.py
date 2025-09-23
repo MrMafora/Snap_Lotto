@@ -440,7 +440,7 @@ def index():
             conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
             cur = conn.cursor()
 
-            # Use the SAME query as our enhanced predictions system
+            # Get ONLY upcoming predictions (pending status for future draws)
             cur.execute("""
                 SELECT DISTINCT ON (game_type)
                     game_type, 
@@ -459,7 +459,8 @@ def index():
                     verified_at,
                     linked_draw_id
                 FROM lottery_predictions 
-                WHERE target_draw_date >= CURRENT_DATE - INTERVAL '2 days'
+                WHERE validation_status = 'pending' 
+                  AND target_draw_date >= CURRENT_DATE
                 ORDER BY game_type, 
                          created_at DESC
             """)
