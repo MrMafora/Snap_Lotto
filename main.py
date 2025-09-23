@@ -308,6 +308,7 @@ def health():
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
+    logger.info("🏠 HOMEPAGE ROUTE CALLED - Starting homepage load")
     try:
         logger.info("=== HOMEPAGE: Loading fresh lottery data from database ===")
 
@@ -497,11 +498,14 @@ def index():
 
                         logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if main_numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
                         
+                        final_confidence = round(confidence) if confidence else 25
+                        logger.info(f"🔍 CONFIDENCE DEBUG - {game_type}: Raw={confidence}, Rounded={final_confidence}")
+                        
                         unvalidated_predictions.append({
                             'game_type': game_type,
                             'main_numbers': sorted(main_numbers) if main_numbers else [],
                             'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                            'confidence': round(confidence) if confidence else 25,
+                            'confidence': final_confidence,
                             'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
                             'target_date': target_date,
                             'linked_draw_id': linked_draw_id,
