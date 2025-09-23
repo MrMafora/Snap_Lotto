@@ -44,17 +44,24 @@ def start_application():
     
     print(f"Starting application on port {port}...")
     
-    # Run gunicorn
-    subprocess.run([
-        sys.executable, '-m', 'gunicorn',
-        '--bind', f'0.0.0.0:{port}',
-        '--workers', '1',
-        '--threads', '1',
-        '--timeout', '120',
-        '--keep-alive', '2',
-        '--max-requests', '1000',
-        'main:app'
-    ])
+    # Try gunicorn first, fallback to direct Python execution
+    try:
+        # Run gunicorn
+        subprocess.run([
+            sys.executable, '-m', 'gunicorn',
+            '--bind', f'0.0.0.0:{port}',
+            '--workers', '1',
+            '--threads', '1',
+            '--timeout', '120',
+            '--keep-alive', '2',
+            '--max-requests', '1000',
+            'main:app'
+        ])
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"Gunicorn failed ({e}), falling back to direct Python execution...")
+        # Fallback to running main.py directly
+        os.environ['PORT'] = port
+        subprocess.run([sys.executable, 'main.py'])
 
 if __name__ == '__main__':
     start_application()
