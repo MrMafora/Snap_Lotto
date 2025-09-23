@@ -3330,6 +3330,47 @@ try:
 except Exception as e:
     logger.error(f"❌ WORKER-SAFE: Failed to start unified scheduler: {e}")
 
+@app.route('/debug/confidence')
+def debug_confidence():
+    """Debug endpoint to check confidence scores"""
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT DISTINCT ON (game_type)
+                game_type, 
+                confidence_score,
+                predicted_numbers,
+                created_at
+            FROM lottery_predictions 
+            WHERE validation_status = 'pending' 
+              AND target_draw_date >= CURRENT_DATE
+            ORDER BY game_type, created_at DESC
+        """)
+        
+        predictions = []
+        for row in cur.fetchall():
+            game_type, confidence, predicted_nums, created_at = row
+            predictions.append({
+                'game_type': game_type,
+                'confidence_raw': confidence,
+                'confidence_rounded': round(confidence) if confidence else 25,
+                'predicted_numbers': predicted_nums,
+                'created_at': str(created_at)
+            })
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'predictions': predictions,
+            'message': 'Current confidence scores from database'
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
 if __name__ == '__main__':
     # Use PORT environment variable for deployment, fallback to 8080
     port = int(os.environ.get('PORT', 8080))
