@@ -13,9 +13,9 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy and install Python dependencies
-COPY requirements-ultra-slim.txt ./requirements.txt
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Copy and install Python dependencies from pyproject.toml
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir --user .
 
 # Stage 2: Runtime (ultra-minimal)
 FROM python:3.11-alpine AS runtime

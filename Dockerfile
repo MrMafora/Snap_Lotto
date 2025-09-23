@@ -20,12 +20,12 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy balanced-slim requirements (removed only unused matplotlib/seaborn - ~70MB savings)
-COPY requirements-balanced-slim.txt ./requirements.txt
+# Copy pyproject.toml for dependency installation
+COPY pyproject.toml ./
 
 # Install dependencies to user directory (multi-stage size optimization)
 RUN pip install --no-cache-dir --user --upgrade pip && \
-    pip install --no-cache-dir --user -r requirements.txt
+    pip install --no-cache-dir --user .
 
 # Stage 2: Minimal runtime (reliable with ML/Playwright compatibility)
 FROM python:3.11-slim AS runtime
