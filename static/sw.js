@@ -1,7 +1,7 @@
 // Snap Lotto Service Worker
-// Version 1.0.0 - PWA Support for Mobile Shortcuts
+// Version 1.0.1 - Force cache refresh for updated confidence scores
 
-const CACHE_NAME = 'snap-lotto-v1';
+const CACHE_NAME = 'snap-lotto-v2';
 const urlsToCache = [
   '/',
   '/static/css/lottery.css',
