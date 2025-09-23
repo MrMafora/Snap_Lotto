@@ -1,7 +1,7 @@
 // Snap Lotto Service Worker
-// Version 1.0.1 - Force cache refresh for updated confidence scores
+// Version 1.0.2 - Fixed database confidence scores
 
-const CACHE_NAME = 'snap-lotto-v2';
+const CACHE_NAME = 'snap-lotto-v3';
 const urlsToCache = [
   '/',
   '/static/css/lottery.css',
