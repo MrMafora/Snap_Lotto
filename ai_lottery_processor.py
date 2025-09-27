@@ -291,6 +291,17 @@ class CompleteLotteryProcessor:
             self.db_connection.commit()
             
             logger.info(f"Successfully saved new record to database with ID: {record_id}")
+            
+            # 🔮 ORCHESTRATE PREDICTIONS: Ensure continuous prediction coverage
+            try:
+                from prediction_orchestrator import PredictionOrchestrator
+                orchestrator = PredictionOrchestrator()
+                orchestrator.ensure_future_predictions([lottery_data['lottery_type']])
+                logger.info(f"✅ Prediction orchestration complete for {lottery_data['lottery_type']}")
+            except Exception as orchestration_error:
+                logger.error(f"⚠️ Prediction orchestration failed: {orchestration_error}")
+                # Don't fail the main workflow if orchestration fails
+            
             return record_id
             
         except Exception as e:
