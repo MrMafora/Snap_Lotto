@@ -66,6 +66,26 @@ The platform features a modular codebase designed for enhanced security and perf
     -   **AI-Powered Lottery Predictor**: Generates and validates lottery number predictions with accuracy tracking and self-improvement, based on comprehensive AI analysis of historical data and near-miss learning. Predictions are static until new draw results are available, and new predictions are automatically generated for the next draw after validation.
     -   **Data Preview and Approval System**: Allows review, approval, deeper extraction requests, and rejection of AI-extracted data.
 
+## Deployment Configuration
+-   **Package Management**: Migrated from requirements.txt to modern `pyproject.toml` format (setuptools build system)
+-   **Deployment Files Cleaned Up (Oct 1, 2025)**:
+    -   ✅ **Active**: `pyproject.toml` - Modern Python dependency management with 31 packages
+    -   ✅ **Active**: `.replit` - Single deployment configuration using GCE (Google Compute Engine)
+    -   ❌ **Removed**: `runtime.txt` - Old Heroku format (obsolete)
+    -   ❌ **Removed**: `Procfile` - Old Heroku format (obsolete)
+    -   ❌ **Removed**: `replit_deployment.toml` - Conflicting Cloud Run config (caused 502 errors)
+    -   ❌ **Removed**: `deployment_start.py` - Redundant custom startup script
+-   **Current Deployment Setup**:
+    -   Build: `pip install .` (uses pyproject.toml automatically)
+    -   Run: `gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app`
+    -   Platform: Replit Deployment (GCE backend)
+    -   Development Port: 5000
+    -   Production Port: Dynamic ($PORT environment variable)
+-   **Key Files**:
+    -   `main.py`: Main Flask application with dynamic PORT support
+    -   `app.py`: Gunicorn compatibility bridge (exports `application = app`)
+    -   `pyproject.toml`: All dependencies and build configuration
+
 ## External Dependencies
 -   **Google Gemini 2.5 Pro**: Integrated via `GOOGLE_API_KEY_SNAP_LOTTERY` for all AI-powered functionalities.
 -   **Playwright + Chromium**: Used for automated screenshot capture of South African lottery websites.
