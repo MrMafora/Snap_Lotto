@@ -3400,7 +3400,7 @@ def debug_confidence():
         return {'error': str(e)}
 
 if __name__ == '__main__':
-    # Use PORT environment variable for deployment, fallback to 8080
-    port = int(os.environ.get('PORT', 8080))
+    # Use PORT environment variable for Autoscale deployment, fallback to 5000 for development
+    port = int(os.environ.get('PORT', 5000))
     print(f"Starting Flask application on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
