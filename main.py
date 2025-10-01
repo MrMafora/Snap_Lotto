@@ -88,7 +88,7 @@ def get_historical_predictions(conn, lottery_types=None):
             query = f"""
                 WITH latest_completed AS (
                     SELECT lottery_type, MAX(draw_number) as latest_draw_number
-                    FROM lottery_results 
+                    FROM lottery_result 
                     GROUP BY lottery_type
                 )
                 SELECT DISTINCT ON (lp.game_type)
@@ -121,11 +121,11 @@ def get_historical_predictions(conn, lottery_types=None):
                  bonus_matches, accuracy, prize) = row
 
                 # Parse predicted numbers with consistent logic
-                main_numbers = parse_prediction_numbers(predicted_nums)
+                numbers = parse_prediction_numbers(predicted_nums)
                 bonus_numbers = parse_prediction_numbers(bonus_nums)
 
                 predictions_data[game_type] = {
-                    'predicted_numbers': sorted(main_numbers) if main_numbers else [],
+                    'predicted_numbers': sorted(main_numbers) if numbers else [],
                     'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
                     'confidence_score': confidence,
                     'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
@@ -236,7 +236,7 @@ class DrawResult:
         self.lottery_type = result.lottery_type
         self.draw_number = result.draw_number
         self.draw_date = result.draw_date
-        self.main_numbers = result.main_numbers
+        self.numbers = result.numbers
         self.bonus_numbers = result.bonus_numbers
         self.divisions = result.divisions
         self.rollover_amount = result.rollover_amount
@@ -248,14 +248,14 @@ class DrawResult:
 
     def get_numbers_list(self):
         """Get main numbers as a sorted list (small to large)"""
-        if isinstance(self.main_numbers, str):
+        if isinstance(self.numbers, str):
             try:
-                numbers = json.loads(self.main_numbers)
-                return sorted(numbers) if numbers else []
+                nums = json.loads(self.numbers)
+                return sorted(nums) if nums else []
             except:
                 return []
-        numbers = self.main_numbers or []
-        return sorted(numbers) if numbers else []
+        nums = self.numbers or []
+        return sorted(nums) if nums else []
 
     def get_bonus_numbers_list(self):
         """Get bonus numbers as a sorted list (small to large)"""
@@ -323,11 +323,11 @@ def index():
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
+                        SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
                                rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                        FROM lottery_results 
+                        FROM lottery_result 
                         WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO')
-                        AND draw_number IS NOT NULL AND main_numbers IS NOT NULL
+                        AND draw_number IS NOT NULL AND numbers IS NOT NULL
                         ORDER BY draw_date DESC 
                         LIMIT 50
                     """)
@@ -338,7 +338,7 @@ def index():
                         result_obj.lottery_type = row[0]
                         result_obj.draw_number = row[1]
                         result_obj.draw_date = row[2]
-                        result_obj.main_numbers = row[3]
+                        result_obj.numbers = row[3]
                         result_obj.bonus_numbers = row[4]
                         result_obj.divisions = row[5]
                         result_obj.rollover_amount = row[6]
@@ -351,17 +351,17 @@ def index():
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
-                                logger.info(f"📊 HISTORICAL RESULTS - Getting winning numbers for {obj.lottery_type}: {obj.main_numbers} (type: {type(obj.main_numbers)})")
-                                if isinstance(obj.main_numbers, str):
+                                logger.info(f"📊 HISTORICAL RESULTS - Getting winning numbers for {obj.lottery_type}: {obj.numbers} (type: {type(obj.numbers)})")
+                                if isinstance(obj.numbers, str):
                                     try:
-                                        parsed = json.loads(obj.main_numbers)
+                                        parsed = json.loads(obj.numbers)
                                         sorted_numbers = sorted(parsed) if parsed else []
                                         logger.info(f"📊 HISTORICAL RESULTS - Parsed winning numbers: {sorted_numbers}")
                                         return sorted_numbers
                                     except Exception as e:
                                         logger.error(f"Failed to parse historical result JSON: {e}")
                                         return []
-                                numbers = obj.main_numbers or []
+                                numbers = obj.numbers or []
                                 sorted_numbers = sorted(numbers) if numbers else []
                                 logger.info(f"📊 HISTORICAL RESULTS - Winning numbers: {sorted_numbers}")
                                 return sorted_numbers
@@ -476,16 +476,16 @@ def index():
 
                         # Parse numbers (same logic as enhanced system)
                         import json
-                        main_numbers = []
+                        numbers = []
                         bonus_numbers = []
 
                         if predicted_nums:
                             nums_str = str(predicted_nums)
                             if nums_str.startswith('{') and nums_str.endswith('}'):
                                 nums_str = nums_str[1:-1]
-                                main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                                numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
                             else:
-                                main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                                numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
 
                         if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
                             bonus_str = str(bonus_nums)
@@ -495,7 +495,7 @@ def index():
                             else:
                                 bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
 
-                        logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if main_numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
+                        logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
 
                         # Fix homepage prediction confidence display
                         final_confidence = min(round(confidence * 100 * 0.6), 45) if confidence else 25
@@ -503,7 +503,7 @@ def index():
 
                         unvalidated_predictions.append({
                             'game_type': game_type,
-                            'main_numbers': sorted(main_numbers) if main_numbers else [],
+                            'main_numbers': sorted(main_numbers) if numbers else [],
                             'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
                             'confidence': final_confidence,
                             'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
@@ -564,10 +564,10 @@ def results(lottery_type=None):
                 with psycopg2.connect(connection_string) as conn:
                     with conn.cursor() as cur:
                         cur.execute("""
-                            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
+                            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
                                    rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                            FROM lottery_results 
-                            WHERE lottery_type = ANY(%s) AND draw_number IS NOT NULL AND main_numbers IS NOT NULL
+                            FROM lottery_result 
+                            WHERE lottery_type = ANY(%s) AND draw_number IS NOT NULL AND numbers IS NOT NULL
                             ORDER BY draw_date DESC 
                             LIMIT 20
                         """, (db_types,))
@@ -578,7 +578,7 @@ def results(lottery_type=None):
                             result_obj.lottery_type = row[0]
                             result_obj.draw_number = row[1]
                             result_obj.draw_date = row[2]
-                            result_obj.main_numbers = row[3]
+                            result_obj.numbers = row[3]
                             result_obj.bonus_numbers = row[4]
                             result_obj.divisions = row[5]
                             result_obj.rollover_amount = row[6]
@@ -591,12 +591,12 @@ def results(lottery_type=None):
                             # Add the required methods with proper closure
                             def make_get_numbers_list(obj):
                                 def get_numbers_list():
-                                    if isinstance(obj.main_numbers, str):
+                                    if isinstance(obj.numbers, str):
                                         try:
-                                            return json.loads(obj.main_numbers)
+                                            return json.loads(obj.numbers)
                                         except:
                                             return []
-                                    return obj.main_numbers or []
+                                    return obj.numbers or []
                                 return get_numbers_list
 
                             def make_get_bonus_numbers_list(obj):
@@ -724,14 +724,14 @@ def results(lottery_type=None):
                         # Get latest result for each lottery type
                         cur.execute("""
                             WITH latest_per_type AS (
-                                SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, prize_divisions, 
+                                SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, prize_divisions, 
                                        rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date,
                                        ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, id DESC) as rn
-                                FROM lottery_results 
-                                WHERE draw_number IS NOT NULL AND main_numbers IS NOT NULL
+                                FROM lottery_result 
+                                WHERE draw_number IS NOT NULL AND numbers IS NOT NULL
                                   AND lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO')
                             )
-                            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, prize_divisions, 
+                            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, prize_divisions, 
                                    rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
                             FROM latest_per_type 
                             WHERE rn = 1
@@ -753,7 +753,7 @@ def results(lottery_type=None):
                             result_obj.lottery_type = row[0]
                             result_obj.draw_number = row[1]
                             result_obj.draw_date = row[2]
-                            result_obj.main_numbers = row[3]
+                            result_obj.numbers = row[3]
                             result_obj.bonus_numbers = row[4]
                             result_obj.divisions = row[5]
                             result_obj.rollover_amount = row[6]
@@ -766,12 +766,12 @@ def results(lottery_type=None):
                             # Add the required methods with proper closure
                             def make_get_numbers_list(obj):
                                 def get_numbers_list():
-                                    if isinstance(obj.main_numbers, str):
+                                    if isinstance(obj.numbers, str):
                                         try:
-                                            return json.loads(obj.main_numbers)
+                                            return json.loads(obj.numbers)
                                         except:
                                             return []
-                                    return obj.main_numbers or []
+                                    return obj.numbers or []
                                 return get_numbers_list
 
                             def make_get_bonus_numbers_list(obj):
@@ -909,9 +909,9 @@ def draw_details(lottery_type, draw_number):
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, prize_divisions, 
+                        SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, prize_divisions, 
                                rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                        FROM lottery_results 
+                        FROM lottery_result 
                         WHERE lottery_type = %s AND draw_number = %s
                         ORDER BY 
                             CASE WHEN prize_divisions IS NOT NULL AND prize_divisions != '[]' AND prize_divisions != 'null' THEN 0 ELSE 1 END,
@@ -926,7 +926,7 @@ def draw_details(lottery_type, draw_number):
                         result.lottery_type = row[0]
                         result.draw_number = row[1]
                         result.draw_date = row[2]
-                        result.main_numbers = row[3]
+                        result.numbers = row[3]
                         result.bonus_numbers = row[4]
                         result.divisions = row[5]  # This is actually prize_divisions column
                         result.rollover_amount = row[6]
@@ -939,12 +939,12 @@ def draw_details(lottery_type, draw_number):
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
-                                if isinstance(obj.main_numbers, str):
+                                if isinstance(obj.numbers, str):
                                     try:
-                                        return json.loads(obj.main_numbers)
+                                        return json.loads(obj.numbers)
                                     except:
                                         return []
-                                return obj.main_numbers or []
+                                return obj.numbers or []
                             return get_numbers_list
 
                         def make_get_bonus_numbers_list(obj):
@@ -1262,7 +1262,7 @@ def visualizations():
             SELECT 
                 COUNT(*) as total_draws,
                 MAX(draw_date) as latest_draw_date
-            FROM lottery_results 
+            FROM lottery_result 
             WHERE draw_date IS NOT NULL
         """)
         result = cur.fetchone()
@@ -1272,7 +1272,7 @@ def visualizations():
         # Get unique lottery types
         cur.execute("""
             SELECT DISTINCT lottery_type 
-            FROM lottery_results 
+            FROM lottery_result 
             WHERE lottery_type IS NOT NULL 
             ORDER BY lottery_type
         """)
@@ -1316,11 +1316,11 @@ def visualizations():
                 nums_str = str(predicted_nums)
                 if nums_str.startswith('{') and nums_str.endswith('}'):
                     nums_str = nums_str[1:-1]
-                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                    numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
                 else:
-                    main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                    numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
             else:
-                main_numbers = []
+                numbers = []
 
             bonus_numbers = []
             if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
@@ -1337,7 +1337,7 @@ def visualizations():
 
             unvalidated_predictions.append({
                 'game_type': game_type,
-                'main_numbers': sorted(main_numbers) if main_numbers else [],
+                'main_numbers': sorted(main_numbers) if numbers else [],
                 'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
                 'confidence': final_confidence,
                 'reasoning': reasoning[:100] + '...' if reasoning and len(reasoning) > 100 else reasoning,
@@ -1420,7 +1420,7 @@ def predictions():
 
                     # Parse numbers
                     import json
-                    main_numbers = []
+                    numbers = []
                     bonus_numbers = []
                     matched_numbers = []
 
@@ -1428,9 +1428,9 @@ def predictions():
                         nums_str = str(predicted_nums)
                         if nums_str.startswith('{') and nums_str.endswith('}'):
                             nums_str = nums_str[1:-1]
-                            main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                            numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
                         else:
-                            main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                            numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
 
                     if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
                         bonus_str = str(bonus_nums)
@@ -1449,12 +1449,12 @@ def predictions():
                             matched_numbers = json.loads(matched_nums) if isinstance(matched_nums, str) else matched_numbers
 
                     # Generate probability pools (placeholder for now)
-                    hot_pool = main_numbers[:10] if main_numbers else []
+                    hot_pool = numbers[:10] if numbers else []
                     coverage_probability = min(confidence * 1.2, 95) if confidence else 50  # Enhanced coverage estimate
 
                     enhanced_predictions.append({
                         'game_type': game_type,
-                        'main_numbers': sorted(main_numbers) if main_numbers else [],
+                        'main_numbers': sorted(main_numbers) if numbers else [],
                         'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
                         'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
                         'reasoning': reasoning[:300] + '...' if reasoning and len(reasoning) > 300 else reasoning,
@@ -1472,7 +1472,7 @@ def predictions():
                         'hot_pool': hot_pool,
                         'coverage_probability': coverage_probability,
                         'pool_size': len(hot_pool),
-                        'expected_matches': round((len(main_numbers) * coverage_probability / 100), 1) if main_numbers else 0
+                        'expected_matches': round((len(main_numbers) * coverage_probability / 100), 1) if numbers else 0
                     })
                     break
 
@@ -1575,13 +1575,13 @@ def api_predictions():
         predictions = []
         for row in cur.fetchall():
             # Convert PostgreSQL array format {1,2,3} to JSON array [1,2,3]
-            main_numbers = []
+            numbers = []
             if row['predicted_numbers']:
                 if isinstance(row['predicted_numbers'], list):
-                    main_numbers = row['predicted_numbers']
+                    numbers = row['predicted_numbers']
                 else:
                     # Convert PostgreSQL array format to list
-                    main_numbers = row['predicted_numbers']
+                    numbers = row['predicted_numbers']
 
             bonus_numbers = []
             if row['bonus_numbers']:
@@ -1639,10 +1639,10 @@ def api_predictions_by_draw(draw_id):
                    p.created_at, p.validation_status, p.accuracy_score, p.target_draw_date,
                    p.prediction_method, p.reasoning, p.linked_draw_id,
                    p.main_number_matches, p.bonus_number_matches, p.accuracy_percentage, p.prize_tier,
-                   lr.draw_number, lr.main_numbers as actual_numbers, lr.bonus_numbers as actual_bonus_numbers,
+                   lr.draw_number, lr.numbers as actual_numbers, lr.bonus_numbers as actual_bonus_numbers,
                    lr.draw_date as actual_draw_date
             FROM lottery_predictions p
-            LEFT JOIN lottery_results lr ON p.linked_draw_id = lr.draw_number AND p.game_type = lr.lottery_type
+            LEFT JOIN lottery_result lr ON p.linked_draw_id = lr.draw_number AND p.game_type = lr.lottery_type
             WHERE p.linked_draw_id = %s
             ORDER BY p.game_type, p.created_at DESC
         """, (draw_id,))
@@ -1650,7 +1650,7 @@ def api_predictions_by_draw(draw_id):
         predictions = []
         for row in cur.fetchall():
             # Convert PostgreSQL array format to JSON
-            main_numbers = row['predicted_numbers'] if row['predicted_numbers'] else []
+            numbers = row['predicted_numbers'] if row['predicted_numbers'] else []
             bonus_numbers = row['bonus_numbers'] if row['bonus_numbers'] else []
             actual_numbers = row['actual_numbers'] if row['actual_numbers'] else []
             actual_bonus_numbers = row['actual_bonus_numbers'] if row['actual_bonus_numbers'] else []
@@ -1658,7 +1658,7 @@ def api_predictions_by_draw(draw_id):
             prediction_data = {
                 'id': row['id'],
                 'game_type': row['game_type'],
-                'predicted_numbers': main_numbers,
+                'predicted_numbers': numbers,
                 'bonus_numbers': bonus_numbers,
                 'confidence_score': row['confidence_score'],
                 'created_at': row['created_at'].isoformat() if row['created_at'] else None,
@@ -1851,8 +1851,8 @@ def process_ticket():
                             if ticket_draw_date and ticket_draw_number:
                                 # First try to match by draw number (most accurate)
                                 cur.execute("""
-                                    SELECT main_numbers, bonus_numbers, draw_number, draw_date
-                                    FROM lottery_results 
+                                    SELECT numbers, bonus_numbers, draw_number, draw_date
+                                    FROM lottery_result 
                                     WHERE lottery_type = %s AND draw_number = %s
                                     LIMIT 1
                                 """, (db_game_type, ticket_draw_number))
@@ -1862,8 +1862,8 @@ def process_ticket():
                                 # If no exact draw number match, try by date
                                 if not latest_result and ticket_draw_date:
                                     cur.execute("""
-                                        SELECT main_numbers, bonus_numbers, draw_number, draw_date
-                                        FROM lottery_results 
+                                        SELECT numbers, bonus_numbers, draw_number, draw_date
+                                        FROM lottery_result 
                                         WHERE lottery_type = %s AND draw_date = %s
                                         LIMIT 1
                                     """, (db_game_type, ticket_draw_date))
@@ -1871,8 +1871,8 @@ def process_ticket():
                             else:
                                 # Fallback to most recent if no ticket date info
                                 cur.execute("""
-                                    SELECT main_numbers, bonus_numbers, draw_number, draw_date
-                                    FROM lottery_results 
+                                    SELECT numbers, bonus_numbers, draw_number, draw_date
+                                    FROM lottery_result 
                                     WHERE lottery_type = %s 
                                     ORDER BY draw_date DESC, draw_number DESC 
                                     LIMIT 1
@@ -2847,14 +2847,14 @@ def run_complete_automation():
                     cur = conn.cursor()
 
                     # Get game types from database
-                    cur.execute("SELECT DISTINCT lottery_type FROM lottery_results ORDER BY lottery_type")
+                    cur.execute("SELECT DISTINCT lottery_type FROM lottery_result ORDER BY lottery_type")
                     db_game_types = [row[0] for row in cur.fetchall()]
 
                     for game_type in db_game_types:
                         # Check for missing predictions
                         cur.execute("""
                             SELECT COUNT(lr.draw_number)
-                            FROM lottery_results lr
+                            FROM lottery_result lr
                             LEFT JOIN lottery_predictions lp ON (
                                 lp.game_type = lr.lottery_type 
                                 AND lp.linked_draw_id = lr.draw_number + 1
@@ -3070,7 +3070,7 @@ def visualization_data():
         if data_type == 'numbers_frequency':
             # Get all lottery results to process numbers
             if lottery_type == 'all':
-                cur.execute("SELECT main_numbers FROM lottery_results WHERE main_numbers IS NOT NULL")
+                cur.execute("SELECT numbers FROM lottery_result WHERE numbers IS NOT NULL")
             else:
                 # Map display names to database values
                 db_lottery_type = lottery_type
@@ -3079,7 +3079,7 @@ def visualization_data():
                 elif lottery_type == 'Lotto':
                     db_lottery_type = 'LOTTO'
 
-                cur.execute("SELECT main_numbers FROM lottery_results WHERE lottery_type = %s AND main_numbers IS NOT NULL", (db_lottery_type,))
+                cur.execute("SELECT numbers FROM lottery_result WHERE lottery_type = %s AND numbers IS NOT NULL", (db_lottery_type,))
 
             rows = cur.fetchall()
 
@@ -3090,7 +3090,7 @@ def visualization_data():
             for row in rows:
                 total_records += 1
                 try:
-                    if row[0]:  # main_numbers
+                    if row[0]:  # numbers
                         numbers = json.loads(row[0]) if isinstance(row[0], str) else row[0]
                         if isinstance(numbers, list):
                             for num in numbers:
@@ -3136,7 +3136,7 @@ def visualization_data():
 
             query = """
                 SELECT divisions, lottery_type
-                FROM lottery_results 
+                FROM lottery_result 
                 WHERE lottery_type = %s AND divisions IS NOT NULL 
                 ORDER BY draw_date DESC 
                 LIMIT 10
@@ -3207,7 +3207,7 @@ def visualization_data():
                     next_jackpot,
                     total_pool_size,
                     lottery_type
-                FROM lottery_results 
+                FROM lottery_result 
                 WHERE lottery_type = %s 
                   AND draw_date IS NOT NULL 
                 ORDER BY draw_date DESC 
