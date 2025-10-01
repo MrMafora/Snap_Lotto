@@ -37,3 +37,7 @@ integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_opena
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 37455
+externalPort = 3000
