@@ -9,7 +9,7 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --keep-alive 5 main:app"]
+run = ["sh", "-c", "python3 -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --keep-alive 5 main:app"]
 build = ["sh", "-c", "pip install --upgrade pip && pip install ."]
 
 [workflows]
