@@ -182,8 +182,8 @@ class CompleteLotteryProcessor:
             
             # Check if this draw already exists (prevent duplicates)
             check_query = """
-                SELECT id, numbers, divisions 
-                FROM lottery_result 
+                SELECT id, main_numbers, prize_divisions 
+                FROM lottery_results 
                 WHERE lottery_type = %s AND draw_number = %s AND draw_date = %s
                 ORDER BY id DESC
                 LIMIT 1
@@ -225,10 +225,10 @@ class CompleteLotteryProcessor:
                     logger.info(f"Updating existing record ID {existing_id}: {', '.join(update_reasons)}")
                     
                     update_query = """
-                        UPDATE lottery_result SET
-                            numbers = %s,
+                        UPDATE lottery_results SET
+                            main_numbers = %s,
                             bonus_numbers = %s,
-                            divisions = %s,
+                            prize_divisions = %s,
                             rollover_amount = %s,
                             next_jackpot = %s,
                             total_pool_size = %s,
@@ -262,23 +262,12 @@ class CompleteLotteryProcessor:
                     return existing_id
             
             # No existing record found - insert new one
-            # Generate source URL based on lottery type
-            source_url_map = {
-                'LOTTO': 'https://www.nationallottery.co.za/results/lotto',
-                'LOTTO PLUS 1': 'https://www.nationallottery.co.za/results/lotto-plus-1-results',
-                'LOTTO PLUS 2': 'https://www.nationallottery.co.za/results/lotto-plus-2-results',
-                'POWERBALL': 'https://www.nationallottery.co.za/results/powerball',
-                'POWERBALL PLUS': 'https://www.nationallottery.co.za/results/powerball-plus',
-                'DAILY LOTTO': 'https://www.nationallottery.co.za/results/daily-lotto'
-            }
-            source_url = source_url_map.get(lottery_data['lottery_type'], 'https://www.nationallottery.co.za')
-            
             insert_query = """
-                INSERT INTO lottery_result (
-                    lottery_type, draw_number, draw_date, numbers, bonus_numbers,
-                    divisions, rollover_amount, next_jackpot, total_pool_size,
-                    total_sales, draw_machine, next_draw_date, source_url, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO lottery_results (
+                    lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
+                    prize_divisions, rollover_amount, next_jackpot, total_pool_size,
+                    total_sales, draw_machine, next_draw_date, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """
             
@@ -295,7 +284,6 @@ class CompleteLotteryProcessor:
                 lottery_data.get('total_sales'),
                 lottery_data.get('draw_machine'),
                 next_draw_date,
-                source_url,
                 datetime.now()
             ))
             
@@ -449,7 +437,7 @@ class CompleteLotteryProcessor:
             self.connect_database()
             
             # Get all screenshot files
-            screenshots_dir = "screenshots"
+            screenshots_dir = "/tmp/screenshots"
             if not os.path.exists(screenshots_dir):
                 raise Exception(f"Screenshots directory '{screenshots_dir}' not found")
             

@@ -1,23 +1,30 @@
 modules = ["python-3.11", "python3", "postgresql-16"]
 
-[env]
-REPLIT_KEEP_PACKAGE_DEV_DEPENDENCIES = "1"
-
 [nix]
 channel = "stable-24_05"
 packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libjpeg_turbo", "libpng", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "which", "xsimd", "zlib"]
 
+
+
 [deployment]
 deploymentTarget = "gce"
-run = ["sh", "-c", "python3 -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 --keep-alive 5 main:app"]
-build = ["sh", "-c", "pip install --upgrade pip && pip install ."]
+run = ["python", "-m", "gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--threads", "1", "--timeout", "120", "main:app"]
+build = ["pip", "install", "."]
 
 [workflows]
-runButton = "Development Server"
+runButton = "Web Server"
 
 [[workflows.workflow]]
-name = "Development Server"
-mode = "sequential"
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -31,9 +38,82 @@ task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
 waitForPort = 5000
 
-[agent]
-integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]
+[[workflows.workflow]]
+name = "Production"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow]]
+name = "Production Server"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow]]
+name = "Run Server"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow]]
+name = "Web Server"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+
+[[workflows.workflow]]
+name = "Deploy"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:8080 main:app --workers 2 --timeout 120"
 
 [[ports]]
 localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8080
 externalPort = 80
+
+[[ports]]
+localPort = 34201
+externalPort = 5173
+
+[[ports]]
+localPort = 36915
+externalPort = 3000
+
+[[ports]]
+localPort = 37203
+externalPort = 3001
+
+[[ports]]
+localPort = 40847
+externalPort = 4200
+
+[[ports]]
+localPort = 43193
+externalPort = 3002
+
+[[ports]]
+localPort = 46295
+externalPort = 3003
+
+[agent]
+integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]
