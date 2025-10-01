@@ -4,7 +4,7 @@ deploymentTarget = "cloudrun"
 ignorePorts = false
 
 [deployment.build]
-run = ["sh", "-c", "pip install --upgrade pip setuptools wheel && pip install gunicorn>=23.0.0 && pip install -e ."]
+run = ["sh", "-c", "pip install --upgrade pip setuptools wheel && pip install -e . && pip install gunicorn>=23.0.0"]
 
 [deployment.run]
 run = ["python", "deployment_start.py"]
