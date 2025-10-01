@@ -1,5 +1,8 @@
 modules = ["python-3.11", "python3", "postgresql-16"]
 
+[env]
+REPLIT_KEEP_PACKAGE_DEV_DEPENDENCIES = "1"
+
 [nix]
 channel = "stable-24_05"
 packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libjpeg_turbo", "libpng", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "which", "xsimd", "zlib"]
