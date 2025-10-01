@@ -382,8 +382,7 @@ def index():
                                             return sorted(numbers)
                                         # Try JSON format as fallback
                                         try:
-                                            parsed = json.loads(obj.bonus_numbers)
-                                            return sorted(parsed) if parsed else []
+                                            return sorted(json.loads(obj.bonus_numbers))
                                         except:
                                             pass
                                     # Handle list/array directly
@@ -474,12 +473,12 @@ def index():
                 for row in predictions_data:
                     if row[0] == game:
                         game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at, linked_draw_id = row
-                        
+
                         # Parse numbers (same logic as enhanced system)
                         import json
                         main_numbers = []
                         bonus_numbers = []
-                        
+
                         if predicted_nums:
                             nums_str = str(predicted_nums)
                             if nums_str.startswith('{') and nums_str.endswith('}'):
@@ -487,7 +486,7 @@ def index():
                                 main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
                             else:
                                 main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
-                        
+
                         if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
                             bonus_str = str(bonus_nums)
                             if bonus_str.startswith('{') and bonus_str.endswith('}'):
@@ -497,10 +496,11 @@ def index():
                                 bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
 
                         logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if main_numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
-                        
-                        final_confidence = round(confidence) if confidence else 25
+
+                        # Fix homepage prediction confidence display
+                        final_confidence = min(round(confidence * 100 * 0.6), 45) if confidence else 25
                         logger.info(f"🔍 CONFIDENCE DEBUG - {game_type}: Raw={confidence}, Rounded={final_confidence}")
-                        
+
                         unvalidated_predictions.append({
                             'game_type': game_type,
                             'main_numbers': sorted(main_numbers) if main_numbers else [],
@@ -1305,7 +1305,7 @@ def visualizations():
 
         unvalidated_predictions = []
         for row in cur.fetchall():
-            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, linked_draw_id = row
+            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, linked_id = row
 
             # Parse numbers from PostgreSQL format
             import json
@@ -1331,14 +1331,18 @@ def visualizations():
                 else:
                     bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
 
+            # Fix visualizations confidence calculation
+            final_confidence = min(round(confidence * 100 * 0.6), 45) if confidence else 25
+            logger.info(f"🔍 CONFIDENCE DEBUG - VISUALIZATIONS: {game_type}: Raw={confidence}, Rounded={final_confidence}")
+
             unvalidated_predictions.append({
                 'game_type': game_type,
                 'main_numbers': sorted(main_numbers) if main_numbers else [],
                 'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
+                'confidence': final_confidence,
                 'reasoning': reasoning[:100] + '...' if reasoning and len(reasoning) > 100 else reasoning,
                 'target_date': target_date,
-                'linked_draw_id': linked_draw_id
+                'linked_id': linked_id
             })
 
         cur.close()
@@ -1368,14 +1372,14 @@ def predictions():
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
-    
+
     logger.info(f"ADMIN AI PREDICTIONS: Loading comprehensive prediction system for {current_user.username}")
-    
+
     try:
         # Initialize enhanced prediction system
         from probability_estimator import ProbabilityEstimator
         from coverage_optimizer import CoverageOptimizer
-        
+
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
 
@@ -1408,18 +1412,18 @@ def predictions():
 
         # Enhanced predictions with probability pools and coverage analysis
         enhanced_predictions = []
-        
+
         for game in game_order:
             for row in predictions_data:
                 if row[0] == game:
                     game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at, linked_draw_id = row
-                    
+
                     # Parse numbers
                     import json
                     main_numbers = []
                     bonus_numbers = []
                     matched_numbers = []
-                    
+
                     if predicted_nums:
                         nums_str = str(predicted_nums)
                         if nums_str.startswith('{') and nums_str.endswith('}'):
@@ -1427,7 +1431,7 @@ def predictions():
                             main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
                         else:
                             main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
-                    
+
                     if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
                         bonus_str = str(bonus_nums)
                         if bonus_str.startswith('{') and bonus_str.endswith('}'):
@@ -1435,19 +1439,19 @@ def predictions():
                             bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
                         else:
                             bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
-                    
+
                     if matched_nums and str(matched_nums) not in ['{}', '[]', 'None']:
                         matched_str = str(matched_nums)
                         if matched_str.startswith('{') and matched_str.endswith('}'):
                             matched_str = matched_str[1:-1]
                             matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
                         else:
-                            matched_numbers = json.loads(matched_nums) if isinstance(matched_nums, str) else matched_nums
+                            matched_numbers = json.loads(matched_nums) if isinstance(matched_nums, str) else matched_numbers
 
                     # Generate probability pools (placeholder for now)
                     hot_pool = main_numbers[:10] if main_numbers else []
                     coverage_probability = min(confidence * 1.2, 95) if confidence else 50  # Enhanced coverage estimate
-                    
+
                     enhanced_predictions.append({
                         'game_type': game_type,
                         'main_numbers': sorted(main_numbers) if main_numbers else [],
@@ -1483,9 +1487,9 @@ def predictions():
             WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
                 AND validation_status = 'corrected'
         """)
-        
+
         performance_stats = cur.fetchone()
-        
+
         cur.close()
         conn.close()
 
@@ -2943,23 +2947,23 @@ def run_complete_workflow_direct():
     """Run Complete Workflow - Timeout-Safe Chunked Processing"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
-    
+
     try:
         from screenshot_capture import capture_all_lottery_screenshots
         from ai_lottery_processor import process_screenshots_chunked
         from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
         from prediction_validation_system import PredictionValidationSystem
-        
+
         logger.info("Starting timeout-safe chunked workflow via JavaScript endpoint")
-        
+
         # Step 1: Capture fresh screenshots
         logger.info("Step 1: Capturing screenshots...")
         screenshot_results = capture_all_lottery_screenshots()
-        
+
         # Step 2: Process screenshots with AI in small chunks (timeout-safe)
         logger.info("Step 2: Processing screenshots with AI (chunked approach)...")
         ai_results = process_screenshots_chunked(max_batch_size=6)
-        
+
         # Step 3: Generate predictions if AI processing succeeded
         predictions_generated = 0
         if ai_results.get('total_success', 0) > 0:
@@ -2969,7 +2973,7 @@ def run_complete_workflow_direct():
                 predictions_generated = len(prediction_result.get('predictions_created', []))
             except Exception as pred_e:
                 logger.error(f"Prediction generation failed: {pred_e}")
-        
+
         # Step 4: Validate predictions
         validations_completed = 0
         if predictions_generated > 0:
@@ -2980,7 +2984,7 @@ def run_complete_workflow_direct():
                 validations_completed = validation_result.get('total_validated', 0)
             except Exception as val_e:
                 logger.error(f"Prediction validation failed: {val_e}")
-        
+
         workflow_results = {
             'status': 'success',
             'steps_completed': ['screenshot_capture', 'ai_processing_chunked', 'prediction_generation', 'validation'],
@@ -2990,9 +2994,9 @@ def run_complete_workflow_direct():
             'validations_completed': validations_completed,
             'message': f'Chunked workflow completed: {screenshot_results.get("total_success", 0)}/6 screenshots, {ai_results.get("total_success", 0)} AI processed, {predictions_generated} predictions generated'
         }
-        
+
         return jsonify(workflow_results)
-        
+
     except Exception as e:
         logger.error(f"Chunked workflow error: {e}")
         import traceback
@@ -3008,17 +3012,17 @@ def generate_predictions_only():
     """Run only the AI prediction generation system"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
-    
+
     try:
         from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
         from prediction_validation_system import PredictionValidationSystem
-        
+
         logger.info("Running AI prediction system only...")
-        
+
         # Step 1: Generate fresh predictions for new draws
         prediction_result = generate_fresh_predictions_for_new_draws()
         predictions_generated = 4 if prediction_result else 0  # generate_fresh_predictions_for_new_draws returns True/False
-        
+
         # Step 2: Validate the new predictions
         validations_completed = 0
         if predictions_generated > 0:
@@ -3029,17 +3033,17 @@ def generate_predictions_only():
                 validations_completed = validation_result.get('total_validated', 0)
             except Exception as val_e:
                 logger.error(f"Prediction validation failed: {val_e}")
-        
+
         result = {
             'status': 'success',
             'predictions_generated': predictions_generated,
             'validations_completed': validations_completed,
             'message': f'AI Prediction system complete: {predictions_generated} predictions generated, {validations_completed} validated'
         }
-        
+
         logger.info(f"Prediction-only workflow result: {result}")
         return jsonify(result)
-        
+
     except Exception as e:
         logger.error(f"Prediction-only workflow error: {e}")
         import traceback
@@ -3340,7 +3344,7 @@ def debug_confidence():
     try:
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
         cur = conn.cursor()
-        
+
         cur.execute("""
             SELECT DISTINCT ON (game_type)
                 game_type, 
@@ -3352,7 +3356,7 @@ def debug_confidence():
               AND target_draw_date >= CURRENT_DATE
             ORDER BY game_type, created_at DESC
         """)
-        
+
         predictions = []
         for row in cur.fetchall():
             game_type, confidence, predicted_nums, created_at = row
@@ -3363,10 +3367,10 @@ def debug_confidence():
                 'predicted_numbers': predicted_nums,
                 'created_at': str(created_at)
             })
-        
+
         cur.close()
         conn.close()
-        
+
         return {
             'timestamp': datetime.now().isoformat(),
             'predictions': predictions,
