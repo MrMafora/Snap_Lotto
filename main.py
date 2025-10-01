@@ -205,9 +205,29 @@ def safe_import(module_name):
         logger.warning(f"Optional module {module_name} not available: {e}")
         return None
 
-# Database tables will be created on-demand or via migrations
-# Removed blocking db.create_all() to prevent Cloud Run deployment timeouts
-# logger.info("Database tables will be created on first use or via migrations")
+# Database initialization for production
+def initialize_database():
+    """Initialize database tables if they don't exist"""
+    try:
+        with app.app_context():
+            # Check if tables exist
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+            
+            if not existing_tables or 'lottery_result' not in existing_tables:
+                logger.info("Initializing database tables...")
+                db.create_all()
+                logger.info(f"✅ Database tables created: {inspector.get_table_names()}")
+            else:
+                logger.info(f"✅ Database tables already exist: {existing_tables[:5]}")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        # Don't crash the app if DB init fails
+
+# Initialize database on startup for production deployments
+if os.environ.get('PORT'):  # Only in deployment (when PORT is set)
+    initialize_database()
 
 # Database type mapping for different lottery types
 LOTTERY_TYPE_MAPPING = {
