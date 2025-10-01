@@ -515,7 +515,7 @@ def index():
                             else:
                                 bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
 
-                        logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
+                        logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(numbers) if numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
 
                         # Fix homepage prediction confidence display
                         final_confidence = min(round(confidence * 100 * 0.6), 45) if confidence else 25
@@ -523,7 +523,7 @@ def index():
 
                         unvalidated_predictions.append({
                             'game_type': game_type,
-                            'main_numbers': sorted(main_numbers) if numbers else [],
+                            'main_numbers': sorted(numbers) if numbers else [],
                             'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
                             'confidence': final_confidence,
                             'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
