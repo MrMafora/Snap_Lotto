@@ -198,7 +198,15 @@ async def robust_screenshot_capture():
     total_time = time.time() - start_time
     logger.info(f"Screenshot capture complete: {successful_captures}/6 successful in {total_time:.1f}s")
     
-    return successful_captures
+    # Return dict format expected by screenshot_capture.py
+    failed_count = 6 - successful_captures
+    return {
+        'success_count': successful_captures,
+        'failed_count': failed_count,
+        'successful': ['LOTTO', 'LOTTO_PLUS_1', 'LOTTO_PLUS_2', 'POWERBALL', 'POWERBALL_PLUS', 'DAILY_LOTTO'][:successful_captures],
+        'failed': ['LOTTO', 'LOTTO_PLUS_1', 'LOTTO_PLUS_2', 'POWERBALL', 'POWERBALL_PLUS', 'DAILY_LOTTO'][successful_captures:],
+        'total_time': total_time
+    }
 
 def main():
     """Entry point for script execution"""
