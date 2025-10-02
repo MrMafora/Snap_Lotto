@@ -323,11 +323,11 @@ def index():
             with psycopg2.connect(connection_string) as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers, divisions, 
+                        SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers, divisions, 
                                rollover_amount, next_jackpot, total_pool_size, total_sales, draw_machine, next_draw_date
-                        FROM lottery_results 
+                        FROM lottery_result 
                         WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO')
-                        AND draw_number IS NOT NULL AND main_numbers IS NOT NULL
+                        AND draw_number IS NOT NULL AND numbers IS NOT NULL
                         ORDER BY draw_date DESC 
                         LIMIT 50
                     """)
@@ -338,7 +338,7 @@ def index():
                         result_obj.lottery_type = row[0]
                         result_obj.draw_number = row[1]
                         result_obj.draw_date = row[2]
-                        result_obj.main_numbers = row[3]
+                        result_obj.numbers = row[3]
                         result_obj.bonus_numbers = row[4]
                         result_obj.divisions = row[5]
                         result_obj.rollover_amount = row[6]
@@ -351,17 +351,17 @@ def index():
                         # Add the required methods with proper closure
                         def make_get_numbers_list(obj):
                             def get_numbers_list():
-                                logger.info(f"📊 HISTORICAL RESULTS - Getting winning numbers for {obj.lottery_type}: {obj.main_numbers} (type: {type(obj.main_numbers)})")
-                                if isinstance(obj.main_numbers, str):
+                                logger.info(f"📊 HISTORICAL RESULTS - Getting winning numbers for {obj.lottery_type}: {obj.numbers} (type: {type(obj.numbers)})")
+                                if isinstance(obj.numbers, str):
                                     try:
-                                        parsed = json.loads(obj.main_numbers)
+                                        parsed = json.loads(obj.numbers)
                                         sorted_numbers = sorted(parsed) if parsed else []
                                         logger.info(f"📊 HISTORICAL RESULTS - Parsed winning numbers: {sorted_numbers}")
                                         return sorted_numbers
                                     except Exception as e:
                                         logger.error(f"Failed to parse historical result JSON: {e}")
                                         return []
-                                numbers = obj.main_numbers or []
+                                numbers = obj.numbers or []
                                 sorted_numbers = sorted(numbers) if numbers else []
                                 logger.info(f"📊 HISTORICAL RESULTS - Winning numbers: {sorted_numbers}")
                                 return sorted_numbers
