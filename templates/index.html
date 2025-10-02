@@ -823,6 +823,7 @@ function highlightPieSegment(division) {
             tooltip.style.zIndex = '1000';
             
             // Position tooltip near center of screen instead of deprecated pie chart
+            const rect = segment.getBoundingClientRect();
             const horizontalPos = window.innerWidth / 2 - 60;
             tooltip.style.left = horizontalPos + 'px';
             tooltip.style.top = (rect.top + rect.height/2 - 40) + 'px';
