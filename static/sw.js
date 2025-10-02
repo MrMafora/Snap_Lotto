@@ -1,7 +1,7 @@
 // Snap Lotto Service Worker
 // Version 1.0.3 - Phase 2 ML predictions update
 
-const CACHE_NAME = 'snap-lotto-v5';
+const CACHE_NAME = 'snap-lotto-v6';
 const urlsToCache = [
   '/',
   '/static/css/lottery.css',
