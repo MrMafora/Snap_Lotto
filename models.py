@@ -45,6 +45,36 @@ class LotteryResult(db.Model):
         db.Index('idx_lottery_type', 'lottery_type'),
     )
 
+    def get_numbers_list(self):
+        """Parse and return main numbers as a sorted list"""
+        if not self.numbers:
+            return []
+        if isinstance(self.numbers, str):
+            try:
+                nums = json.loads(self.numbers)
+            except:
+                return []
+        else:
+            nums = self.numbers
+        if isinstance(nums, list):
+            return sorted([int(n) for n in nums if n is not None])
+        return []
+
+    def get_bonus_numbers_list(self):
+        """Parse and return bonus numbers as a list"""
+        if not self.bonus_numbers:
+            return []
+        if isinstance(self.bonus_numbers, str):
+            try:
+                nums = json.loads(self.bonus_numbers)
+            except:
+                return []
+        else:
+            nums = self.bonus_numbers
+        if isinstance(nums, list):
+            return [int(n) for n in nums if n is not None]
+        return []
+
 class ExtractionReview(db.Model):
     """Model for tracking image extraction reviews"""
     id = db.Column(db.Integer, primary_key=True)
