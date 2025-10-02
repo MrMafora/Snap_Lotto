@@ -90,6 +90,23 @@ class WorkerSafeLotteryScheduler:
                         # Check if processing was successful - comprehensive processor returns dict with results
                         success = workflow_result.get('total_success', 0) > 0 or len(workflow_result.get('database_records', [])) > 0
                         new_results = len(workflow_result.get('database_records', []))
+                        
+                        # POST-RUN VERIFICATION: Query database to confirm records exist
+                        try:
+                            from app import db
+                            from models import LotteryResult
+                            from datetime import date
+                            
+                            todays_records = LotteryResult.query.filter(
+                                LotteryResult.created_at >= start_time
+                            ).count()
+                            
+                            logger.info(f"✅ POST-RUN VERIFICATION: {todays_records} database records confirmed in this run")
+                            if todays_records == 0 and new_results > 0:
+                                logger.warning(f"⚠️ VERIFICATION MISMATCH: Processor reported {new_results} records but database shows 0 new records")
+                        except Exception as verify_error:
+                            logger.warning(f"⚠️ POST-RUN VERIFICATION WARNING: Could not verify database: {verify_error}")
+                        
                         logger.info(f"✅ WORKER-SAFE SUCCESS: {len(screenshots)} screenshots, {new_results} new results")
 
                         # STEP 4: AUTO-VALIDATE EXISTING PREDICTIONS AND GENERATE NEW ONES
