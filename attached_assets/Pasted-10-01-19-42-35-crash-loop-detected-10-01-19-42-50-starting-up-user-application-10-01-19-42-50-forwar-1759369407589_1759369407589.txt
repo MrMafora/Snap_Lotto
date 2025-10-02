@@ -1,0 +1,48 @@
+10-01 19:42:35
+crash loop detected
+10-01 19:42:50
+starting up user application
+10-01 19:42:50
+forwarding local port 8080 to external port 80 (mapped as 1104)
+10-01 19:42:50
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:50
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:42:50
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:50
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:42:51
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:51
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:42:51
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:51
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:42:51
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:51
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:42:52
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:52
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:42:53
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:53
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:42:58
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:42:58
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:43:02
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:43:02
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:43:05
+/nix/store/2lcqw1d28vklbk8ikiwad28iq2smwndv-python-wrapped-0.1.0/bin/python: No module named gunicorn
+10-01 19:43:05
+command finished with error [python -m gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 120 main:app]: exit status 1
+10-01 19:43:08
+crash loop detected
