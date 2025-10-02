@@ -8,8 +8,7 @@ packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "g
 
 [deployment]
 deploymentTarget = "gce"
-run = ["python", "-m", "gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--threads", "1", "--timeout", "120", "main:app"]
-build = ["pip", "install", "."]
+run = ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "2", "--threads", "2", "--timeout", "120", "main:app"]
 
 [workflows]
 runButton = "Web Server"
