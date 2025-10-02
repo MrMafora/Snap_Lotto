@@ -355,7 +355,7 @@ def generate_fresh_predictions_for_new_draws():
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 lottery_type, main_numbers, bonus_numbers or None, 
-                confidence_score,  
+                float(confidence_score),  # Convert numpy types to Python float
                 prediction_method,
                 reasoning,
                 next_draw_date,
