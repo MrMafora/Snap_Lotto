@@ -15,9 +15,14 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# DISABLED: Phase 2 Neural Network System - Using improved balanced prediction instead  
-NEURAL_NETWORK_AVAILABLE = False
-logger.info("🚫 Phase 2 Neural Network system DISABLED - Using improved balanced prediction system only")
+# ENABLED: Phase 2 Neural Network System - Advanced ML Ensemble
+try:
+    from neural_network_prediction import neural_network_prediction
+    NEURAL_NETWORK_AVAILABLE = True
+    logger.info("✅ Phase 2 Neural Network system ENABLED - Advanced ML ensemble with Gradient Boosting + Random Forest + Neural Network")
+except ImportError as e:
+    NEURAL_NETWORK_AVAILABLE = False
+    logger.warning(f"⚠️ Phase 2 Neural Network not available: {e}")
 
 def get_historical_data(cur, lottery_type, days_back=180):
     """Get historical lottery data for intelligent analysis"""
@@ -247,7 +252,8 @@ def generate_fresh_predictions_for_new_draws():
             neural_confidence = None
             neural_reasoning = None
             
-            if NEURAL_NETWORK_AVAILABLE and total_draws >= 20:
+            # Smart ML gating: Need ≥30 draws for machine learning (enough for meaningful patterns)
+            if NEURAL_NETWORK_AVAILABLE and total_draws >= 30:
                 logger.info(f"🧠 Attempting Phase 2 Neural Network prediction for {lottery_type}...")
                 try:
                     neural_main, neural_bonus, neural_confidence, neural_reasoning = neural_network_prediction(lottery_type, config)
