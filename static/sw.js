@@ -1,7 +1,7 @@
 // Snap Lotto Service Worker
-// Version 1.0.2 - Fixed database confidence scores
+// Version 1.0.3 - Phase 2 ML predictions update
 
-const CACHE_NAME = 'snap-lotto-v3';
+const CACHE_NAME = 'snap-lotto-v4';
 const urlsToCache = [
   '/',
   '/static/css/lottery.css',
