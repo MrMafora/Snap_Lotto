@@ -107,12 +107,12 @@ localPort = 37719
 externalPort = 6800
 
 [[ports]]
-localPort = 40847
-externalPort = 4200
+localPort = 38041
+externalPort = 8008
 
 [[ports]]
-localPort = 42391
-externalPort = 8000
+localPort = 40847
+externalPort = 4200
 
 [[ports]]
 localPort = 42697
@@ -125,6 +125,10 @@ externalPort = 3002
 [[ports]]
 localPort = 46295
 externalPort = 3003
+
+[[ports]]
+localPort = 46561
+externalPort = 8000
 
 [agent]
 integrations = ["python_gemini==1.0.0", "python_anthropic==1.0.0", "python_openai==1.0.0"]
