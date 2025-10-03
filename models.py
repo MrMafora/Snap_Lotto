@@ -21,12 +21,14 @@ class User(UserMixin, db.Model):
 
 class LotteryResult(db.Model):
     """Model for storing lottery results"""
+    __tablename__ = 'lottery_results'
+    
     id = db.Column(db.Integer, primary_key=True)
     lottery_type = db.Column(db.String(50), nullable=False)
     draw_number = db.Column(db.Integer, nullable=False)
     draw_date = db.Column(db.Date, nullable=False)
-    numbers = db.Column(db.JSON)  # Main winning numbers
-    bonus_numbers = db.Column(db.JSON)  # Bonus numbers
+    main_numbers = db.Column(db.String(200))  # Main winning numbers as text/JSON
+    bonus_numbers = db.Column(db.String(100))  # Bonus numbers as text/JSON
     divisions = db.Column(db.JSON)  # Prize divisions data
     rollover_amount = db.Column(db.Float)
     next_jackpot = db.Column(db.Float)
@@ -136,4 +138,35 @@ class Screenshot(db.Model):
     __table_args__ = (
         db.Index('idx_lottery_type_timestamp', 'lottery_type', 'timestamp'),
         db.Index('idx_status', 'status'),
+    )
+
+class LotteryPrediction(db.Model):
+    """Model for storing AI-generated lottery predictions"""
+    __tablename__ = 'lottery_predictions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    game_type = db.Column(db.String(50), nullable=False)
+    predicted_numbers = db.Column(db.String(200), nullable=False)  # JSON string of predicted numbers
+    bonus_numbers = db.Column(db.String(100))  # JSON string of bonus numbers
+    confidence_score = db.Column(db.Float, nullable=False)
+    prediction_method = db.Column(db.String(100), default='Phase 2 ML')
+    reasoning = db.Column(db.Text)
+    target_draw_date = db.Column(db.Date, nullable=False)
+    linked_draw_id = db.Column(db.Integer)  # Draw number this prediction is for
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_verified = db.Column(db.Boolean, default=False)
+    verified_at = db.Column(db.DateTime)
+    validation_status = db.Column(db.String(20), default='pending')  # pending, validated, invalid
+    accuracy_score = db.Column(db.Float)
+    main_number_matches = db.Column(db.Integer, default=0)
+    bonus_number_matches = db.Column(db.Integer, default=0)
+    accuracy_percentage = db.Column(db.Float)
+    prize_tier = db.Column(db.String(50))
+    matched_main_numbers = db.Column(db.String(200))  # JSON string
+    matched_bonus_numbers = db.Column(db.String(100))  # JSON string
+    
+    __table_args__ = (
+        db.Index('idx_game_type_target_date', 'game_type', 'target_draw_date'),
+        db.Index('idx_validation_status', 'validation_status'),
+        db.Index('idx_target_draw_date', 'target_draw_date'),
     )
