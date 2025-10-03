@@ -438,10 +438,10 @@ def index():
         # Get ENHANCED AI predictions using our enhanced system
         unvalidated_predictions = []
         try:
-            conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
-            cur = conn.cursor()
+            with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+                with conn.cursor() as cur:
 
-            # Get ONLY upcoming predictions (pending status for future draws)
+                    # Get ONLY upcoming predictions (pending status for future draws)
             cur.execute("""
                 SELECT DISTINCT ON (game_type)
                     game_type, 
@@ -1254,10 +1254,10 @@ def visualizations():
     """Lottery data visualizations and analytics"""
     try:
         # Get lottery statistics for template data
-        conn = psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI'])
-        cur = conn.cursor()
+        with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as conn:
+            with conn.cursor() as cur:
 
-        # Get total draws and latest draw date
+                # Get total draws and latest draw date
         cur.execute("""
             SELECT 
                 COUNT(*) as total_draws,
@@ -1376,10 +1376,10 @@ def predictions():
         from probability_estimator import ProbabilityEstimator
         from coverage_optimizer import CoverageOptimizer
         
-        conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
-        cur = conn.cursor()
+        with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
+            with conn.cursor() as cur:
 
-        # Get latest predictions with enhanced data
+                # Get latest predictions with enhanced data
         cur.execute("""
             SELECT DISTINCT ON (game_type)
                 game_type, 
