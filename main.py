@@ -2316,6 +2316,73 @@ def run_health_checks():
     flash('Health checks initiated successfully', 'success')
     return redirect(url_for('admin'))
 
+@app.route('/admin/seed-production-database', methods=['POST'])
+@login_required
+def seed_production_database():
+    """
+    ONE-TIME PRODUCTION DATABASE SEEDING
+    Reads from production_seed.sql file and executes it in the current database.
+    Safe to run multiple times due to ON CONFLICT clauses in SQL.
+    """
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        import psycopg2
+        
+        logger.info("🌱 Starting production database seeding from SQL file...")
+        
+        # Read the SQL file
+        sql_file_path = os.path.join(os.path.dirname(__file__), 'production_seed.sql')
+        if not os.path.exists(sql_file_path):
+            return jsonify({
+                'success': False,
+                'error': 'production_seed.sql file not found'
+            }), 404
+        
+        with open(sql_file_path, 'r') as f:
+            sql_commands = f.read()
+        
+        db_url = os.environ.get('DATABASE_URL')
+        if not db_url:
+            return jsonify({'success': False, 'error': 'Database URL not found'}), 500
+        
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        
+        # Execute the SQL commands
+        cur.execute(sql_commands)
+        rows_affected = cur.rowcount
+        
+        conn.commit()
+        
+        # Count final data
+        cur.execute("SELECT COUNT(*) FROM lottery_results")
+        total_results = cur.fetchone()[0]
+        
+        cur.execute("SELECT COUNT(*) FROM lottery_predictions WHERE validation_status = 'pending'")
+        total_predictions = cur.fetchone()[0]
+        
+        cur.close()
+        conn.close()
+        
+        logger.info(f"✅ Production database seeded: {total_results} results, {total_predictions} predictions")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Production database seeded successfully!',
+            'total_results': total_results,
+            'total_predictions': total_predictions,
+            'note': 'Safe to run multiple times - uses ON CONFLICT to prevent duplicates'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error seeding production database: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 # Daily Scheduler API Routes
 @app.route('/admin/start-scheduler', methods=['POST'])
 @login_required
