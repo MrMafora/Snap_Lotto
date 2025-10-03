@@ -24,7 +24,7 @@
 {% block content %}
 
 <!-- Latest South African Lottery Results Cards - Only show on main results page -->
-{% if latest_results and not lottery_type %}
+{% if show_latest_cards and latest_results %}
 <div class="container mt-4 mb-5">
     <div class="row">
         <div class="col-12">

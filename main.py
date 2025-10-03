@@ -882,7 +882,9 @@ def results(lottery_type=None):
                                  results=results,
                                  latest_results=latest_results,
                                  predictions_data=predictions_data,
-                                 lottery_types=lottery_types)
+                                 lottery_types=lottery_types,
+                                 lottery_type=None,
+                                 show_latest_cards=True)
 
     except Exception as e:
         logger.error(f"Results page error: {e}")
