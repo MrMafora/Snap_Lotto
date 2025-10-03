@@ -1,0 +1,176 @@
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,622 - root - INFO - TEMPLATE DEBUG DAILY LOTTO: bonus='None' -> parsed=[]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,625 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for LOTTO: [5, 12, 14, 20, 28, 30] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,625 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [5, 12, 14, 20, 28, 30]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,625 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for LOTTO PLUS 1: [10, 15, 17, 27, 45, 48] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,625 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [10, 15, 17, 27, 45, 48]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,626 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for LOTTO PLUS 2: [3, 5, 14, 38, 48, 49] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,626 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [3, 5, 14, 38, 48, 49]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,626 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for POWERBALL: [14, 22, 25, 37, 46] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,626 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [14, 22, 25, 37, 46]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,626 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for POWERBALL PLUS: [1, 10, 23, 25, 44] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,626 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [1, 10, 23, 25, 44]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,627 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for DAILY LOTTO: [10, 11, 14, 26, 34] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,627 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [10, 11, 14, 26, 34]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,627 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for LOTTO: [5, 12, 14, 20, 28, 30] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,627 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [5, 12, 14, 20, 28, 30]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,627 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for LOTTO PLUS 1: [10, 15, 17, 27, 45, 48] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,627 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [10, 15, 17, 27, 45, 48]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,627 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for LOTTO PLUS 2: [3, 5, 14, 38, 48, 49] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,628 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [3, 5, 14, 38, 48, 49]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,628 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for POWERBALL: [14, 22, 25, 37, 46] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,628 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [14, 22, 25, 37, 46]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,628 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for POWERBALL PLUS: [1, 10, 23, 25, 44] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,628 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [1, 10, 23, 25, 44]
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,629 - main - INFO - 📊 HISTORICAL RESULTS - Getting winning numbers for DAILY LOTTO: [10, 11, 14, 26, 34] (type: )
+2025-10-03 09:03:07.62
+90a82d5f
+User
+2025-10-03 15:03:07,629 - main - INFO - 📊 HISTORICAL RESULTS - Parsed winning numbers: [10, 11, 14, 26, 34]
+2025-10-03 09:03:08.25
+90a82d5f
+User
+2025-10-03 15:03:08,257 - lottery_analysis - INFO - === FREQUENCY ANALYSIS API CALLED ===
+2025-10-03 09:03:08.25
+90a82d5f
+User
+2025-10-03 15:03:08,257 - lottery_analysis - INFO - Performing optimized analysis for: lottery_type=None, days=365
+2025-10-03 09:03:08.64
+90a82d5f
+User
+2025-10-03 15:03:08,640 - lottery_analysis - INFO - Returning real analytics data with 50 entries
+2025-10-03 09:12:35.83
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:13:42.65
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:14:49.93
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:15:59.50
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:18:25.87
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:19:41.79
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:21:03.31
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:22:49.05
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:24:00.03
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:25:31.94
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:26:37.95
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:27:44.34
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:28:05.29
+4dc2ec5b
+User
+WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))': /simple/greenlet/
+2025-10-03 09:28:52.75
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+2025-10-03 09:30:01.42
+4dc2ec5b
+System
+a port configuration was specified but the required port was never opened
+
+Wrap
+
+Colors
