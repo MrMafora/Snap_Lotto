@@ -20,12 +20,3 @@ value = "1"
 [[deployment.env]]
 key = "PORT"
 value = "8080"
-
-# Database configuration - using the same DATABASE_URL as dev
-[[deployment.env]]
-key = "DATABASE_URL"
-value = "${DATABASE_URL}"
-
-[[deployment.env]]
-key = "SESSION_SECRET"
-value = "${SESSION_SECRET}"
