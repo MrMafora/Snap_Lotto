@@ -24,7 +24,7 @@
 {% block content %}
 
 <!-- Latest South African Lottery Results Cards - Only show on main results page -->
-{% if show_latest_cards and latest_results %}
+{% if latest_results and not lottery_type %}
 <div class="container mt-4 mb-5">
     <div class="row">
         <div class="col-12">
@@ -92,7 +92,10 @@
                             </div>
                             
                             <!-- AI Prediction Display -->
+                            <!-- DEBUG: result.lottery_type = {{ result.lottery_type }}, predictions_data keys = {{ predictions_data.keys() | list }} -->
+                            <!-- DEBUG: prediction lookup result = {{ predictions_data.get(result.lottery_type) }} -->
                             {% set prediction = predictions_data.get(result.lottery_type) %}
+                            <!-- DEBUG: prediction set to = {{ prediction }} -->
                             {% if prediction %}
                                 <div class="ai-prediction-section mt-3 pt-3" style="border-top: 1px solid #dee2e6;">
                                     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -102,6 +105,7 @@
                                     </div>
                                     
                                     <div class="prediction-balls-container text-center">
+                                        <!-- DEBUG: prediction.predicted_numbers = {{ prediction.predicted_numbers }} -->
                                         {% for num in prediction.predicted_numbers %}
                                             <span class="lottery-ball lottery-ball-prediction" style="
                                                 width: 28px; 
