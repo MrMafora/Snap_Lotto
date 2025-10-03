@@ -440,81 +440,77 @@ def index():
         try:
             with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
                 with conn.cursor() as cur:
-
                     # Get ONLY upcoming predictions (pending status for future draws)
-            cur.execute("""
-                SELECT DISTINCT ON (game_type)
-                    game_type, 
-                    predicted_numbers, 
-                    bonus_numbers, 
-                    confidence_score, 
-                    reasoning, 
-                    target_draw_date, 
-                    created_at,
-                    prediction_method,
-                    is_verified,
-                    main_number_matches,
-                    accuracy_percentage,
-                    prize_tier,
-                    matched_main_numbers,
-                    verified_at,
-                    linked_draw_id
-                FROM lottery_predictions 
-                WHERE validation_status = 'pending' 
-                  AND target_draw_date >= CURRENT_DATE
-                ORDER BY game_type, 
-                         created_at DESC
-            """)
+                    cur.execute("""
+                        SELECT DISTINCT ON (game_type)
+                            game_type, 
+                            predicted_numbers, 
+                            bonus_numbers, 
+                            confidence_score, 
+                            reasoning, 
+                            target_draw_date, 
+                            created_at,
+                            prediction_method,
+                            is_verified,
+                            main_number_matches,
+                            accuracy_percentage,
+                            prize_tier,
+                            matched_main_numbers,
+                            verified_at,
+                            linked_draw_id
+                        FROM lottery_predictions 
+                        WHERE validation_status = 'pending' 
+                          AND target_draw_date >= CURRENT_DATE
+                        ORDER BY game_type, 
+                                 created_at DESC
+                    """)
 
-            predictions_data = cur.fetchall()
-            game_order = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
+                    predictions_data = cur.fetchall()
+                    game_order = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
 
-            # Process predictions using enhanced system logic
-            for game in game_order:
-                for row in predictions_data:
-                    if row[0] == game:
-                        game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at, linked_draw_id = row
-                        
-                        # Parse numbers (same logic as enhanced system)
-                        import json
-                        main_numbers = []
-                        bonus_numbers = []
-                        
-                        if predicted_nums:
-                            nums_str = str(predicted_nums)
-                            if nums_str.startswith('{') and nums_str.endswith('}'):
-                                nums_str = nums_str[1:-1]
-                                main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
-                            else:
-                                main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
-                        
-                        if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
-                            bonus_str = str(bonus_nums)
-                            if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                                bonus_str = bonus_str[1:-1]
-                                bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
-                            else:
-                                bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
+                    # Process predictions using enhanced system logic
+                    for game in game_order:
+                        for row in predictions_data:
+                            if row[0] == game:
+                                game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at, linked_draw_id = row
+                                
+                                # Parse numbers (same logic as enhanced system)
+                                import json
+                                main_numbers = []
+                                bonus_numbers = []
+                                
+                                if predicted_nums:
+                                    nums_str = str(predicted_nums)
+                                    if nums_str.startswith('{') and nums_str.endswith('}'):
+                                        nums_str = nums_str[1:-1]
+                                        main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                                    else:
+                                        main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                                
+                                if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                                    bonus_str = str(bonus_nums)
+                                    if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                        bonus_str = bonus_str[1:-1]
+                                        bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                                    else:
+                                        bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
 
-                        logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if main_numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
-                        
-                        final_confidence = round(confidence) if confidence else 25
-                        logger.info(f"🔍 CONFIDENCE DEBUG - {game_type}: Raw={confidence}, Rounded={final_confidence}")
-                        
-                        unvalidated_predictions.append({
-                            'game_type': game_type,
-                            'main_numbers': sorted(main_numbers) if main_numbers else [],
-                            'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                            'confidence': final_confidence,
-                            'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
-                            'target_date': target_date,
-                            'linked_draw_id': linked_draw_id,
-                            'method': method or 'Enhanced Neural Network Ensemble'
-                        })
-                        break
-
-            cur.close()
-            conn.close()
+                                logger.info(f"🤖 AI PREDICTIONS - Processing {game_type}: main={sorted(main_numbers) if main_numbers else []}, bonus={sorted(bonus_numbers) if bonus_numbers else []}")
+                                
+                                final_confidence = round(confidence) if confidence else 25
+                                logger.info(f"🔍 CONFIDENCE DEBUG - {game_type}: Raw={confidence}, Rounded={final_confidence}")
+                                
+                                unvalidated_predictions.append({
+                                    'game_type': game_type,
+                                    'main_numbers': sorted(main_numbers) if main_numbers else [],
+                                    'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                                    'confidence': final_confidence,
+                                    'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
+                                    'target_date': target_date,
+                                    'linked_draw_id': linked_draw_id,
+                                    'method': method or 'Enhanced Neural Network Ensemble'
+                                })
+                                break
 
         except Exception as e:
             logger.error(f"Error fetching ENHANCED predictions for homepage: {e}")
@@ -1256,93 +1252,89 @@ def visualizations():
         # Get lottery statistics for template data
         with psycopg2.connect(app.config['SQLALCHEMY_DATABASE_URI']) as conn:
             with conn.cursor() as cur:
-
                 # Get total draws and latest draw date
-        cur.execute("""
-            SELECT 
-                COUNT(*) as total_draws,
-                MAX(draw_date) as latest_draw_date
-            FROM lottery_results 
-            WHERE draw_date IS NOT NULL
-        """)
-        result = cur.fetchone()
-        total_draws = result[0] if result else 0
-        latest_draw_date = result[1] if result else None
+                cur.execute("""
+                    SELECT 
+                        COUNT(*) as total_draws,
+                        MAX(draw_date) as latest_draw_date
+                    FROM lottery_results 
+                    WHERE draw_date IS NOT NULL
+                """)
+                result = cur.fetchone()
+                total_draws = result[0] if result else 0
+                latest_draw_date = result[1] if result else None
 
-        # Get unique lottery types
-        cur.execute("""
-            SELECT DISTINCT lottery_type 
-            FROM lottery_results 
-            WHERE lottery_type IS NOT NULL 
-            ORDER BY lottery_type
-        """)
-        lottery_types = [row[0] for row in cur.fetchall()]
+                # Get unique lottery types
+                cur.execute("""
+                    SELECT DISTINCT lottery_type 
+                    FROM lottery_results 
+                    WHERE lottery_type IS NOT NULL 
+                    ORDER BY lottery_type
+                """)
+                lottery_types = [row[0] for row in cur.fetchall()]
 
-        # Get unvalidated predictions for display
-        cur.execute("""
-            SELECT 
-                game_type,
-                predicted_numbers,
-                bonus_numbers,
-                confidence_score,
-                reasoning,
-                target_draw_date,
-                created_at,
-                linked_draw_id
-            FROM lottery_predictions 
-            WHERE (validation_status = 'pending' OR validation_status IS NULL) 
-                AND is_verified = false
-            ORDER BY CASE game_type 
-                        WHEN 'LOTTO' THEN 1
-                        WHEN 'LOTTO PLUS 1' THEN 2 
-                        WHEN 'LOTTO PLUS 2' THEN 3
-                        WHEN 'POWERBALL' THEN 4
-                        WHEN 'POWERBALL PLUS' THEN 5
-                        WHEN 'DAILY LOTTO' THEN 6
-                        ELSE 7
-                     END, target_draw_date ASC
-        """)
+                # Get unvalidated predictions for display
+                cur.execute("""
+                    SELECT 
+                        game_type,
+                        predicted_numbers,
+                        bonus_numbers,
+                        confidence_score,
+                        reasoning,
+                        target_draw_date,
+                        created_at,
+                        linked_draw_id
+                    FROM lottery_predictions 
+                    WHERE (validation_status = 'pending' OR validation_status IS NULL) 
+                        AND is_verified = false
+                    ORDER BY CASE game_type 
+                                WHEN 'LOTTO' THEN 1
+                                WHEN 'LOTTO PLUS 1' THEN 2 
+                                WHEN 'LOTTO PLUS 2' THEN 3
+                                WHEN 'POWERBALL' THEN 4
+                                WHEN 'POWERBALL PLUS' THEN 5
+                                WHEN 'DAILY LOTTO' THEN 6
+                                ELSE 7
+                             END, target_draw_date ASC
+                """)
 
-        unvalidated_predictions = []
-        for row in cur.fetchall():
-            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, linked_draw_id = row
+                unvalidated_predictions = []
+                for row in cur.fetchall():
+                    game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, linked_draw_id = row
 
-            # Parse numbers from PostgreSQL format
-            import json
-            import re
+                    # Parse numbers from PostgreSQL format
+                    import json
+                    import re
 
-            # Convert PostgreSQL array format to Python list
-            if predicted_nums:
-                nums_str = str(predicted_nums)
-                if nums_str.startswith('{') and nums_str.endswith('}'):
-                    nums_str = nums_str[1:-1]
-                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
-                else:
-                    main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
-            else:
-                main_numbers = []
+                    # Convert PostgreSQL array format to Python list
+                    if predicted_nums:
+                        nums_str = str(predicted_nums)
+                        if nums_str.startswith('{') and nums_str.endswith('}'):
+                            nums_str = nums_str[1:-1]
+                            main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                        else:
+                            main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                    else:
+                        main_numbers = []
 
-            bonus_numbers = []
-            if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
-                bonus_str = str(bonus_nums)
-                if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                    bonus_str = bonus_str[1:-1]
-                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
-                else:
-                    bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
+                    bonus_numbers = []
+                    if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                        bonus_str = str(bonus_nums)
+                        if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                            bonus_str = bonus_str[1:-1]
+                            bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                        else:
+                            bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
 
-            unvalidated_predictions.append({
-                'game_type': game_type,
-                'main_numbers': sorted(main_numbers) if main_numbers else [],
-                'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
-                'reasoning': reasoning[:100] + '...' if reasoning and len(reasoning) > 100 else reasoning,
-                'target_date': target_date,
-                'linked_draw_id': linked_draw_id
-            })
-
-        cur.close()
-        conn.close()
+                    unvalidated_predictions.append({
+                        'game_type': game_type,
+                        'main_numbers': sorted(main_numbers) if main_numbers else [],
+                        'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                        'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
+                        'reasoning': reasoning[:100] + '...' if reasoning and len(reasoning) > 100 else reasoning,
+                        'target_date': target_date,
+                        'linked_draw_id': linked_draw_id
+                    })
 
         logger.info(f"Visualizations page data: {total_draws} draws, {len(lottery_types)} lottery types, {len(unvalidated_predictions)} unvalidated predictions")
 
@@ -1378,116 +1370,112 @@ def predictions():
         
         with psycopg2.connect(os.environ.get('DATABASE_URL')) as conn:
             with conn.cursor() as cur:
-
                 # Get latest predictions with enhanced data
-        cur.execute("""
-            SELECT DISTINCT ON (game_type)
-                game_type, 
-                predicted_numbers, 
-                bonus_numbers, 
-                confidence_score, 
-                reasoning, 
-                target_draw_date, 
-                created_at,
-                prediction_method,
-                is_verified,
-                main_number_matches,
-                accuracy_percentage,
-                prize_tier,
-                matched_main_numbers,
-                verified_at,
-                linked_draw_id
-            FROM lottery_predictions 
-            WHERE target_draw_date >= CURRENT_DATE
-            ORDER BY game_type, 
-                     created_at DESC
-        """)
+                cur.execute("""
+                    SELECT DISTINCT ON (game_type)
+                        game_type, 
+                        predicted_numbers, 
+                        bonus_numbers, 
+                        confidence_score, 
+                        reasoning, 
+                        target_draw_date, 
+                        created_at,
+                        prediction_method,
+                        is_verified,
+                        main_number_matches,
+                        accuracy_percentage,
+                        prize_tier,
+                        matched_main_numbers,
+                        verified_at,
+                        linked_draw_id
+                    FROM lottery_predictions 
+                    WHERE target_draw_date >= CURRENT_DATE
+                    ORDER BY game_type, 
+                             created_at DESC
+                """)
 
-        predictions_data = cur.fetchall()
-        game_order = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
+                predictions_data = cur.fetchall()
+                game_order = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'POWERBALL', 'POWERBALL PLUS', 'DAILY LOTTO']
 
-        # Enhanced predictions with probability pools and coverage analysis
-        enhanced_predictions = []
-        
-        for game in game_order:
-            for row in predictions_data:
-                if row[0] == game:
-                    game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at, linked_draw_id = row
-                    
-                    # Parse numbers
-                    import json
-                    main_numbers = []
-                    bonus_numbers = []
-                    matched_numbers = []
-                    
-                    if predicted_nums:
-                        nums_str = str(predicted_nums)
-                        if nums_str.startswith('{') and nums_str.endswith('}'):
-                            nums_str = nums_str[1:-1]
-                            main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
-                        else:
-                            main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
-                    
-                    if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
-                        bonus_str = str(bonus_nums)
-                        if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                            bonus_str = bonus_str[1:-1]
-                            bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
-                        else:
-                            bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
-                    
-                    if matched_nums and str(matched_nums) not in ['{}', '[]', 'None']:
-                        matched_str = str(matched_nums)
-                        if matched_str.startswith('{') and matched_str.endswith('}'):
-                            matched_str = matched_str[1:-1]
-                            matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
-                        else:
-                            matched_numbers = json.loads(matched_nums) if isinstance(matched_nums, str) else matched_nums
+                # Enhanced predictions with probability pools and coverage analysis
+                enhanced_predictions = []
+                
+                for game in game_order:
+                    for row in predictions_data:
+                        if row[0] == game:
+                            game_type, predicted_nums, bonus_nums, confidence, reasoning, target_date, created_at, method, is_verified, main_matches, accuracy_pct, prize_tier, matched_nums, verified_at, linked_draw_id = row
+                            
+                            # Parse numbers
+                            import json
+                            main_numbers = []
+                            bonus_numbers = []
+                            matched_numbers = []
+                            
+                            if predicted_nums:
+                                nums_str = str(predicted_nums)
+                                if nums_str.startswith('{') and nums_str.endswith('}'):
+                                    nums_str = nums_str[1:-1]
+                                    main_numbers = [int(x.strip()) for x in nums_str.split(',') if x.strip()]
+                                else:
+                                    main_numbers = json.loads(predicted_nums) if isinstance(predicted_nums, str) else predicted_nums
+                            
+                            if bonus_nums and str(bonus_nums) not in ['{}', '[]', 'None']:
+                                bonus_str = str(bonus_nums)
+                                if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                    bonus_str = bonus_str[1:-1]
+                                    bonus_numbers = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                                else:
+                                    bonus_numbers = json.loads(bonus_nums) if isinstance(bonus_nums, str) else bonus_nums
+                            
+                            if matched_nums and str(matched_nums) not in ['{}', '[]', 'None']:
+                                matched_str = str(matched_nums)
+                                if matched_str.startswith('{') and matched_str.endswith('}'):
+                                    matched_str = matched_str[1:-1]
+                                    matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
+                                else:
+                                    matched_numbers = json.loads(matched_nums) if isinstance(matched_nums, str) else matched_nums
 
-                    # Generate probability pools (placeholder for now)
-                    hot_pool = main_numbers[:10] if main_numbers else []
-                    coverage_probability = min(confidence * 1.2, 95) if confidence else 50  # Enhanced coverage estimate
-                    
-                    enhanced_predictions.append({
-                        'game_type': game_type,
-                        'main_numbers': sorted(main_numbers) if main_numbers else [],
-                        'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
-                        'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
-                        'reasoning': reasoning[:300] + '...' if reasoning and len(reasoning) > 300 else reasoning,
-                        'target_date': target_date,
-                        'created_at': created_at,
-                        'method': method,
-                        'is_verified': is_verified,
-                        'main_number_matches': main_matches,
-                        'accuracy_percentage': float(accuracy_pct) if accuracy_pct else None,
-                        'prize_tier': prize_tier,
-                        'matched_numbers': sorted(matched_numbers) if matched_numbers else [],
-                        'verified_at': verified_at,
-                        'linked_draw_id': linked_draw_id,
-                        # Enhanced features
-                        'hot_pool': hot_pool,
-                        'coverage_probability': coverage_probability,
-                        'pool_size': len(hot_pool),
-                        'expected_matches': round((len(main_numbers) * coverage_probability / 100), 1) if main_numbers else 0
-                    })
-                    break
+                            # Generate probability pools (placeholder for now)
+                            hot_pool = main_numbers[:10] if main_numbers else []
+                            coverage_probability = min(confidence * 1.2, 95) if confidence else 50  # Enhanced coverage estimate
+                            
+                            enhanced_predictions.append({
+                                'game_type': game_type,
+                                'main_numbers': sorted(main_numbers) if main_numbers else [],
+                                'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                                'confidence': min(round(confidence * 0.6), 45) if confidence else 25,
+                                'reasoning': reasoning[:300] + '...' if reasoning and len(reasoning) > 300 else reasoning,
+                                'target_date': target_date,
+                                'created_at': created_at,
+                                'method': method,
+                                'is_verified': is_verified,
+                                'main_number_matches': main_matches,
+                                'accuracy_percentage': float(accuracy_pct) if accuracy_pct else None,
+                                'prize_tier': prize_tier,
+                                'matched_numbers': sorted(matched_numbers) if matched_numbers else [],
+                                'verified_at': verified_at,
+                                'linked_draw_id': linked_draw_id,
+                                # Enhanced features
+                                'hot_pool': hot_pool,
+                                'coverage_probability': coverage_probability,
+                                'pool_size': len(hot_pool),
+                                'expected_matches': round((len(main_numbers) * coverage_probability / 100), 1) if main_numbers else 0
+                            })
+                            break
 
-        # Get recent prediction performance
-        cur.execute("""
-            SELECT 
-                COUNT(*) as total_predictions,
-                AVG(accuracy_percentage) as avg_accuracy,
-                COUNT(CASE WHEN main_number_matches >= 2 THEN 1 END) as successful_predictions,
-                COUNT(CASE WHEN main_number_matches >= 3 THEN 1 END) as high_accuracy_predictions
-            FROM lottery_predictions 
-            WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
-                AND validation_status = 'corrected'
-        """)
-        
-        performance_stats = cur.fetchone()
-        
-        cur.close()
-        conn.close()
+                # Get recent prediction performance
+                cur.execute("""
+                    SELECT 
+                        COUNT(*) as total_predictions,
+                        AVG(accuracy_percentage) as avg_accuracy,
+                        COUNT(CASE WHEN main_number_matches >= 2 THEN 1 END) as successful_predictions,
+                        COUNT(CASE WHEN main_number_matches >= 3 THEN 1 END) as high_accuracy_predictions
+                    FROM lottery_predictions 
+                    WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+                        AND validation_status = 'corrected'
+                """)
+                
+                performance_stats = cur.fetchone()
 
         logger.info(f"Enhanced predictions loaded: {len(enhanced_predictions)} predictions with probability analysis")
 
