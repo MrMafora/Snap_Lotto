@@ -1049,8 +1049,6 @@ def draw_details(lottery_type, draw_number):
 
                         validation_row = cur.fetchone()
                         if validation_row:
-                            prediction_result = type('PredictionResult', (), {})()
-                            
                             # CRITICAL: Parse ALL array fields immediately before assignment
                             # PostgreSQL returns these as VARCHAR strings in JSON/array format
                             def parse_number_array(value):
@@ -1076,26 +1074,28 @@ def draw_details(lottery_type, draw_number):
                                             return []
                                 return []
                             
-                            # Parse and assign all fields
-                            prediction_result.predicted_numbers = parse_number_array(validation_row[0])
-                            prediction_result.predicted_bonus = parse_number_array(validation_row[1])
-                            prediction_result.main_number_matches = validation_row[2]
-                            prediction_result.accuracy_percentage = float(validation_row[3]) if validation_row[3] else 0.0
-                            prediction_result.prize_tier = validation_row[4]
-                            prediction_result.matched_numbers = parse_number_array(validation_row[5])
-                            prediction_result.matched_bonus = parse_number_array(validation_row[6])
-                            prediction_result.created_at = validation_row[7]
-                            prediction_result.confidence_score = validation_row[8]
-                            prediction_result.validation_status = validation_row[9]
-                            prediction_result.prediction_method = validation_row[10]
-                            prediction_result.reasoning = validation_row[11]
+                            # Parse all fields into simple dict (Jinja2-safe)
+                            prediction_result = {
+                                'predicted_numbers': parse_number_array(validation_row[0]),
+                                'predicted_bonus': parse_number_array(validation_row[1]),
+                                'main_number_matches': validation_row[2],
+                                'accuracy_percentage': float(validation_row[3]) if validation_row[3] else 0.0,
+                                'prize_tier': validation_row[4],
+                                'matched_numbers': parse_number_array(validation_row[5]),
+                                'matched_bonus': parse_number_array(validation_row[6]),
+                                'created_at': validation_row[7],
+                                'confidence_score': validation_row[8],
+                                'validation_status': validation_row[9],
+                                'prediction_method': validation_row[10],
+                                'reasoning': validation_row[11]
+                            }
 
                             # Log successful parsing
                             logger.info(f"DRAW DETAILS: Found prediction data linked to draw {draw_number}")
-                            logger.info(f"PREDICTION PARSING: predicted_numbers = {prediction_result.predicted_numbers} (type: {type(prediction_result.predicted_numbers)})")
-                            logger.info(f"PREDICTION PARSING: predicted_bonus = {prediction_result.predicted_bonus} (type: {type(prediction_result.predicted_bonus)})")
-                            logger.info(f"PREDICTION PARSING: matched_numbers = {prediction_result.matched_numbers}")
-                            logger.info(f"PREDICTION PARSING: accuracy = {prediction_result.accuracy_percentage}%")
+                            logger.info(f"PREDICTION PARSING: predicted_numbers = {prediction_result['predicted_numbers']} (type: {type(prediction_result['predicted_numbers'])})")
+                            logger.info(f"PREDICTION PARSING: predicted_bonus = {prediction_result['predicted_bonus']} (type: {type(prediction_result['predicted_bonus'])})")
+                            logger.info(f"PREDICTION PARSING: matched_numbers = {prediction_result['matched_numbers']}")
+                            logger.info(f"PREDICTION PARSING: accuracy = {prediction_result['accuracy_percentage']}%")
                     except Exception as pred_e:
                         logger.error(f"Failed to fetch prediction data: {pred_e}")
                         prediction_result = None

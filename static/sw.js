@@ -1,7 +1,7 @@
 // Snap Lotto Service Worker  
-// Version 1.0.4 - FORCE CACHE REFRESH - Fixed predictions and currency formatting
+// Version 1.0.5 - CRITICAL FIX - Converted prediction_result to native dict to prevent string iteration
 
-const CACHE_NAME = 'snap-lotto-v5-fix';
+const CACHE_NAME = 'snap-lotto-v6-dict-fix';
 const urlsToCache = [
   '/',
   '/static/css/lottery.css',
