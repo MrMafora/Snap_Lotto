@@ -931,10 +931,19 @@ def draw_details(lottery_type, draw_number):
                         result.main_numbers = row[3]
                         result.bonus_numbers = row[4]
                         result.divisions = row[5]  # This is actually prize_divisions column
-                        result.rollover_amount = row[6]
-                        result.next_jackpot = row[7]
-                        result.total_pool_size = row[8]
-                        result.total_sales = row[9]
+                        # Format financial values as currency
+                        def format_currency(value):
+                            if value is None or value == 0:
+                                return None
+                            try:
+                                return f"R {float(value):,.2f}"
+                            except:
+                                return None
+                        
+                        result.rollover_amount = format_currency(row[6])
+                        result.next_jackpot = format_currency(row[7])
+                        result.total_pool_size = format_currency(row[8])
+                        result.total_sales = format_currency(row[9])
                         result.draw_machine = row[10]
                         result.next_draw_date = row[11]
 
@@ -1011,76 +1020,52 @@ def draw_details(lottery_type, draw_number):
                         validation_row = cur.fetchone()
                         if validation_row:
                             prediction_result = type('PredictionResult', (), {})()
-                            prediction_result.predicted_numbers = validation_row[0]
-                            prediction_result.predicted_bonus = validation_row[1]  # Template expects predicted_bonus
+                            
+                            # CRITICAL: Parse ALL array fields immediately before assignment
+                            # PostgreSQL returns these as VARCHAR strings in JSON/array format
+                            def parse_number_array(value):
+                                """Parse number arrays from database format to Python list"""
+                                if not value:
+                                    return []
+                                if isinstance(value, list):
+                                    return value
+                                if isinstance(value, str):
+                                    # Remove whitespace
+                                    value = value.strip()
+                                    # Handle PostgreSQL array format {1,2,3}
+                                    if value.startswith('{') and value.endswith('}'):
+                                        inner = value[1:-1].strip()
+                                        if not inner:
+                                            return []
+                                        return [int(x.strip()) for x in inner.split(',') if x.strip()]
+                                    # Handle JSON format [1,2,3]
+                                    if value.startswith('[') and value.endswith(']'):
+                                        try:
+                                            return json.loads(value)
+                                        except:
+                                            return []
+                                return []
+                            
+                            # Parse and assign all fields
+                            prediction_result.predicted_numbers = parse_number_array(validation_row[0])
+                            prediction_result.predicted_bonus = parse_number_array(validation_row[1])
                             prediction_result.main_number_matches = validation_row[2]
                             prediction_result.accuracy_percentage = float(validation_row[3]) if validation_row[3] else 0.0
                             prediction_result.prize_tier = validation_row[4]
-                            prediction_result.matched_numbers = validation_row[5]
-                            prediction_result.matched_bonus = validation_row[6]  # Add matched bonus numbers
+                            prediction_result.matched_numbers = parse_number_array(validation_row[5])
+                            prediction_result.matched_bonus = parse_number_array(validation_row[6])
                             prediction_result.created_at = validation_row[7]
                             prediction_result.confidence_score = validation_row[8]
                             prediction_result.validation_status = validation_row[9]
                             prediction_result.prediction_method = validation_row[10]
                             prediction_result.reasoning = validation_row[11]
 
-                            # Parse predicted numbers if they're in string format
-                            if prediction_result.predicted_numbers and isinstance(prediction_result.predicted_numbers, str):
-                                pred_str = str(prediction_result.predicted_numbers)
-                                if pred_str.startswith('{') and pred_str.endswith('}'):
-                                    # PostgreSQL array format
-                                    pred_str = pred_str[1:-1]
-                                    prediction_result.predicted_numbers = [int(x.strip()) for x in pred_str.split(',') if x.strip()]
-                                else:
-                                    # JSON format
-                                    try:
-                                        prediction_result.predicted_numbers = json.loads(pred_str)
-                                    except:
-                                        prediction_result.predicted_numbers = []
-                            
-                            # Parse predicted bonus numbers if they're in string format
-                            if prediction_result.predicted_bonus and isinstance(prediction_result.predicted_bonus, str):
-                                bonus_str = str(prediction_result.predicted_bonus)
-                                if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                                    # PostgreSQL array format
-                                    bonus_str = bonus_str[1:-1]
-                                    prediction_result.predicted_bonus = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
-                                else:
-                                    # JSON format
-                                    try:
-                                        prediction_result.predicted_bonus = json.loads(bonus_str)
-                                    except:
-                                        prediction_result.predicted_bonus = []
-
-                            # Parse matched numbers if they're in PostgreSQL array format
-                            if prediction_result.matched_numbers and isinstance(prediction_result.matched_numbers, str):
-                                matched_str = str(prediction_result.matched_numbers)
-                                if matched_str.startswith('{') and matched_str.endswith('}'):
-                                    matched_str = matched_str[1:-1]
-                                    prediction_result.matched_numbers = [int(x.strip()) for x in matched_str.split(',') if x.strip()]
-                                else:
-                                    try:
-                                        prediction_result.matched_numbers = json.loads(prediction_result.matched_numbers)
-                                    except:
-                                        prediction_result.matched_numbers = []
-
-                            # Parse matched bonus numbers if they're in PostgreSQL array format
-                            if prediction_result.matched_bonus and isinstance(prediction_result.matched_bonus, str):
-                                matched_bonus_str = str(prediction_result.matched_bonus)
-                                if matched_bonus_str.startswith('{') and matched_bonus_str.endswith('}'):
-                                    matched_bonus_str = matched_bonus_str[1:-1]
-                                    prediction_result.matched_bonus = [int(x.strip()) for x in matched_bonus_str.split(',') if x.strip()]
-                                else:
-                                    try:
-                                        prediction_result.matched_bonus = json.loads(prediction_result.matched_bonus)
-                                    except:
-                                        prediction_result.matched_bonus = []
-
+                            # Log successful parsing
                             logger.info(f"DRAW DETAILS: Found prediction data linked to draw {draw_number}")
-                            logger.info(f"TEMPLATE DEBUG: validation_result will be: {prediction_result is not None}")
-                            if prediction_result:
-                                logger.info(f"TEMPLATE DEBUG: predicted_numbers = {prediction_result.predicted_numbers}")
-                                logger.info(f"TEMPLATE DEBUG: accuracy = {prediction_result.accuracy_percentage}")
+                            logger.info(f"PREDICTION PARSING: predicted_numbers = {prediction_result.predicted_numbers} (type: {type(prediction_result.predicted_numbers)})")
+                            logger.info(f"PREDICTION PARSING: predicted_bonus = {prediction_result.predicted_bonus} (type: {type(prediction_result.predicted_bonus)})")
+                            logger.info(f"PREDICTION PARSING: matched_numbers = {prediction_result.matched_numbers}")
+                            logger.info(f"PREDICTION PARSING: accuracy = {prediction_result.accuracy_percentage}%")
                     except Exception as pred_e:
                         logger.error(f"Failed to fetch prediction data: {pred_e}")
                         prediction_result = None
