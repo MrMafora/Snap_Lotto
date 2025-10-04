@@ -256,6 +256,20 @@ class WorkflowErrorRecovery:
             conn = psycopg2.connect(self.db_url)
             cur = conn.cursor()
             
+            # Ensure error log table exists before querying
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS workflow_error_logs (
+                    id SERIAL PRIMARY KEY,
+                    error_type VARCHAR(100) NOT NULL,
+                    error_message TEXT NOT NULL,
+                    context_data JSONB,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    resolved BOOLEAN DEFAULT FALSE,
+                    resolution_notes TEXT
+                )
+            """)
+            conn.commit()
+            
             cur.execute("""
                 SELECT id, error_type, error_message, context_data, created_at, resolved
                 FROM workflow_error_logs
@@ -297,6 +311,20 @@ class WorkflowErrorRecovery:
         try:
             conn = psycopg2.connect(self.db_url)
             cur = conn.cursor()
+            
+            # Ensure error log table exists
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS workflow_error_logs (
+                    id SERIAL PRIMARY KEY,
+                    error_type VARCHAR(100) NOT NULL,
+                    error_message TEXT NOT NULL,
+                    context_data JSONB,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    resolved BOOLEAN DEFAULT FALSE,
+                    resolution_notes TEXT
+                )
+            """)
+            conn.commit()
             
             cur.execute("""
                 UPDATE workflow_error_logs
