@@ -692,7 +692,7 @@
                                                                 {% elif prediction.game_type == 'DAILY LOTTO' %}lottery-ball-green
                                                                 {% endif %}" style="width: 16px; height: 16px; line-height: 6px; font-size: 0.55rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ number }}</span>
                                                         {% endfor %}
-                                                        {% if prediction.bonus_numbers %}
+                                                        {% if prediction.bonus_numbers and prediction.game_type != 'LOTTO PLUS 1' %}
                                                             <span class="text-muted mx-1" style="font-size: 0.55rem;">+</span>
                                                             {% for bonus in prediction.bonus_numbers %}
                                                                 <span class="lottery-ball lottery-ball-yellow me-1" style="width: 16px; height: 16px; line-height: 6px; font-size: 0.55rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ bonus }}</span>
@@ -735,7 +735,7 @@
                                                     {% elif prediction.game_type == 'DAILY LOTTO' %}lottery-ball-green
                                                     {% endif %}" style="width: 28px; height: 28px; font-size: 12px; line-height: 28px; margin: 2px 1px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ number }}</span>
                                             {% endfor %}
-                                            {% if prediction.bonus_numbers %}
+                                            {% if prediction.bonus_numbers and prediction.game_type != 'LOTTO PLUS 1' %}
                                                 <span class="text-muted mx-1" style="font-size: 0.8rem;">+</span>
                                                 {% for bonus in prediction.bonus_numbers %}
                                                     <span class="bonus-number lottery-ball-yellow" style="width: 24px; height: 24px; font-size: 11px; line-height: 24px; margin: 2px 1px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold;">{{ bonus }}</span>
