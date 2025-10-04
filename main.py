@@ -2800,91 +2800,35 @@ def run_complete_automation():
         except Exception as verify_error:
             flash(f'Step 4 Warning: Database verification issue: {verify_error}', 'warning')
 
-        # STEP 5: AI Prediction orchestration (mirrors scheduler logic)
+        # STEP 5: Enhanced AI Prediction Workflow (using new orchestrator)
         if new_results_count > 0:
-            logger.info(f"Step 5: Running complete AI prediction workflow for {new_results_count} new lottery results...")
+            logger.info(f"Step 5: Running enhanced AI prediction workflow for {new_results_count} new lottery results...")
             predictions_generated = 0
             validations_completed = 0
-            gaps_filled = 0
 
             try:
-                # Step 5a: Validate existing predictions against new results
-                logger.info("Step 5a: Auto-validating existing predictions against new lottery results...")
-                try:
-                    from prediction_validation_system import PredictionValidationSystem
-                    validation_system = PredictionValidationSystem()
-                    validation_result = validation_system.validate_all_pending_predictions()
-                    validations_completed = len(validation_result.get('validated_predictions', []))
-                    logger.info(f"✅ Validated {validations_completed} existing predictions")
-                except Exception as validation_error:
-                    logger.warning(f"⚠️ Prediction validation failed: {validation_error}")
-
-                # Step 5b: Generate fresh predictions for next draws
-                logger.info("Step 5b: Generating fresh predictions for next draws...")
-                try:
-                    from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
-                    fresh_result = generate_fresh_predictions_for_new_draws()
-                    if isinstance(fresh_result, dict):
-                        predictions_generated = fresh_result.get('predictions_created', 0)
-                    else:
-                        predictions_generated = 6 if fresh_result else 0  # Assume 6 game types if successful
-                    logger.info(f"✅ Generated {predictions_generated} fresh predictions")
-                except Exception as fresh_error:
-                    logger.warning(f"⚠️ Fresh prediction generation failed: {fresh_error}")
-
-                # Step 5c: Fill any prediction gaps
-                logger.info("Step 5c: Filling any missing prediction gaps...")
-                try:
-                    # Import the gap filling function from scheduler
-                    import psycopg2
-                    import os
-
-                    conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
-                    cur = conn.cursor()
-
-                    # Get game types from database
-                    cur.execute("SELECT DISTINCT lottery_type FROM lottery_results ORDER BY lottery_type")
-                    db_game_types = [row[0] for row in cur.fetchall()]
-
-                    for game_type in db_game_types:
-                        # Check for missing predictions
-                        cur.execute("""
-                            SELECT COUNT(lr.draw_number)
-                            FROM lottery_results lr
-                            LEFT JOIN lottery_predictions lp ON (
-                                lp.game_type = lr.lottery_type 
-                                AND lp.linked_draw_id = lr.draw_number + 1
-                            )
-                            WHERE lr.lottery_type = %s 
-                            AND lp.id IS NULL
-                            AND lr.draw_date >= CURRENT_DATE - INTERVAL '7 days'
-                        """, (game_type,))
-
-                        missing_count = cur.fetchone()[0]
-                        if missing_count > 0:
-                            gaps_filled += 1
-                            logger.info(f"🔧 Found {missing_count} prediction gaps for {game_type}")
-
-                    cur.close()
-                    conn.close()
-                    logger.info(f"✅ Checked prediction gaps: {gaps_filled} game types need attention")
-
-                except Exception as gap_error:
-                    logger.warning(f"⚠️ Gap filling check failed: {gap_error}")
-
-                total_ai_work = validations_completed + predictions_generated + gaps_filled
-                logger.info(f"Step 5 Complete: {validations_completed} validations + {predictions_generated} predictions + {gaps_filled} gap checks = {total_ai_work} AI operations")
+                # Use the new enhanced workflow orchestrator
+                from enhanced_workflow_integration import get_workflow_orchestrator
+                orchestrator = get_workflow_orchestrator()
+                
+                # Run the complete post-update workflow
+                workflow_result = orchestrator.handle_post_database_update()
+                
+                validations_completed = workflow_result.get('predictions_validated', 0)
+                predictions_generated = workflow_result.get('predictions_generated', 0)
+                
+                logger.info(f"✅ Enhanced workflow: {validations_completed} validations + {predictions_generated} predictions")
+                flash(f'Step 5 Complete: {validations_completed} predictions validated + {predictions_generated} fresh predictions generated', 'success')
 
             except Exception as prediction_error:
-                logger.error(f"Step 5 Error: AI prediction workflow failed: {prediction_error}")
+                logger.error(f"Step 5 Error: Enhanced workflow failed: {prediction_error}")
+                flash(f'Step 5 Warning: AI prediction workflow encountered an issue: {str(prediction_error)}', 'warning')
                 predictions_generated = 0
                 validations_completed = 0
-                gaps_filled = 0
         else:
             logger.info("Step 5: Skipped AI prediction workflow (no new results)")
             predictions_generated = 0
             validations_completed = 0
-            gaps_filled = 0
 
         # Determine overall workflow success
         success = (ai_results.get('total_processed', 0) > 0 and 
@@ -2940,17 +2884,16 @@ def run_complete_automation():
 @app.route('/admin/run-complete-workflow-direct')
 @login_required
 def run_complete_workflow_direct():
-    """Run Complete Workflow - Timeout-Safe Chunked Processing"""
+    """Run Complete Workflow - Enhanced with New Orchestrator"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
         from screenshot_capture import capture_all_lottery_screenshots
         from ai_lottery_processor import process_screenshots_chunked
-        from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
-        from prediction_validation_system import PredictionValidationSystem
+        from enhanced_workflow_integration import get_workflow_orchestrator
         
-        logger.info("Starting timeout-safe chunked workflow via JavaScript endpoint")
+        logger.info("Starting enhanced workflow via admin manual button")
         
         # Step 1: Capture fresh screenshots
         logger.info("Step 1: Capturing screenshots...")
@@ -2960,41 +2903,37 @@ def run_complete_workflow_direct():
         logger.info("Step 2: Processing screenshots with AI (chunked approach)...")
         ai_results = process_screenshots_chunked(max_batch_size=6)
         
-        # Step 3: Generate predictions if AI processing succeeded
+        # Step 3 & 4: Use enhanced workflow orchestrator for predictions
         predictions_generated = 0
-        if ai_results.get('total_success', 0) > 0:
-            logger.info("Step 3: Generating fresh predictions...")
-            try:
-                prediction_result = generate_fresh_predictions_for_new_draws()
-                predictions_generated = len(prediction_result.get('predictions_created', []))
-            except Exception as pred_e:
-                logger.error(f"Prediction generation failed: {pred_e}")
-        
-        # Step 4: Validate predictions
         validations_completed = 0
-        if predictions_generated > 0:
-            logger.info("Step 4: Validating predictions...")
+        if ai_results.get('total_success', 0) > 0:
+            logger.info("Step 3 & 4: Running enhanced workflow orchestrator...")
             try:
-                validation_system = PredictionValidationSystem()
-                validation_result = validation_system.validate_all_pending_predictions()
-                validations_completed = validation_result.get('total_validated', 0)
-            except Exception as val_e:
-                logger.error(f"Prediction validation failed: {val_e}")
+                orchestrator = get_workflow_orchestrator()
+                workflow_result = orchestrator.handle_post_database_update()
+                
+                predictions_generated = workflow_result.get('predictions_generated', 0)
+                validations_completed = workflow_result.get('predictions_validated', 0)
+                
+                logger.info(f"✅ Enhanced workflow: {validations_completed} validations + {predictions_generated} predictions")
+            except Exception as workflow_e:
+                logger.error(f"Enhanced workflow failed: {workflow_e}")
         
         workflow_results = {
             'status': 'success',
-            'steps_completed': ['screenshot_capture', 'ai_processing_chunked', 'prediction_generation', 'validation'],
+            'steps_completed': ['screenshot_capture', 'ai_processing_chunked', 'enhanced_workflow'],
             'screenshot_results': screenshot_results,
             'ai_results': ai_results,
             'predictions_generated': predictions_generated,
             'validations_completed': validations_completed,
-            'message': f'Chunked workflow completed: {screenshot_results.get("total_success", 0)}/6 screenshots, {ai_results.get("total_success", 0)} AI processed, {predictions_generated} predictions generated'
+            'new_results': ai_results.get('total_success', 0),
+            'message': f'Enhanced workflow completed: {screenshot_results.get("total_success", 0)}/6 screenshots, {ai_results.get("total_success", 0)} AI processed, {validations_completed} validations + {predictions_generated} predictions'
         }
         
         return jsonify(workflow_results)
         
     except Exception as e:
-        logger.error(f"Chunked workflow error: {e}")
+        logger.error(f"Enhanced workflow error: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({
@@ -3005,36 +2944,27 @@ def run_complete_workflow_direct():
 @app.route('/admin/generate-predictions-only')
 @login_required
 def generate_predictions_only():
-    """Run only the AI prediction generation system"""
+    """Run only the AI prediction generation system - Enhanced"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
-        from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
-        from prediction_validation_system import PredictionValidationSystem
+        from enhanced_workflow_integration import get_workflow_orchestrator
         
-        logger.info("Running AI prediction system only...")
+        logger.info("Running enhanced AI prediction workflow...")
         
-        # Step 1: Generate fresh predictions for new draws
-        prediction_result = generate_fresh_predictions_for_new_draws()
-        predictions_generated = 4 if prediction_result else 0  # generate_fresh_predictions_for_new_draws returns True/False
+        # Use enhanced workflow orchestrator
+        orchestrator = get_workflow_orchestrator()
+        workflow_result = orchestrator.handle_post_database_update()
         
-        # Step 2: Validate the new predictions
-        validations_completed = 0
-        if predictions_generated > 0:
-            logger.info("Validating newly generated predictions...")
-            try:
-                validation_system = PredictionValidationSystem()
-                validation_result = validation_system.validate_all_pending_predictions()
-                validations_completed = validation_result.get('total_validated', 0)
-            except Exception as val_e:
-                logger.error(f"Prediction validation failed: {val_e}")
+        predictions_generated = workflow_result.get('predictions_generated', 0)
+        validations_completed = workflow_result.get('predictions_validated', 0)
         
         result = {
             'status': 'success',
             'predictions_generated': predictions_generated,
             'validations_completed': validations_completed,
-            'message': f'AI Prediction system complete: {predictions_generated} predictions generated, {validations_completed} validated'
+            'message': f'Enhanced AI workflow complete: {validations_completed} validations + {predictions_generated} predictions generated'
         }
         
         logger.info(f"Prediction-only workflow result: {result}")
