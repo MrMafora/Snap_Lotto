@@ -544,6 +544,7 @@ def index():
 
 @app.route('/results')
 @app.route('/results/<lottery_type>')
+@limiter.exempt
 def results(lottery_type=None):
     """Display lottery results"""
     try:
@@ -890,6 +891,7 @@ def results(lottery_type=None):
         return render_template('results.html', results=[], lottery_type=lottery_type)
 
 @app.route('/results/<lottery_type>/<int:draw_number>')
+@limiter.exempt
 def draw_details(lottery_type, draw_number):
     """Display detailed draw results"""
     try:
