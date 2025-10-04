@@ -310,14 +310,22 @@ class CompleteLotteryProcessor:
             
             logger.info(f"Successfully saved new record to database with ID: {record_id}")
             
-            # 🔮 ORCHESTRATE PREDICTIONS: Ensure continuous prediction coverage
+            # 🔮 ENHANCED WORKFLOW: Execute post-database-update workflow
             try:
-                from prediction_orchestrator import PredictionOrchestrator
-                orchestrator = PredictionOrchestrator()
-                orchestrator.ensure_future_predictions([lottery_data['lottery_type']])
-                logger.info(f"✅ Prediction orchestration complete for {lottery_data['lottery_type']}")
+                from enhanced_workflow_integration import get_workflow_orchestrator
+                orchestrator = get_workflow_orchestrator()
+                workflow_result = orchestrator.execute_post_database_update_workflow(
+                    lottery_type=lottery_data['lottery_type'],
+                    database_record_id=record_id
+                )
+                if workflow_result.get('workflow_complete'):
+                    logger.info(f"✅ Enhanced workflow complete for {lottery_data['lottery_type']}")
+                    logger.info(f"   - Predictions validated: {workflow_result['prediction_validation'].get('count', 0)}")
+                    logger.info(f"   - Predictions generated: {workflow_result['prediction_generation'].get('count', 0)}")
+                else:
+                    logger.warning(f"⚠️ Enhanced workflow incomplete: {workflow_result.get('error', 'Unknown error')}")
             except Exception as orchestration_error:
-                logger.error(f"⚠️ Prediction orchestration failed: {orchestration_error}")
+                logger.error(f"⚠️ Enhanced workflow failed: {orchestration_error}")
                 # Don't fail the main workflow if orchestration fails
             
             return record_id
