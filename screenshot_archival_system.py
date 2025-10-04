@@ -6,7 +6,7 @@ Manages historical storage of lottery screenshots that yielded successful result
 import os
 import shutil
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import logging
 

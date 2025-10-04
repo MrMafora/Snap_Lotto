@@ -15,6 +15,7 @@ from google import genai
 from google.genai import types
 import traceback
 import time
+from screenshot_archival_system import ScreenshotArchivalSystem
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,14 +23,15 @@ logger = logging.getLogger(__name__)
 
 class CompleteLotteryProcessor:
     def __init__(self):
-        """Initialize processor with Gemini API client"""
+        """Initialize processor with Gemini API client and archival system"""
         try:
             api_key = os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY")
             if not api_key:
                 raise ValueError("GOOGLE_API_KEY_SNAP_LOTTERY environment variable not found")
             self.client = genai.Client(api_key=api_key)
             self.db_connection = None
-            logger.info("AI Lottery Processor initialized successfully")
+            self.archival_system = ScreenshotArchivalSystem()
+            logger.info("AI Lottery Processor initialized successfully with archival system")
         except Exception as e:
             logger.error(f"Failed to initialize processor: {e}")
             raise
@@ -393,6 +395,24 @@ class CompleteLotteryProcessor:
                     
                     # Save to database
                     record_id = self.save_to_database(lottery_data)
+                    
+                    # 📁 ARCHIVE SUCCESSFUL SCREENSHOT
+                    try:
+                        archive_result = self.archival_system.archive_successful_screenshot(
+                            screenshot_path=file_path,
+                            lottery_type=lottery_type,
+                            draw_number=lottery_data.get('draw_id', 0),
+                            draw_date=lottery_data.get('draw_date', datetime.now().strftime('%Y-%m-%d')),
+                            confidence=confidence,
+                            database_id=record_id
+                        )
+                        if archive_result.get('success'):
+                            logger.info(f"📁 Screenshot archived: {archive_result.get('archived_path')}")
+                        else:
+                            logger.warning(f"⚠️ Screenshot archival failed: {archive_result.get('error')}")
+                    except Exception as archive_error:
+                        logger.warning(f"⚠️ Screenshot archival error: {archive_error}")
+                        # Don't fail main workflow if archival fails
                     
                     # Record success
                     results["total_success"] += 1
