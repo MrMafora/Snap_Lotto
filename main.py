@@ -1022,6 +1022,34 @@ def draw_details(lottery_type, draw_number):
                             prediction_result.prediction_method = validation_row[10]
                             prediction_result.reasoning = validation_row[11]
 
+                            # Parse predicted numbers if they're in string format
+                            if prediction_result.predicted_numbers and isinstance(prediction_result.predicted_numbers, str):
+                                pred_str = str(prediction_result.predicted_numbers)
+                                if pred_str.startswith('{') and pred_str.endswith('}'):
+                                    # PostgreSQL array format
+                                    pred_str = pred_str[1:-1]
+                                    prediction_result.predicted_numbers = [int(x.strip()) for x in pred_str.split(',') if x.strip()]
+                                else:
+                                    # JSON format
+                                    try:
+                                        prediction_result.predicted_numbers = json.loads(pred_str)
+                                    except:
+                                        prediction_result.predicted_numbers = []
+                            
+                            # Parse predicted bonus numbers if they're in string format
+                            if prediction_result.predicted_bonus and isinstance(prediction_result.predicted_bonus, str):
+                                bonus_str = str(prediction_result.predicted_bonus)
+                                if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                    # PostgreSQL array format
+                                    bonus_str = bonus_str[1:-1]
+                                    prediction_result.predicted_bonus = [int(x.strip()) for x in bonus_str.split(',') if x.strip()]
+                                else:
+                                    # JSON format
+                                    try:
+                                        prediction_result.predicted_bonus = json.loads(bonus_str)
+                                    except:
+                                        prediction_result.predicted_bonus = []
+
                             # Parse matched numbers if they're in PostgreSQL array format
                             if prediction_result.matched_numbers and isinstance(prediction_result.matched_numbers, str):
                                 matched_str = str(prediction_result.matched_numbers)
