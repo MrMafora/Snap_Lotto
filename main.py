@@ -71,8 +71,8 @@ logging.basicConfig(
 
 def get_historical_predictions(conn, lottery_types=None):
     """
-    Get the AI predictions that were made for the current/latest completed draws.
-    This is used by results pages to show predictions that were validated against actual results.
+    Get the AI predictions for display on results pages.
+    Shows both validated predictions (for completed draws) and pending predictions (for upcoming draws).
 
     Returns a dictionary keyed by lottery_type with prediction data.
     """
@@ -107,9 +107,9 @@ def get_historical_predictions(conn, lottery_types=None):
                     lp.prize_tier
                 FROM lottery_predictions lp
                 JOIN latest_completed lc ON lc.lottery_type = lp.game_type
-                WHERE lp.linked_draw_id = lc.latest_draw_number
+                WHERE (lp.linked_draw_id = lc.latest_draw_number OR lp.linked_draw_id = lc.latest_draw_number + 1)
                   {types_filter}
-                ORDER BY lp.game_type, lp.created_at DESC
+                ORDER BY lp.game_type, lp.linked_draw_id DESC, lp.created_at DESC
             """
 
             cur.execute(query, params)
@@ -341,10 +341,20 @@ def index():
                         result_obj.main_numbers = row[3]
                         result_obj.bonus_numbers = row[4]
                         result_obj.divisions = row[5]
-                        result_obj.rollover_amount = row[6]
-                        result_obj.next_jackpot = row[7]
-                        result_obj.total_pool_size = row[8]
-                        result_obj.total_sales = row[9]
+                        
+                        # Format financial values as currency
+                        def format_currency(value):
+                            if value is None or value == 0:
+                                return None
+                            try:
+                                return f"R {float(value):,.2f}"
+                            except:
+                                return None
+                        
+                        result_obj.rollover_amount = format_currency(row[6])
+                        result_obj.next_jackpot = format_currency(row[7])
+                        result_obj.total_pool_size = format_currency(row[8])
+                        result_obj.total_sales = format_currency(row[9])
                         result_obj.draw_machine = row[10]
                         result_obj.next_draw_date = row[11]
 
@@ -582,10 +592,20 @@ def results(lottery_type=None):
                             result_obj.main_numbers = row[3]
                             result_obj.bonus_numbers = row[4]
                             result_obj.divisions = row[5]
-                            result_obj.rollover_amount = row[6]
-                            result_obj.next_jackpot = row[7]
-                            result_obj.total_pool_size = row[8]
-                            result_obj.total_sales = row[9]
+                            
+                            # Format financial values as currency
+                            def format_currency(value):
+                                if value is None or value == 0:
+                                    return None
+                                try:
+                                    return f"R {float(value):,.2f}"
+                                except:
+                                    return None
+                            
+                            result_obj.rollover_amount = format_currency(row[6])
+                            result_obj.next_jackpot = format_currency(row[7])
+                            result_obj.total_pool_size = format_currency(row[8])
+                            result_obj.total_sales = format_currency(row[9])
                             result_obj.draw_machine = row[10]
                             result_obj.next_draw_date = row[11]
 
@@ -757,10 +777,20 @@ def results(lottery_type=None):
                             result_obj.main_numbers = row[3]
                             result_obj.bonus_numbers = row[4]
                             result_obj.divisions = row[5]
-                            result_obj.rollover_amount = row[6]
-                            result_obj.next_jackpot = row[7]
-                            result_obj.total_pool_size = row[8]
-                            result_obj.total_sales = row[9]
+                            
+                            # Format financial values as currency
+                            def format_currency(value):
+                                if value is None or value == 0:
+                                    return None
+                                try:
+                                    return f"R {float(value):,.2f}"
+                                except:
+                                    return None
+                            
+                            result_obj.rollover_amount = format_currency(row[6])
+                            result_obj.next_jackpot = format_currency(row[7])
+                            result_obj.total_pool_size = format_currency(row[8])
+                            result_obj.total_sales = format_currency(row[9])
                             result_obj.draw_machine = row[10]
                             result_obj.next_draw_date = row[11]
 
