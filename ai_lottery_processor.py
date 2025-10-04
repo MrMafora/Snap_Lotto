@@ -167,6 +167,22 @@ class CompleteLotteryProcessor:
             logger.error(traceback.format_exc())
             raise
     
+    def clean_currency_value(self, value: Any) -> float:
+        """
+        Clean currency values by removing 'R' prefix and commas, then convert to float
+        """
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            cleaned = value.replace('R', '').replace(',', '').strip()
+            try:
+                return float(cleaned) if cleaned else None
+            except ValueError:
+                return None
+        return None
+    
     def save_to_database(self, lottery_data: Dict[str, Any]) -> int:
         """
         Save extracted lottery data to PostgreSQL database with duplicate prevention
@@ -244,10 +260,10 @@ class CompleteLotteryProcessor:
                         new_numbers,
                         json.dumps(lottery_data['bonus_numbers']) if lottery_data.get('bonus_numbers') else None,
                         new_divisions,
-                        lottery_data.get('rollover_amount'),
-                        lottery_data.get('next_jackpot'),
-                        lottery_data.get('total_pool_size'),
-                        lottery_data.get('total_sales'),
+                        self.clean_currency_value(lottery_data.get('rollover_amount')),
+                        self.clean_currency_value(lottery_data.get('next_jackpot')),
+                        self.clean_currency_value(lottery_data.get('total_pool_size')),
+                        self.clean_currency_value(lottery_data.get('total_sales')),
                         lottery_data.get('draw_machine'),
                         next_draw_date,
                         datetime.now(),
@@ -278,10 +294,10 @@ class CompleteLotteryProcessor:
                 json.dumps(lottery_data['winning_numbers']),
                 json.dumps(lottery_data['bonus_numbers']) if lottery_data.get('bonus_numbers') else None,
                 json.dumps(lottery_data['prize_divisions']),
-                lottery_data.get('rollover_amount'),
-                lottery_data.get('next_jackpot'),
-                lottery_data.get('total_pool_size'),
-                lottery_data.get('total_sales'),
+                self.clean_currency_value(lottery_data.get('rollover_amount')),
+                self.clean_currency_value(lottery_data.get('next_jackpot')),
+                self.clean_currency_value(lottery_data.get('total_pool_size')),
+                self.clean_currency_value(lottery_data.get('total_sales')),
                 lottery_data.get('draw_machine'),
                 next_draw_date,
                 datetime.now()
