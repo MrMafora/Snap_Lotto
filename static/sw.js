@@ -1,7 +1,7 @@
-// Snap Lotto Service Worker
-// Version 1.0.3 - Phase 2 ML predictions update
+// Snap Lotto Service Worker  
+// Version 1.0.4 - FORCE CACHE REFRESH - Fixed predictions and currency formatting
 
-const CACHE_NAME = 'snap-lotto-v4';
+const CACHE_NAME = 'snap-lotto-v5-fix';
 const urlsToCache = [
   '/',
   '/static/css/lottery.css',
