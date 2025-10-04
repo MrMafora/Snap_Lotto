@@ -16,9 +16,11 @@ from werkzeug.exceptions import TooManyRequests
 csrf = CSRFProtect()
 
 # Initialize rate limiter
+# Only apply rate limits to specific routes that need protection (admin, API, sensitive actions)
+# No default limits - let users browse freely
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=[]
 )
 
 class RateLimitExceeded(Exception):
