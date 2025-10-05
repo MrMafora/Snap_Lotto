@@ -7,7 +7,7 @@ import os
 import shutil
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class ScreenshotArchivalSystem:
         draw_date: str,
         confidence: float,
         database_id: int
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Archive a screenshot that successfully yielded lottery results
         
@@ -57,13 +57,14 @@ class ScreenshotArchivalSystem:
                     'error': f'Screenshot file not found: {screenshot_path}'
                 }
             
-            # Parse date to organize by year/month
+            # Parse date to organize by year/month/day
             date_obj = datetime.strptime(draw_date, '%Y-%m-%d')
             year = date_obj.strftime('%Y')
             month = date_obj.strftime('%m')
+            day = date_obj.strftime('%d')
             
-            # Create year/month folder structure
-            archive_folder = os.path.join(self.archive_base_path, year, month)
+            # Create year/month/day folder structure
+            archive_folder = os.path.join(self.archive_base_path, year, month, day)
             os.makedirs(archive_folder, exist_ok=True)
             
             # Create descriptive filename with metadata
@@ -113,7 +114,8 @@ class ScreenshotArchivalSystem:
         self, 
         lottery_type: Optional[str] = None,
         year: Optional[str] = None,
-        month: Optional[str] = None
+        month: Optional[str] = None,
+        day: Optional[str] = None
     ) -> List[Dict]:
         """
         Retrieve list of archived screenshots with optional filters
@@ -122,6 +124,7 @@ class ScreenshotArchivalSystem:
             lottery_type: Filter by lottery type
             year: Filter by year (YYYY)
             month: Filter by month (MM)
+            day: Filter by day (DD)
             
         Returns:
             List of dictionaries with screenshot metadata
@@ -130,7 +133,9 @@ class ScreenshotArchivalSystem:
         
         try:
             # Determine search path
-            if year and month:
+            if year and month and day:
+                search_path = os.path.join(self.archive_base_path, year, month, day)
+            elif year and month:
                 search_path = os.path.join(self.archive_base_path, year, month)
             elif year:
                 search_path = os.path.join(self.archive_base_path, year)
