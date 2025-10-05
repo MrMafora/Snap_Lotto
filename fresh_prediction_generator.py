@@ -200,22 +200,32 @@ def generate_fresh_predictions_for_new_draws():
             'DAILY LOTTO': {'main_count': 5, 'main_range': (1, 36), 'bonus_count': 0}
         }
         
-        # Find draws that completed today but don't have next prediction yet
+        # Find the latest completed draw for each game that doesn't have a prediction for the next draw
         cur.execute('''
+            WITH latest_draws AS (
+                SELECT 
+                    lr.lottery_type,
+                    lr.draw_number as completed_draw,
+                    lr.draw_date,
+                    lr.draw_number + 1 as next_draw_needed,
+                    lr.next_draw_date,
+                    ROW_NUMBER() OVER (PARTITION BY lr.lottery_type ORDER BY lr.draw_date DESC) as rn
+                FROM lottery_results lr
+            )
             SELECT 
-                lr.lottery_type,
-                lr.draw_number as completed_draw,
-                lr.draw_date,
-                lr.draw_number + 1 as next_draw_needed,
-                lr.next_draw_date
-            FROM lottery_results lr
-            WHERE lr.draw_date >= CURRENT_DATE - make_interval(days => 1)
+                lottery_type,
+                completed_draw,
+                draw_date,
+                next_draw_needed,
+                next_draw_date
+            FROM latest_draws
+            WHERE rn = 1
               AND NOT EXISTS (
                   SELECT 1 FROM lottery_predictions lp 
-                  WHERE lp.game_type = lr.lottery_type 
-                    AND lp.linked_draw_id = lr.draw_number + 1
+                  WHERE lp.game_type = latest_draws.lottery_type 
+                    AND lp.linked_draw_id = latest_draws.next_draw_needed
               )
-            ORDER BY lr.lottery_type, lr.draw_date DESC
+            ORDER BY lottery_type
         ''')
         
         new_draws_needed = cur.fetchall()
