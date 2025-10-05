@@ -2207,12 +2207,10 @@ def scheduler_status():
 
     # Get scheduler status
     try:
-        # DISABLED: Using unified scheduler instead  
-        scheduler_data = {'status': 'unified_scheduler_active', 'next_run': 'Daily at 23:45 SA'}
-
         # Get recent automation logs
         import psycopg2
         from psycopg2.extras import RealDictCursor
+        from datetime import datetime
 
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -2226,10 +2224,23 @@ def scheduler_status():
         """)
         recent_runs = cur.fetchall()
 
+        # Get last run time from automation logs
+        last_run = None
+        if recent_runs and len(recent_runs) > 0:
+            last_run = recent_runs[0]['start_time'].isoformat() if hasattr(recent_runs[0]['start_time'], 'isoformat') else str(recent_runs[0]['start_time'])
+
         cur.close()
         conn.close()
 
-        scheduler_data['recent_runs'] = recent_runs
+        # Using unified scheduler - always running
+        scheduler_data = {
+            'running': True,
+            'schedule_time': '23:45',
+            'last_run': last_run,
+            'next_run': 'Daily at 23:45 SA',
+            'timezone': 'South Africa (UTC+2)',
+            'recent_runs': recent_runs
+        }
 
     except Exception as e:
         logger.error(f"Error getting scheduler status: {e}")
