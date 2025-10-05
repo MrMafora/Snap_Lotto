@@ -71,8 +71,8 @@ logging.basicConfig(
 
 def get_historical_predictions(conn, lottery_types=None):
     """
-    Get the AI predictions for display on results pages.
-    Shows both validated predictions (for completed draws) and pending predictions (for upcoming draws).
+    Get the AI predictions for UPCOMING draws only (not completed draws).
+    Shows only pending predictions for draws that haven't happened yet.
 
     Returns a dictionary keyed by lottery_type with prediction data.
     """
@@ -107,9 +107,10 @@ def get_historical_predictions(conn, lottery_types=None):
                     lp.prize_tier
                 FROM lottery_predictions lp
                 JOIN latest_completed lc ON lc.lottery_type = lp.game_type
-                WHERE (lp.linked_draw_id = lc.latest_draw_number OR lp.linked_draw_id = lc.latest_draw_number + 1)
+                WHERE lp.linked_draw_id > lc.latest_draw_number
+                  AND lp.validation_status = 'pending'
                   {types_filter}
-                ORDER BY lp.game_type, lp.linked_draw_id DESC, lp.created_at DESC
+                ORDER BY lp.game_type, lp.linked_draw_id ASC, lp.created_at DESC
             """
 
             cur.execute(query, params)
@@ -451,29 +452,35 @@ def index():
             conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
             cur = conn.cursor()
 
-            # Get ONLY upcoming predictions (pending status for future draws)
+            # Get ONLY upcoming predictions - must be for draws that haven't happened yet
             cur.execute("""
-                SELECT DISTINCT ON (game_type)
-                    game_type, 
-                    predicted_numbers, 
-                    bonus_numbers, 
-                    confidence_score, 
-                    reasoning, 
-                    target_draw_date, 
-                    created_at,
-                    prediction_method,
-                    is_verified,
-                    main_number_matches,
-                    accuracy_percentage,
-                    prize_tier,
-                    matched_main_numbers,
-                    verified_at,
-                    linked_draw_id
-                FROM lottery_predictions 
-                WHERE validation_status = 'pending' 
-                  AND target_draw_date >= CURRENT_DATE
-                ORDER BY game_type, 
-                         created_at DESC
+                WITH latest_draws AS (
+                    SELECT lottery_type, MAX(draw_number) as latest_draw
+                    FROM lottery_results
+                    GROUP BY lottery_type
+                )
+                SELECT DISTINCT ON (lp.game_type)
+                    lp.game_type, 
+                    lp.predicted_numbers, 
+                    lp.bonus_numbers, 
+                    lp.confidence_score, 
+                    lp.reasoning, 
+                    lp.target_draw_date, 
+                    lp.created_at,
+                    lp.prediction_method,
+                    lp.is_verified,
+                    lp.main_number_matches,
+                    lp.accuracy_percentage,
+                    lp.prize_tier,
+                    lp.matched_main_numbers,
+                    lp.verified_at,
+                    lp.linked_draw_id
+                FROM lottery_predictions lp
+                INNER JOIN latest_draws ld ON ld.lottery_type = lp.game_type
+                WHERE lp.validation_status = 'pending' 
+                  AND lp.linked_draw_id > ld.latest_draw
+                ORDER BY lp.game_type, 
+                         lp.created_at DESC
             """)
 
             predictions_data = cur.fetchall()
