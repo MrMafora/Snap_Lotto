@@ -527,7 +527,8 @@ def index():
             conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
             cur = conn.cursor()
 
-            # Get ONLY upcoming predictions - must be for draws that haven't happened yet
+            # Get predictions that were made FOR the latest completed draws
+            # This shows users how well the AI predicted the results they're viewing
             cur.execute("""
                 WITH latest_draws AS (
                     SELECT lottery_type, MAX(draw_number) as latest_draw
@@ -552,8 +553,7 @@ def index():
                     lp.linked_draw_id
                 FROM lottery_predictions lp
                 INNER JOIN latest_draws ld ON ld.lottery_type = lp.game_type
-                WHERE lp.validation_status = 'pending' 
-                  AND lp.linked_draw_id > ld.latest_draw
+                WHERE lp.linked_draw_id = ld.latest_draw
                 ORDER BY lp.game_type, 
                          lp.created_at DESC
             """)
