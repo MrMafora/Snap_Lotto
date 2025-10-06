@@ -145,6 +145,81 @@ def get_historical_predictions(conn, lottery_types=None):
         logging.getLogger(__name__).error(f"Error in get_historical_predictions: {e}")
         return {}
 
+def get_latest_draw_predictions(conn, lottery_types=None):
+    """
+    Get the AI predictions that were made FOR the latest completed draws.
+    This shows the prediction that was actually made for each game's most recent draw.
+
+    Returns a dictionary keyed by lottery_type with prediction data.
+    """
+    try:
+        with conn.cursor() as cur:
+            # Build the WHERE clause for lottery types filter
+            types_filter = ""
+            params = []
+            if lottery_types:
+                types_filter = "AND lp.game_type = ANY(%s)"
+                params.append(lottery_types)
+
+            query = f"""
+                WITH latest_completed AS (
+                    SELECT lottery_type, MAX(draw_number) as latest_draw_number
+                    FROM lottery_results 
+                    GROUP BY lottery_type
+                )
+                SELECT DISTINCT ON (lp.game_type)
+                    lp.game_type,
+                    lp.predicted_numbers,
+                    lp.bonus_numbers,
+                    lp.confidence_score,
+                    lp.reasoning,
+                    lp.target_draw_date,
+                    lp.created_at,
+                    lp.linked_draw_id,
+                    lp.validation_status,
+                    lp.main_number_matches,
+                    lp.bonus_number_matches,
+                    lp.accuracy_percentage,
+                    lp.prize_tier
+                FROM lottery_predictions lp
+                JOIN latest_completed lc ON lc.lottery_type = lp.game_type
+                WHERE lp.linked_draw_id = lc.latest_draw_number
+                  {types_filter}
+                ORDER BY lp.game_type, lp.created_at DESC
+            """
+
+            cur.execute(query, params)
+
+            predictions_data = {}
+            for row in cur.fetchall():
+                (game_type, predicted_nums, bonus_nums, confidence, reasoning, 
+                 target_date, created_at, linked_draw_id, status, main_matches, 
+                 bonus_matches, accuracy, prize) = row
+
+                # Parse predicted numbers with consistent logic
+                main_numbers = parse_prediction_numbers(predicted_nums)
+                bonus_numbers = parse_prediction_numbers(bonus_nums)
+
+                predictions_data[game_type] = {
+                    'predicted_numbers': sorted(main_numbers) if main_numbers else [],
+                    'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                    'confidence_score': confidence,
+                    'reasoning': reasoning[:80] + '...' if reasoning and len(reasoning) > 80 else reasoning,
+                    'target_date': target_date,
+                    'linked_draw_id': linked_draw_id,
+                    'status': status,
+                    'main_matches': main_matches or 0,
+                    'bonus_matches': bonus_matches or 0, 
+                    'accuracy_percentage': accuracy or 0.0,
+                    'prize_tier': prize or 'No Prize'
+                }
+
+            return predictions_data
+
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error in get_latest_draw_predictions: {e}")
+        return {}
+
 def parse_prediction_numbers(nums):
     """
     Parse prediction numbers from various PostgreSQL formats to a consistent Python list.
@@ -680,11 +755,11 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
 
-            # Fetch historical prediction data for result cards (predictions that were made for these draws)
+            # Fetch prediction data for latest completed draws (predictions that were made for these draws)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
-                    historical_predictions = get_historical_predictions(conn)
+                    historical_predictions = get_latest_draw_predictions(conn)
                     logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
 
                     # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
@@ -867,11 +942,11 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
 
-            # Fetch historical prediction data for result cards (predictions that were made for these draws)
+            # Fetch prediction data for latest completed draws (predictions that were made for these draws)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
-                    historical_predictions = get_historical_predictions(conn)
+                    historical_predictions = get_latest_draw_predictions(conn)
                     logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
 
                     # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
