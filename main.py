@@ -767,41 +767,44 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
 
-            # Fetch prediction data for latest completed draws (predictions that were made for these draws)
+            # Fetch UNVALIDATED predictions for UPCOMING draws (same as homepage)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
-                    historical_predictions = get_latest_draw_predictions(conn)
-                    logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
-
-                    # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
-                    predictions_data = {}
-                    for game_type, pred_data in historical_predictions.items():
-                        logger.info(f"PREDICTION DEBUG: Processing {game_type}: {type(pred_data)} with keys: {list(pred_data.keys()) if isinstance(pred_data, dict) else 'not dict'}")
-                        try:
+                    with conn.cursor() as cur:
+                        # Get unvalidated predictions for future draws (same logic as homepage)
+                        cur.execute("""
+                            SELECT DISTINCT ON (game_type)
+                                game_type, 
+                                predicted_numbers, 
+                                bonus_numbers, 
+                                confidence_score,
+                                linked_draw_id
+                            FROM lottery_predictions
+                            WHERE validation_status = 'pending'
+                                AND target_draw_date >= CURRENT_DATE
+                            ORDER BY game_type, 
+                                     created_at DESC
+                        """)
+                        
+                        for row in cur.fetchall():
+                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id = row
+                            
+                            # Parse numbers using the same logic
+                            main_numbers = parse_prediction_numbers(predicted_nums)
+                            bonus_numbers = parse_prediction_numbers(bonus_nums)
+                            
                             predictions_data[game_type] = {
-                                'predicted_numbers': pred_data.get('predicted_numbers', []),
-                                'bonus_numbers': pred_data.get('bonus_numbers', []),
-                                'confidence_score': pred_data.get('confidence_score', 0),
-                                'linked_draw_id': pred_data.get('linked_draw_id', None),
-                                'status': pred_data.get('status', 'pending'),
-                                'main_matches': pred_data.get('main_number_matches', 0),
-                                'bonus_matches': pred_data.get('bonus_number_matches', 0),
-                                'accuracy_percentage': pred_data.get('accuracy_percentage', 0.0),
-                                'prize_tier': pred_data.get('prize_tier', 'No Prize')
+                                'predicted_numbers': sorted(main_numbers) if main_numbers else [],
+                                'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                                'confidence_score': confidence,
+                                'linked_draw_id': linked_draw_id
                             }
-                            logger.info(f"PREDICTION DEBUG: Transformed {game_type} numbers: {predictions_data[game_type]['predicted_numbers']}")
-                        except Exception as e:
-                            logger.error(f"PREDICTION DEBUG: Error transforming {game_type}: {e}")
-                            predictions_data[game_type] = {
-                                'predicted_numbers': [],
-                                'bonus_numbers': [],
-                                'confidence_score': 0,
-                                'linked_draw_id': None,
-                                'status': 'error'
-                            }
+                            logger.info(f"PREDICTION DEBUG: Loaded {game_type} prediction: {main_numbers} + {bonus_numbers}")
+                            
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
+                logger.error(traceback.format_exc())
                 predictions_data = {}
 
             logger.info(f"FILTERED RESULTS DEBUG: Found {len(predictions_data)} prediction entries: {list(predictions_data.keys())}")
@@ -954,41 +957,44 @@ def results(lottery_type=None):
                 if result.lottery_type not in latest_results:
                     latest_results[result.lottery_type] = result
 
-            # Fetch prediction data for latest completed draws (predictions that were made for these draws)
+            # Fetch UNVALIDATED predictions for UPCOMING draws (same as homepage)
             predictions_data = {}
             try:
                 with psycopg2.connect(connection_string) as conn:
-                    historical_predictions = get_latest_draw_predictions(conn)
-                    logger.info(f"PREDICTION DEBUG: Raw historical_predictions keys: {list(historical_predictions.keys())}")
-
-                    # Transform to match template expectations (use predicted_numbers/bonus_numbers as keys)
-                    predictions_data = {}
-                    for game_type, pred_data in historical_predictions.items():
-                        logger.info(f"PREDICTION DEBUG: Processing {game_type}: {type(pred_data)} with keys: {list(pred_data.keys()) if isinstance(pred_data, dict) else 'not dict'}")
-                        try:
+                    with conn.cursor() as cur:
+                        # Get unvalidated predictions for future draws (same logic as homepage)
+                        cur.execute("""
+                            SELECT DISTINCT ON (game_type)
+                                game_type, 
+                                predicted_numbers, 
+                                bonus_numbers, 
+                                confidence_score,
+                                linked_draw_id
+                            FROM lottery_predictions
+                            WHERE validation_status = 'pending'
+                                AND target_draw_date >= CURRENT_DATE
+                            ORDER BY game_type, 
+                                     created_at DESC
+                        """)
+                        
+                        for row in cur.fetchall():
+                            game_type, predicted_nums, bonus_nums, confidence, linked_draw_id = row
+                            
+                            # Parse numbers using the same logic
+                            main_numbers = parse_prediction_numbers(predicted_nums)
+                            bonus_numbers = parse_prediction_numbers(bonus_nums)
+                            
                             predictions_data[game_type] = {
-                                'predicted_numbers': pred_data.get('predicted_numbers', []),
-                                'bonus_numbers': pred_data.get('bonus_numbers', []),
-                                'confidence_score': pred_data.get('confidence_score', 0),
-                                'linked_draw_id': pred_data.get('linked_draw_id', None),
-                                'status': pred_data.get('status', 'pending'),
-                                'main_matches': pred_data.get('main_number_matches', 0),
-                                'bonus_matches': pred_data.get('bonus_number_matches', 0),
-                                'accuracy_percentage': pred_data.get('accuracy_percentage', 0.0),
-                                'prize_tier': pred_data.get('prize_tier', 'No Prize')
+                                'predicted_numbers': sorted(main_numbers) if main_numbers else [],
+                                'bonus_numbers': sorted(bonus_numbers) if bonus_numbers else [],
+                                'confidence_score': confidence,
+                                'linked_draw_id': linked_draw_id
                             }
-                            logger.info(f"PREDICTION DEBUG: Transformed {game_type} numbers: {predictions_data[game_type]['predicted_numbers']}")
-                        except Exception as e:
-                            logger.error(f"PREDICTION DEBUG: Error transforming {game_type}: {e}")
-                            predictions_data[game_type] = {
-                                'predicted_numbers': [],
-                                'bonus_numbers': [],
-                                'confidence_score': 0,
-                                'linked_draw_id': None,
-                                'status': 'error'
-                            }
+                            logger.info(f"PREDICTION DEBUG: Loaded {game_type} prediction: {main_numbers} + {bonus_numbers}")
+                            
             except Exception as e:
                 logger.error(f"Failed to fetch prediction data: {e}")
+                logger.error(traceback.format_exc())
                 predictions_data = {}
 
             logger.info(f"RESULTS DEBUG: Found {len(predictions_data)} prediction entries: {list(predictions_data.keys())}")
