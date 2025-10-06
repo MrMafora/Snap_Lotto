@@ -6,7 +6,7 @@ Advanced AI-powered lottery intelligence platform
 import os
 import logging
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file, make_response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -625,15 +625,26 @@ def index():
                 bonus_list = result.get_bonus_numbers_list()
                 logging.info(f"TEMPLATE DEBUG {result.lottery_type}: bonus='{result.bonus_numbers}' -> parsed={bonus_list}")
 
-        return render_template('index.html', 
+        response = make_response(render_template('index.html', 
                              results=unique_results,
                              unvalidated_predictions=unvalidated_predictions,
-                             total_numbers=0)
+                             total_numbers=0))
+        
+        # Add cache-control headers to prevent PWA from caching predictions
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
 
     except Exception as e:
         logger.error(f"Homepage error: {e}")
         logger.error(traceback.format_exc())
-        return render_template('index.html', results=[], top_numbers=[], total_numbers=0)
+        response = make_response(render_template('index.html', results=[], top_numbers=[], total_numbers=0))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
 @app.route('/results')
 @app.route('/results/<lottery_type>')

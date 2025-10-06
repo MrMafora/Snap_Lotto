@@ -43,6 +43,20 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
+  // NEVER cache the homepage - always fetch fresh for predictions
+  const url = new URL(event.request.url);
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(
+      fetch(event.request).catch(function() {
+        return new Response('Offline - Please reconnect to see latest predictions', {
+          status: 503,
+          headers: new Headers({'Content-Type': 'text/html'})
+        });
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(function(response) {
@@ -62,10 +76,6 @@ self.addEventListener('fetch', function(event) {
           .then(function(response) {
             if (response) {
               return response;
-            }
-            // If not in cache and it's a navigation request, return the homepage
-            if (event.request.mode === 'navigate') {
-              return caches.match('/');
             }
             return new Response('Offline - Content not available', {
               status: 503,
