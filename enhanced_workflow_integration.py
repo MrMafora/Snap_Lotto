@@ -219,6 +219,59 @@ class EnhancedWorkflowOrchestrator:
             logger.error(f"❌ Fresh prediction generation error: {e}")
             return {'success': False, 'count': 0, 'error': str(e)}
     
+    def handle_post_database_update(self) -> Dict:
+        """
+        Handle post-database-update workflow for ALL lottery types
+        This is used by the admin automation and scheduler after batch processing
+        
+        Returns:
+            Dict with predictions_validated and predictions_generated counts
+        """
+        logger.info("🔄 WORKFLOW: Starting batch post-update workflow for all lottery types")
+        
+        predictions_validated = 0
+        predictions_generated = 0
+        
+        try:
+            # Step 1: Validate all pending predictions against new results
+            logger.info("Step 1: Validating all pending predictions...")
+            try:
+                from prediction_validation_system import PredictionValidationSystem
+                validation_system = PredictionValidationSystem()
+                validation_result = validation_system.validate_all_pending_predictions()
+                predictions_validated = len(validation_result.get('validated_predictions', []))
+                logger.info(f"✅ Validated {predictions_validated} predictions")
+            except Exception as validation_error:
+                logger.error(f"❌ Validation error: {validation_error}")
+            
+            # Step 2: Generate fresh predictions for all lottery types
+            logger.info("Step 2: Generating fresh predictions for all lottery types...")
+            try:
+                from fresh_prediction_generator import generate_fresh_predictions_for_new_draws
+                success = generate_fresh_predictions_for_new_draws()
+                if success:
+                    predictions_generated = 1
+                    logger.info(f"✅ Fresh predictions generated successfully")
+                else:
+                    logger.warning(f"⚠️ Fresh prediction generation returned False")
+            except Exception as generation_error:
+                logger.error(f"❌ Prediction generation error: {generation_error}")
+            
+            return {
+                'predictions_validated': predictions_validated,
+                'predictions_generated': predictions_generated,
+                'success': True
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Batch workflow error: {e}")
+            return {
+                'predictions_validated': predictions_validated,
+                'predictions_generated': predictions_generated,
+                'success': False,
+                'error': str(e)
+            }
+    
     def get_workflow_statistics(self) -> Dict:
         """Get statistics about workflow execution"""
         return {
