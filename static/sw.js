@@ -1,7 +1,7 @@
 // Snap Lotto Service Worker  
-// Version 1.0.6 - CACHE BUST FIX - Force fresh predictions display
+// Version 1.0.7 - JavaScript Error Fix - Resolved syntax errors
 
-const CACHE_NAME = 'snap-lotto-v7-predictions-fix';
+const CACHE_NAME = 'snap-lotto-v8-js-fix';
 const urlsToCache = [
   '/',
   '/static/css/lottery.css',
