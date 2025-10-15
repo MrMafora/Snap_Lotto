@@ -45,7 +45,24 @@ def capture_all_lottery_screenshots():
         result = asyncio.run(robust_screenshot_capture())
         
         # Convert robust result format to expected automation format
-        if isinstance(result, dict):
+        # robust_screenshot_capture returns an integer (successful count)
+        if isinstance(result, int):
+            total_success = result
+            total_failed = 6 - result
+            total_processed = 6
+            
+            logger.info(f"Screenshot capture result: {total_success}/6 successful")
+            
+            return {
+                'total_success': total_success,
+                'total_failed': total_failed,
+                'total_processed': total_processed,
+                'successful': ['LOTTO', 'LOTTO_PLUS_1', 'LOTTO_PLUS_2', 'POWERBALL', 'POWERBALL_PLUS', 'DAILY_LOTTO'][:total_success],
+                'failed': [],
+                'details': f'Screenshot capture: {total_success}/6 successful'
+            }
+        elif isinstance(result, dict):
+            # Legacy dict format (for backwards compatibility)
             total_success = result.get('success_count', 0)
             total_failed = result.get('failed_count', 0) 
             total_processed = total_success + total_failed
@@ -59,7 +76,8 @@ def capture_all_lottery_screenshots():
                 'details': result
             }
         else:
-            # Fallback if result format is different
+            # Unexpected format
+            logger.error(f"Unexpected screenshot capture result format: {type(result)}, value: {result}")
             return {
                 'total_success': 0,
                 'total_failed': 6,
@@ -67,7 +85,7 @@ def capture_all_lottery_screenshots():
                 'successful': [],
                 'failed': ['All failed'],
                 'details': result,
-                'error': 'Unexpected result format'
+                'error': f'Unexpected result format: {type(result)}'
             }
             
     except Exception as e:
