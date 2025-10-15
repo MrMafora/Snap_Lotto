@@ -3096,6 +3096,49 @@ def run_complete_workflow_direct():
         'note': 'The automation is running in the background. Refresh the page in a few minutes to see new lottery results.'
     })
 
+@app.route('/admin/import-production-data')
+def import_production_data():
+    """Import development data into production database - ONE-TIME USE"""
+    # Manual auth check
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in'}), 401
+    if not current_user.is_admin:
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        logger.info("🚀 PRODUCTION IMPORT: Starting data import...")
+        
+        # Import data from the import script
+        import subprocess
+        result = subprocess.run(['python3', 'import_to_production.py'], 
+                              capture_output=True, text=True, input='yes\n')
+        
+        logger.info(f"Import stdout: {result.stdout}")
+        if result.stderr:
+            logger.error(f"Import stderr: {result.stderr}")
+        
+        if result.returncode == 0:
+            return jsonify({
+                'status': 'success',
+                'message': 'Production data imported successfully!',
+                'output': result.stdout
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Import failed',
+                'error': result.stderr
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Production import error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 @app.route('/admin/generate-predictions-only')
 @login_required
 def generate_predictions_only():
