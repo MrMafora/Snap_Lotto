@@ -3060,62 +3060,39 @@ def OLD_run_complete_automation_sync():
 @app.route('/admin/run-complete-workflow-direct')
 @login_required
 def run_complete_workflow_direct():
-    """Run Complete Workflow - Enhanced with New Orchestrator"""
+    """Run Complete Workflow - BACKGROUND VERSION TO PREVENT TIMEOUT"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
     
-    try:
-        from screenshot_capture import capture_all_lottery_screenshots
-        from ai_lottery_processor import process_screenshots_chunked
-        from enhanced_workflow_integration import get_workflow_orchestrator
-        
-        logger.info("Starting enhanced workflow via admin manual button")
-        
-        # Step 1: Capture fresh screenshots
-        logger.info("Step 1: Capturing screenshots...")
-        screenshot_results = capture_all_lottery_screenshots()
-        
-        # Step 2: Process screenshots with AI in small chunks (timeout-safe)
-        logger.info("Step 2: Processing screenshots with AI (chunked approach)...")
-        ai_results = process_screenshots_chunked(max_batch_size=6)
-        
-        # Step 3 & 4: Use enhanced workflow orchestrator for predictions
-        predictions_generated = 0
-        validations_completed = 0
-        if ai_results.get('total_success', 0) > 0:
-            logger.info("Step 3 & 4: Running enhanced workflow orchestrator...")
-            try:
-                orchestrator = get_workflow_orchestrator()
-                workflow_result = orchestrator.handle_post_database_update()
-                
-                predictions_generated = workflow_result.get('predictions_generated', 0)
-                validations_completed = workflow_result.get('predictions_validated', 0)
-                
-                logger.info(f"✅ Enhanced workflow: {validations_completed} validations + {predictions_generated} predictions")
-            except Exception as workflow_e:
-                logger.error(f"Enhanced workflow failed: {workflow_e}")
-        
-        workflow_results = {
-            'status': 'success',
-            'steps_completed': ['screenshot_capture', 'ai_processing_chunked', 'enhanced_workflow'],
-            'screenshot_results': screenshot_results,
-            'ai_results': ai_results,
-            'predictions_generated': predictions_generated,
-            'validations_completed': validations_completed,
-            'new_results': ai_results.get('total_success', 0),
-            'message': f'Enhanced workflow completed: {screenshot_results.get("total_success", 0)}/6 screenshots, {ai_results.get("total_success", 0)} AI processed, {validations_completed} validations + {predictions_generated} predictions'
-        }
-        
-        return jsonify(workflow_results)
-        
-    except Exception as e:
-        logger.error(f"Enhanced workflow error: {e}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        return jsonify({
-            'status': 'error',
-            'message': f'Workflow failed: {str(e)}'
-        }), 500
+    logger.info("🚀 MANUAL TRIGGER: Starting automation in BACKGROUND thread (timeout-safe)")
+    
+    # Run automation in background thread to prevent HTTP timeout
+    import threading
+    def run_automation_async():
+        try:
+            with app.app_context():
+                from scheduler_fix import run_automation_now_worker_safe
+                logger.info("Background automation thread started...")
+                run_automation_now_worker_safe()
+                logger.info("✅ Background automation completed successfully")
+        except Exception as e:
+            logger.error(f"❌ Background automation failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+    
+    # Start background thread
+    thread = threading.Thread(target=run_automation_async, daemon=True)
+    thread.start()
+    
+    # Return immediately to prevent timeout
+    return jsonify({
+        'status': 'success',
+        'message': 'Automation started in background! Check logs in 3-5 minutes.',
+        'background_mode': True,
+        'steps_completed': ['automation_scheduled'],
+        'estimated_completion': '3-5 minutes',
+        'note': 'The automation is running in the background. Refresh the page in a few minutes to see new lottery results.'
+    })
 
 @app.route('/admin/generate-predictions-only')
 @login_required
