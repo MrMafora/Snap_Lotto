@@ -3098,10 +3098,14 @@ def run_complete_workflow_direct():
 
 @app.route('/admin/import-production-data')
 def import_production_data():
-    """Import development data into production database - ONE-TIME USE - NO AUTH NEEDED"""
-    # Special endpoint - temporarily bypassing auth for production setup
-    # This allows importing data even when database is empty
-    logger.warning("⚠️ PRODUCTION IMPORT: Running without authentication for initial setup")
+    """Import development data into production database - ADMIN ONLY"""
+    # Re-secured: Authentication restored after initial setup
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Authentication required'}), 401
+    if not current_user.is_admin:
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    logger.info("🚀 PRODUCTION IMPORT: Admin-authorized data import")
     
     try:
         logger.info("🚀 PRODUCTION IMPORT: Starting data import...")
