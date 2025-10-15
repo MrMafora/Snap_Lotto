@@ -3058,11 +3058,13 @@ def OLD_run_complete_automation_sync():
         }), 500
 
 @app.route('/admin/run-complete-workflow-direct')
-@login_required
 def run_complete_workflow_direct():
     """Run Complete Workflow - BACKGROUND VERSION TO PREVENT TIMEOUT"""
+    # Manual auth check without redirect
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Not logged in', 'status': 'auth_required'}), 401
     if not current_user.is_admin:
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Unauthorized - Admin access required'}), 403
     
     logger.info("🚀 MANUAL TRIGGER: Starting automation in BACKGROUND thread (timeout-safe)")
     
