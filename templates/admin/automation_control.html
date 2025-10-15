@@ -719,6 +719,36 @@ async function runCompleteAutomation() {
         
         const result = await response.json();
         
+        // Check if automation is running in background mode
+        if (result.background_mode) {
+            // Background execution - show immediate feedback
+            currentStep.textContent = '✅ Automation Started Successfully!';
+            stepDetails.innerHTML = `
+                <div class="alert alert-success mt-3">
+                    <strong>🚀 Automation is running in the background!</strong><br>
+                    This process will take approximately ${result.estimated_completion || '3-5 minutes'}.<br><br>
+                    <strong>What's happening:</strong><br>
+                    • Clearing old screenshots<br>
+                    • Capturing 6 fresh lottery screenshots<br>
+                    • AI processing with Google Gemini 2.5 Pro<br>
+                    • Updating database with new results<br><br>
+                    <strong>📌 Refresh this page in 3-5 minutes to see the new lottery results!</strong>
+                </div>
+            `;
+            progressBar.style.width = '100%';
+            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+            progressBar.classList.add('bg-success');
+            
+            // Re-enable button after showing message
+            setTimeout(() => {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-play me-2"></i> Run Complete Workflow';
+            }, 3000);
+            
+            return; // Exit early for background mode
+        }
+        
+        // Original synchronous flow (fallback)
         // Simulate progress updates for better UX
         for (let i = 0; i < steps.length; i++) {
             const step = steps[i];
@@ -732,7 +762,7 @@ async function runCompleteAutomation() {
         if (result.status === 'success') {
             // Complete success
             currentStep.textContent = 'Automation completed successfully!';
-            stepDetails.textContent = `${result.new_results} new lottery results captured! Redirecting to homepage...`;
+            stepDetails.textContent = `${result.new_results || 0} new lottery results captured! Redirecting to homepage...`;
             progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
             progressBar.classList.add('bg-success');
             
