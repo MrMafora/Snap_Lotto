@@ -2904,20 +2904,40 @@ def run_automation_step():
 @app.route('/admin/run-complete-automation', methods=['POST'])
 @login_required
 def run_complete_automation():
-    """Run Complete Automation Workflow with Cleanup"""
+    """Run Complete Automation Workflow with Cleanup - Use Scheduler's Background Runner"""
     if not current_user.is_admin:
-        return redirect(url_for('index'))
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-    logger.info("Starting complete automation workflow with 4-step process")
+    logger.info("🚀 MANUAL TRIGGER: Starting automation via scheduler's worker-safe system")
 
+    # Use the scheduler's proven automation system in a background thread
+    import threading
+    def run_automation_async():
+        try:
+            from scheduler_fix import run_automation_now_worker_safe
+            logger.info("Background automation started...")
+            run_automation_now_worker_safe()
+            logger.info("Background automation completed")
+        except Exception as e:
+            logger.error(f"Background automation failed: {e}")
+    
+    # Start in background thread
+    thread = threading.Thread(target=run_automation_async, daemon=True)
+    thread.start()
+    
+    # Return immediately
+    return jsonify({
+        'success': True,
+        'status': 'started',
+        'message': 'Automation started in background! This will take 3-5 minutes. Refresh the page in a few minutes to see new lottery results.',
+        'estimated_time': '3-5 minutes'
+    })
+
+# OLD SYNCHRONOUS CODE BELOW - KEEPING FOR REFERENCE
+def OLD_run_complete_automation_sync():
+    deleted_count = 0
     try:
-        # STEP 1: Delete existing screenshots first
-        logger.info("Step 1: Cleaning up existing screenshots")
-        import glob
-        import os
-        existing_screenshots = glob.glob('/tmp/screenshots/*.png')
-        deleted_count = 0
-
+        existing_screenshots = []
         for screenshot in existing_screenshots:
             try:
                 os.remove(screenshot)
