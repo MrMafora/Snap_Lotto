@@ -707,6 +707,7 @@ async function runCompleteAutomation() {
         // Use GET request to bypass CSRF
         const response = await fetch('/admin/run-complete-workflow-direct?' + new Date().getTime(), {
             method: 'GET',
+            credentials: 'include',  // CRITICAL: Send session cookie
             headers: {
                 'Accept': 'application/json'
             }
