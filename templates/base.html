@@ -141,47 +141,15 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Wait a bit for Bootstrap to initialize
             setTimeout(function() {
-                // Handle user dropdown (if exists)
+                // Initialize Bootstrap dropdown for user menu (if exists)
                 const userDropdown = document.getElementById('userDropdown');
-                const userDropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
-
-                if (userDropdown && userDropdownMenu) {
-                    // Simple click handler for user dropdown
-                    userDropdown.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-
-                        // Toggle dropdown
-                        if (userDropdownMenu.style.display === 'block') {
-                            userDropdownMenu.style.display = 'none';
-                            this.setAttribute('aria-expanded', 'false');
-                        } else {
-                            userDropdownMenu.style.display = 'block';
-                            this.setAttribute('aria-expanded', 'true');
-
-                            // Position the dropdown
-                            const rect = this.getBoundingClientRect();
-                            userDropdownMenu.style.position = 'absolute';
-                            userDropdownMenu.style.top = (rect.bottom - rect.top) + 'px';
-                            userDropdownMenu.style.right = '0';
-                        }
-                    });
-
-                    // Close on click outside
-                    document.addEventListener('click', function(e) {
-                        if (!userDropdown.contains(e.target) && !userDropdownMenu.contains(e.target)) {
-                            userDropdownMenu.style.display = 'none';
-                            userDropdown.setAttribute('aria-expanded', 'false');
-                        }
-                    });
-
-                    // Close on item click
-                    userDropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
-                        item.addEventListener('click', function() {
-                            userDropdownMenu.style.display = 'none';
-                            userDropdown.setAttribute('aria-expanded', 'false');
-                        });
-                    });
+                if (userDropdown && window.bootstrap && window.bootstrap.Dropdown) {
+                    try {
+                        new window.bootstrap.Dropdown(userDropdown);
+                        console.log('User dropdown initialized successfully');
+                    } catch (error) {
+                        console.warn('Could not initialize user dropdown:', error);
+                    }
                 }
 
                 // Handle data filter dropdown
