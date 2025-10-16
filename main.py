@@ -35,6 +35,13 @@ app.jinja_env.auto_reload = True
 # Configure app settings directly from environment
 app.secret_key = os.environ.get("SESSION_SECRET")
 
+# Session configuration for Flask-Login
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_DURATION'] = 3600  # 1 hour
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+
 # Add connection timeout to DATABASE_URL for Cloud Run deployment safety
 database_url = os.environ.get("DATABASE_URL")
 if database_url and "connect_timeout" not in database_url:
@@ -1287,7 +1294,9 @@ def login():
             logger.info(f"LOGIN DEBUG: Password valid={password_valid}")
 
             if password_valid:
-                login_result = login_user(user)
+                # Set session to permanent and log in with remember=True
+                session.permanent = True
+                login_result = login_user(user, remember=True)
                 logger.info(f"LOGIN DEBUG: login_user result={login_result}")
                 flash('Login successful!', 'success')
 
