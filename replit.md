@@ -47,23 +47,42 @@ The platform features a modular codebase designed for enhanced security and perf
         -   Historical Analysis: 180-day analysis (up to 100 draws) with robust data parsing and frequency mapping
         -   Learning Framework: Hot number frequency patterns (50% weight), cold number mean reversion (12% weight), neutral statistical balance (38% weight)
         -   Confidence Scoring: 1.5-4.5% realistic evidence-based confidence using frequency patterns and data quality
-    -   **Phase 2 - Advanced Feature-Based ML Scoring (ENABLED)**: Enhanced prediction using machine learning feature engineering
+    -   **Phase 2 - Advanced Feature-Based ML Scoring + Cross-Game Intelligence (ENABLED)**: Enhanced prediction using machine learning feature engineering and cross-game insights
         -   **Advanced Feature Engineering**: 10+ engineered features per number including:
-            - Temporal decay (recent draws weighted higher using exponential decay) - 40% weight
-            - Recency scores (how recently each number appeared) - 20% weight  
-            - Short-term hot number detection - 15% weight
-            - Statistical momentum (trending patterns) - 15% weight
-            - Co-occurrence associations (numbers that appear together frequently) - 10% weight
+            - Temporal decay (recent draws weighted higher using exponential decay) - 35% weight
+            - Recency scores (how recently each number appeared) - 18% weight  
+            - Short-term hot number detection - 12% weight
+            - Statistical momentum (trending patterns) - 12% weight
+            - Co-occurrence associations (numbers that appear together frequently) - 8% weight
+            - Cross-game intelligence (hot numbers from related games) - 15% weight
             - Inter-draw gaps (drought cycles and historical gap patterns)
             - Seasonality (day-of-week, month, quarter frequency patterns)
             - Sequential dependencies (carry-over rates and consecutive appearances)
+        -   **Cross-Game Intelligence**: Shares insights between lottery games with the same number pool
+            - LOTTO Family: LOTTO, LOTTO PLUS 1, LOTTO PLUS 2 (all use 1-52)
+            - POWERBALL Family: POWERBALL, POWERBALL PLUS (main numbers 1-50)
+            - Frequency boost for numbers hot across entire game family
+            - More reliable pattern detection with larger combined dataset
         -   **Multi-Factor Scoring**: Numbers scored using weighted combination of all features, top scores selected
-        -   **Calibrated Confidence**: 2.5-4.0% realistic scores based on feature strength and consistency
+        -   **Dynamic Confidence Calibration**: Real-time adjustment based on historical prediction accuracy
+            - Tracks actual vs predicted accuracy for each lottery type
+            - Adjusts confidence scores to reduce overconfidence or underconfidence
+            - Quality scoring: excellent, good, fair, poor based on validation results
+            - Calibration metrics stored in database for continuous improvement
         -   **Smart Activation**: Uses Phase 2 when ≥30 historical draws available, falls back to Phase 1 otherwise
         -   **Bonus Number Prediction**: Frequency-weighted selection for POWERBALL games with intelligent hot number prioritization
-        -   **Future Enhancement Path**: Full ML ensemble (Random Forest, Gradient Boosting, Neural Network) infrastructure built and ready for activation when ≥100 draws available per game
+    -   **Phase 3 - Full ML Ensemble (ACTIVATED)**: Random Forest + Gradient Boosting + Neural Network voting system
+        -   **Three-Model Ensemble**:
+            - Random Forest (35% weight): Captures complex non-linear patterns and feature interactions
+            - Gradient Boosting (40% weight): Sequential learning with adaptive boosting for highest accuracy
+            - Neural Network (25% weight): Deep pattern recognition and temporal dependencies
+        -   **Ensemble Voting**: Weighted voting system combines all three models for robust predictions
+        -   **Dynamic Weight Adjustment**: Automatically adjusts model weights based on recent performance
+        -   **Cross-Validation**: 5-fold cross-validation ensures models generalize well
+        -   **Smart Activation**: Activates when ≥50 historical draws available, uses Phase 2 otherwise
+        -   **Confidence Calibration**: All ensemble predictions calibrated based on historical accuracy
     -   **Individual Game Rules**: LOTTO (6 main, 1-52), LOTTO PLUS 1/2 (6 main, 1-52), POWERBALL/PLUS (5 main 1-50 + 1 bonus 1-20), DAILY LOTTO (5 main, 1-36)
-    -   **ML Infrastructure**: Built on scikit-learn with training infrastructure, feature engineering, and backtesting capabilities ready for future full ML activation
+    -   **ML Infrastructure**: Built on scikit-learn with training infrastructure, feature engineering, cross-game intelligence, confidence calibration, and backtesting capabilities
 -   **Automation Workflow**: A robust 4-step daily automation process utilizing Playwright + Chromium for screenshot capture, AI processing, database updates, and frontend verification, with anti-detection measures. The scheduler uses the same proven system as the manual trigger for consistency. Predictions are automatically generated and validated as part of this workflow, linking predictions to specific future draw IDs.
 -   **Security**: Implemented CSRF protection, comprehensive form validation, secure session settings, rate limiting, input sanitization, centralized error handling, and admin-only access for sensitive AI features.
 -   **Performance**: Optimized database queries, critical performance indexes, and a cache manager. Decoupled card heights for optimal content display.
