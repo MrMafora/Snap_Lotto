@@ -178,6 +178,27 @@ def intelligent_number_selection(main_range, count, hot_numbers, cold_numbers, f
         # Fallback to random selection
         return sorted(random.sample(range(main_range[0], main_range[1] + 1), count))
 
+def cleanup_old_pending_predictions(cur, lottery_type):
+    """
+    Delete old pending predictions for a specific lottery type
+    Prevents accumulation of duplicate predictions
+    """
+    try:
+        cur.execute('''
+            DELETE FROM lottery_predictions 
+            WHERE game_type = %s 
+              AND validation_status = 'pending'
+        ''', (lottery_type,))
+        
+        deleted_count = cur.rowcount
+        if deleted_count > 0:
+            logger.info(f"🧹 Cleaned up {deleted_count} old pending prediction(s) for {lottery_type}")
+        
+        return deleted_count
+    except Exception as e:
+        logger.warning(f"⚠️ Error cleaning up old predictions for {lottery_type}: {e}")
+        return 0
+
 def generate_fresh_predictions_for_new_draws():
     """
     Automatically generate fresh predictions for newly completed draws
@@ -239,6 +260,9 @@ def generate_fresh_predictions_for_new_draws():
         # Generate fresh predictions for each missing next draw
         for lottery_type, completed_draw, draw_date, next_draw, next_draw_date in new_draws_needed:
             logger.info(f"🔄 Generating INTELLIGENT prediction for {lottery_type} Draw {next_draw} (after completed draw {completed_draw})")
+            
+            # Clean up any old pending predictions for this lottery type
+            cleanup_old_pending_predictions(cur, lottery_type)
             
             config = configs[lottery_type]
             
