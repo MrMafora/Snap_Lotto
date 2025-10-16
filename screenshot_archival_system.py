@@ -27,6 +27,44 @@ class ScreenshotArchivalSystem:
             os.makedirs(self.archive_base_path)
             logger.info(f"Created archive base path: {self.archive_base_path}")
     
+    def _check_if_already_archived(self, lottery_type: str, draw_number: int, draw_date: str) -> bool:
+        """
+        Check if a screenshot for this specific draw is already archived
+        
+        Args:
+            lottery_type: Type of lottery
+            draw_number: Draw number
+            draw_date: Draw date (YYYY-MM-DD format)
+            
+        Returns:
+            Boolean indicating if draw is already archived
+        """
+        try:
+            date_obj = datetime.strptime(draw_date, '%Y-%m-%d')
+            year = date_obj.strftime('%Y')
+            month = date_obj.strftime('%m')
+            day = date_obj.strftime('%d')
+            
+            archive_folder = os.path.join(self.archive_base_path, year, month, day)
+            
+            if not os.path.exists(archive_folder):
+                return False
+            
+            # Check for any existing archives matching lottery type and draw number
+            lottery_safe_name = lottery_type.replace(' ', '_').lower()
+            pattern = f"{draw_date}_{lottery_safe_name}_draw{draw_number}_"
+            
+            for filename in os.listdir(archive_folder):
+                if filename.startswith(pattern) and filename.endswith('.png'):
+                    logger.info(f"⏭️  Screenshot already archived for {lottery_type} Draw {draw_number}")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking archive status: {e}")
+            return False
+    
     def archive_successful_screenshot(
         self, 
         screenshot_path: str, 
@@ -55,6 +93,16 @@ class ScreenshotArchivalSystem:
                 return {
                     'success': False,
                     'error': f'Screenshot file not found: {screenshot_path}'
+                }
+            
+            # Check if this draw is already archived
+            if self._check_if_already_archived(lottery_type, draw_number, draw_date):
+                return {
+                    'success': True,
+                    'skipped': True,
+                    'reason': 'Draw already archived',
+                    'lottery_type': lottery_type,
+                    'draw_number': draw_number
                 }
             
             # Parse date to organize by year/month/day
