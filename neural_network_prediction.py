@@ -15,6 +15,12 @@ from datetime import datetime
 from ml_neural_ensemble import NeuralEnsemble
 from ml_training_infrastructure import LotteryMLTrainer
 from ml_feature_engineering import LotteryFeatureEngineer
+from cross_game_intelligence import (
+    get_cross_game_hot_numbers,
+    get_cross_game_frequency_boost,
+    get_cross_game_intelligence_summary
+)
+from confidence_calibration import calibrate_prediction_confidence, get_calibrator
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +29,78 @@ MODEL_CACHE = {}
 CACHE_TIMEOUT_HOURS = 24
 
 
+def full_ensemble_prediction(lottery_type: str, config: Dict, historical_df) -> Tuple[Optional[List[int]], Optional[List[int]], Optional[float], Optional[str]]:
+    """
+    FULL ML ENSEMBLE: Random Forest + Gradient Boosting + Neural Network
+    with weighted voting and dynamic model adjustment
+    """
+    try:
+        cache_key = f"{lottery_type}_ensemble_{datetime.now().strftime('%Y%m%d')}"
+        
+        # Check if ensemble is already trained today
+        ensemble = None
+        if cache_key in MODEL_CACHE:
+            cached_data = MODEL_CACHE[cache_key]
+            if (datetime.now() - cached_data['timestamp']).total_seconds() < CACHE_TIMEOUT_HOURS * 3600:
+                ensemble = cached_data['ensemble']
+                logger.info(f"✅ Using cached ensemble for {lottery_type}")
+        
+        # Train new ensemble if needed
+        if ensemble is None:
+            logger.info(f"🔧 Training fresh ensemble for {lottery_type}...")
+            ensemble = NeuralEnsemble(lottery_type, config)
+            
+            if not ensemble.train_models(historical_df):
+                logger.warning("Ensemble training failed, falling back to feature scoring")
+                return None, None, None, None
+            
+            # Cache the trained ensemble
+            MODEL_CACHE[cache_key] = {
+                'ensemble': ensemble,
+                'timestamp': datetime.now()
+            }
+            logger.info(f"✅ Ensemble trained and cached")
+        
+        # Generate prediction using ensemble
+        prediction = ensemble.predict(historical_df)
+        
+        if not prediction:
+            logger.warning("Ensemble prediction failed, falling back to feature scoring")
+            return None, None, None, None
+        
+        main_numbers = prediction['main_numbers']
+        confidence = prediction['confidence']
+        reasoning = prediction['reasoning']
+        
+        # Handle bonus numbers
+        bonus_numbers = []
+        if config.get('bonus_count', 0) > 0:
+            bonus_numbers = predict_bonus_numbers(
+                historical_df,
+                config['bonus_range'],
+                config['bonus_count']
+            )
+        
+        # ⭐ CALIBRATE confidence based on historical accuracy
+        calibrated_confidence = calibrate_prediction_confidence(lottery_type, confidence, 'ensemble')
+        
+        logger.info(f"✅ ENSEMBLE PREDICTION: {main_numbers} + {bonus_numbers}")
+        logger.info(f"   Raw confidence: {confidence}% → Calibrated: {calibrated_confidence}%")
+        logger.info(f"   Model predictions: {prediction['model_predictions']}")
+        
+        return main_numbers, bonus_numbers, calibrated_confidence, reasoning
+        
+    except Exception as e:
+        logger.error(f"Full ensemble error: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, None, None, None
+
+
 def neural_network_prediction(lottery_type: str, config: Dict) -> Tuple[Optional[List[int]], Optional[List[int]], Optional[float], Optional[str]]:
     """
-    Generate lottery prediction using advanced feature-based scoring
-    (Simplified from full ML ensemble to work with limited data)
+    Generate lottery prediction using FULL ML ENSEMBLE
+    (Random Forest + Gradient Boosting + Neural Network)
     
     Args:
         lottery_type: Type of lottery game
@@ -36,49 +110,67 @@ def neural_network_prediction(lottery_type: str, config: Dict) -> Tuple[Optional
         Tuple of (main_numbers, bonus_numbers, confidence, reasoning)
     """
     try:
-        logger.info(f"🧠 Phase 2 ML Prediction for {lottery_type}...")
+        logger.info(f"🧠 PHASE 2 FULL ENSEMBLE for {lottery_type}...")
         
         # Get historical data
         trainer = LotteryMLTrainer()
         historical_df = trainer.get_historical_draws(lottery_type, days_back=365)
         
-        # Smart gating: Need at least 30 draws
+        # Smart gating: Try full ensemble if we have enough data (50+ draws)
+        # Fall back to feature scoring if data is limited (30-49 draws)
         if historical_df.empty or len(historical_df) < 30:
             logger.info(f"📊 Insufficient data ({len(historical_df)} draws). Using Phase 1.")
             return None, None, None, None
         
+        # ACTIVATE FULL ML ENSEMBLE for sufficient data
+        if len(historical_df) >= 50:
+            logger.info(f"🚀 ACTIVATING FULL ML ENSEMBLE ({len(historical_df)} draws available)")
+            return full_ensemble_prediction(lottery_type, config, historical_df)
+        
         # Use advanced feature engineering to score numbers
+        logger.info(f"📊 Using Feature-Based Scoring + Cross-Game Intelligence ({len(historical_df)} draws)")
         from ml_feature_engineering import LotteryFeatureEngineer
         feature_engineer = LotteryFeatureEngineer(config)
         
         # Extract all advanced features
         features = feature_engineer.extract_all_features(historical_df)
         
-        # Score each number using multiple advanced features
+        # Get cross-game intelligence
+        cross_game_intel = get_cross_game_intelligence_summary(lottery_type)
+        cross_game_hot = set(cross_game_intel.get('cross_game_hot', []))
+        
+        # Score each number using multiple advanced features + cross-game intelligence
         number_scores = {}
         number_range = range(config['main_range'][0], config['main_range'][1] + 1)
         
         for num in number_range:
             score = 0.0
             
-            # Feature 1: Temporal frequency (40% weight)
-            score += features.get('temporal_main_freq', {}).get(num, 0) * 0.40
+            # Feature 1: Temporal frequency (35% weight - reduced to make room for cross-game)
+            score += features.get('temporal_main_freq', {}).get(num, 0) * 0.35
             
-            # Feature 2: Recency (20% weight)
-            score += features.get('recency_scores', {}).get(num, 0) * 0.20
+            # Feature 2: Recency (18% weight)
+            score += features.get('recency_scores', {}).get(num, 0) * 0.18
             
-            # Feature 3: Short-term hot status (15% weight)
+            # Feature 3: Short-term hot status (12% weight)
             if num in features.get('short_term_hot', []):
-                score += 0.15
+                score += 0.12
             
-            # Feature 4: Statistical momentum (15% weight)
+            # Feature 4: Statistical momentum (12% weight)
             momentum = features.get('momentum_score', {}).get(num, 0)
             if momentum > 0:
-                score += min(momentum * 3, 0.15)  # Cap at 15%
+                score += min(momentum * 3, 0.12)  # Cap at 12%
             
-            # Feature 5: Co-occurrence associations (10% weight)
+            # Feature 5: Co-occurrence associations (8% weight)
             associations = features.get('number_associations', {}).get(num, [])
-            score += min(len(associations) / 20.0, 0.10)  # Cap at 10%
+            score += min(len(associations) / 20.0, 0.08)  # Cap at 8%
+            
+            # ⭐ NEW: Feature 6: Cross-game intelligence (15% weight)
+            # If hot in related games (LOTTO PLUS when predicting LOTTO), boost it
+            if num in cross_game_hot:
+                cross_boost = get_cross_game_frequency_boost(lottery_type, num)
+                score += cross_boost
+                logger.debug(f"   Number {num}: +{cross_boost:.3f} from cross-game intelligence")
             
             number_scores[num] = score
         
@@ -98,13 +190,17 @@ def neural_network_prediction(lottery_type: str, config: Dict) -> Tuple[Optional
         confidence = base_confidence + score_bonus + consistency_bonus
         confidence = max(2.5, min(4.0, round(confidence, 1)))
         
+        # ⭐ CALIBRATE confidence based on historical accuracy
+        calibrated_confidence = calibrate_prediction_confidence(lottery_type, confidence, 'feature_based')
+        
         # Generate reasoning
         hot_count = sum(1 for n in main_numbers if n in features.get('short_term_hot', []))
+        cross_game_count = sum(1 for n in main_numbers if n in cross_game_hot)
         reasoning_parts = [
             f"Advanced ML feature scoring ({len(historical_df)} draws analyzed)",
-            f"Temporal decay weighting + momentum analysis",
-            f"{hot_count} hot numbers selected",
-            f"{confidence}% confidence from feature ensemble"
+            f"Temporal decay + momentum + cross-game intelligence",
+            f"{hot_count} hot numbers, {cross_game_count} cross-game hot",
+            f"{calibrated_confidence}% calibrated confidence"
         ]
         reasoning = " | ".join(reasoning_parts)
         
@@ -117,9 +213,11 @@ def neural_network_prediction(lottery_type: str, config: Dict) -> Tuple[Optional
                 config['bonus_count']
             )
         
-        logger.info(f"✅ ML Prediction: {main_numbers} + {bonus_numbers} ({confidence}%)")
+        logger.info(f"✅ ML Prediction: {main_numbers} + {bonus_numbers}")
+        logger.info(f"   Raw confidence: {confidence}% → Calibrated: {calibrated_confidence}%")
+        logger.info(f"   Cross-game intelligence: {cross_game_count} numbers boosted")
         
-        return main_numbers, bonus_numbers, confidence, reasoning
+        return main_numbers, bonus_numbers, calibrated_confidence, reasoning
         
     except Exception as e:
         logger.error(f"ML prediction error: {e}")
